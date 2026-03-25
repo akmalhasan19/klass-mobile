@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'config/theme.dart';
+import 'config/app_colors.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
@@ -13,7 +14,7 @@ void main() {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
       systemNavigationBarColor: Colors.transparent,
     ),
   );
@@ -33,7 +34,7 @@ class KlassApp extends StatelessWidget {
     return MaterialApp(
       title: 'Klass',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       home: const MainShell(),
     );
   }
@@ -78,7 +79,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1117),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       // `extendBody` agar konten bisa extend di belakang bottom nav
       extendBody: true,
       extendBodyBehindAppBar: true,
@@ -115,7 +116,7 @@ class _PlaceholderScreen extends StatelessWidget {
           Icon(
             Icons.construction_rounded,
             size: 48,
-            color: Colors.white.withValues(alpha: 0.3),
+            color: AppColors.textMuted.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -124,7 +125,7 @@ class _PlaceholderScreen extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: Colors.white.withValues(alpha: 0.4),
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -134,7 +135,7 @@ class _PlaceholderScreen extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.2),
+              color: AppColors.textMuted,
             ),
           ),
         ],

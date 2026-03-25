@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// Klass Dark Theme — mereplikasi dark mode dari Next.js Klass App.
+/// Klass Light Theme
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get darkTheme {
+  static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       fontFamily: 'Inter',
       scaffoldBackgroundColor: AppColors.background,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         onPrimary: Colors.white,
         surface: AppColors.surface,

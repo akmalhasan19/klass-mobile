@@ -14,20 +14,20 @@ class AppColors {
   static const Color brown = Color(0xFF794517);
   static const Color brownLight = Color(0xFF8B5E3C);
 
-  // Dark Theme Surface colors
-  static const Color background = Color(0xFF0F1117);
-  static const Color surface = Color(0xFF181B23);
-  static const Color surfaceLight = Color(0xFF1E222D);
-  static const Color surfaceCard = Color(0xFF232836);
+  // Light Theme Surface colors
+  static const Color background = Color(0xFFFFFFFF);
+  static const Color surface = Color(0xFFF8FAFC);
+  static const Color surfaceLight = Color(0xFFF1F5F9);
+  static const Color surfaceCard = Color(0xFFFFFFFF);
 
   // Text colors
-  static const Color textPrimary = Color(0xFFE8ECF4);
-  static const Color textSecondary = Color(0xFF94A3B8);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF334155);
   static const Color textMuted = Color(0xFF64748B);
 
   // Borders
-  static const Color border = Color(0xFF2A2F3C);
-  static const Color borderLight = Color(0xFF353A48);
+  static const Color border = Color(0xFFE2E8F0);
+  static const Color borderLight = Color(0xFFF1F5F9);
 
   // Accent colors
   static const Color amber = Color(0xFFF59E0B);

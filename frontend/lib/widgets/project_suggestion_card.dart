@@ -45,31 +45,33 @@ class ProjectSuggestionCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Preview image dengan aspect ratio dinamis
-            AspectRatio(
-              aspectRatio: _aspectRatio,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  color: AppColors.surfaceCard,
-                  border: Border.all(
-                    color: AppColors.border.withValues(alpha: 0.5),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+            Flexible(
+              child: AspectRatio(
+                aspectRatio: _aspectRatio,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    color: AppColors.surfaceCard,
+                    border: Border.all(
+                      color: AppColors.border.withValues(alpha: 0.5),
                     ),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: imageUrl != null
+                      ? Image.network(
+                          imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _placeholderIcon(),
+                        )
+                      : _placeholderIcon(),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: imageUrl != null
-                    ? Image.network(
-                        imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _placeholderIcon(),
-                      )
-                    : _placeholderIcon(),
               ),
             ),
             const SizedBox(height: 12),

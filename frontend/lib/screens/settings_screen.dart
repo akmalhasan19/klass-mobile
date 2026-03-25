@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
+import '../widgets/top_right_accent.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
@@ -24,7 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
+      value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
       child: Container(
@@ -32,37 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Stack(
           children: [
             // Top right accent shape
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 110,
-                height: 143,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(40),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: -60,
-                      right: -40,
-                      child: Container(
-                        width: 160,
-                        height: 140,
-                        decoration: const BoxDecoration(
-                          color: AppColors.brown,
-                          borderRadius:
-                              BorderRadius.all(Radius.elliptical(80, 70)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const TopRightAccent(),
 
             // Main content
             SingleChildScrollView(

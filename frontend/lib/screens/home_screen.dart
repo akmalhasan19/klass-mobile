@@ -69,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
+      value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
       child: Stack(
@@ -85,8 +85,8 @@ class _HomeScreenState extends State<HomeScreen> {
               // Sticky Header "Klass"
               SliverAppBar(
                 pinned: true,
-                expandedHeight: 80 + topPadding,
-                toolbarHeight: 60,
+                expandedHeight: 46, // Diperkecil agar hero text langsung naik ke pelukan status bar
+                toolbarHeight: 46,  // Diperkecil untuk meminimalisir gap atas
                 backgroundColor: _scrollOffset > 20
                     ? AppColors.background.withValues(alpha: 0.95)
                     : Colors.transparent,
@@ -98,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Text(
                     'Klass',
                     style: TextStyle(
-                      fontFamily: 'Inter',
+                      fontFamily: 'Mona_Sans',
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Text(
                             'Klass',
                             style: TextStyle(
-                              fontFamily: 'Inter',
+                              fontFamily: 'Mona_Sans',
                               fontSize: 51,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,

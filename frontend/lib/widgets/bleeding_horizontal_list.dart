@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_colors.dart';
 
 /// Widget list horizontal yang "bleed" menembus padding layar.
 /// Title/header tetap sejajar dengan padding general (horizontal: 24),
@@ -33,7 +34,7 @@ class BleedingHorizontalList extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 21,
               fontWeight: FontWeight.w900,
-              color: Color(0xFFE8ECF4),
+              color: AppColors.textPrimary,
             ),
           ),
         ),
