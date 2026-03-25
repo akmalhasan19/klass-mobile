@@ -4,7 +4,7 @@ import '../config/app_colors.dart';
 import '../widgets/prompt_input_widget.dart';
 import '../widgets/project_suggestion_card.dart';
 import '../widgets/bleeding_horizontal_list.dart';
-import '../widgets/top_right_accent.dart';
+import '../widgets/layer2_white_clipper.dart';
 
 /// Home Screen — mereplikasi halaman utama Klass.
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
@@ -66,7 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Kita gunakan topPadding agar hijau Layer 1 meliputi area status bar,
+    // plus tambahan sedikit agar garis luarnya terlihat jelas
     final topPadding = MediaQuery.of(context).padding.top;
+    final double topCutOffY = topPadding > 0 ? topPadding + 8.0 : 24.0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -74,149 +77,233 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Stack(
         children: [
-          // Background layers yang extend di belakang status bar
-          _buildBackgroundLayers(topPadding),
-
-          // Main scrollable content
-          CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Sticky Header "Klass"
-              SliverAppBar(
-                pinned: true,
-                expandedHeight: 46, // Diperkecil agar hero text langsung naik ke pelukan status bar
-                toolbarHeight: 46,  // Diperkecil untuk meminimalisir gap atas
-                backgroundColor: _scrollOffset > 20
-                    ? AppColors.background.withValues(alpha: 0.95)
-                    : Colors.transparent,
-                surfaceTintColor: Colors.transparent,
-                automaticallyImplyLeading: false,
-                title: AnimatedOpacity(
-                  opacity: _scrollOffset > 20 ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: const Text(
-                    'Klass',
-                    style: TextStyle(
-                      fontFamily: 'Mona_Sans',
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+          // -----------------------------------------------------------------
+          // Layer 1 (Back-most): Background Hijau Utama & Lingkaran Coklat
+          // -----------------------------------------------------------------
+          Positioned.fill(
+            child: Container(
+              color: AppColors.primary,
+              child: Stack(
+                children: [
+                   // Lingkaran coklat (yang tadinya di dalam TopRightAccent)
+                   Positioned(
+                      top: -60,
+                      right: -35,
+                      child: Container(
+                        width: 160,
+                        height: 140,
+                        decoration: const BoxDecoration(
+                          color: AppColors.brown,
+                          borderRadius: BorderRadius.all(Radius.elliptical(80, 70)),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(color: Colors.transparent),
-                ),
+                ],
               ),
+            ),
+          ),
 
-              // Content body
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Hero section: Logo + subtitle + prompt
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
+          // -----------------------------------------------------------------
+          // Layer 2a (Middle-Back): Background Putih dengan Custom Shape
+          // Bergerak naik tersinkronisasi dengan konten (scroll offset).
+          // -----------------------------------------------------------------
+          Positioned(
+             top: -_scrollOffset,
+             left: 0,
+             right: 0,
+             child: Column(
+               children: [
+                 ClipPath(
+                   clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
+                   child: Container(
+                     width: double.infinity,
+                     height: 250, // Cukup untuk mencakup tinggi blob (173px) + padding
+                     color: AppColors.background,
+                   ),
+                 ),
+                 // Memanjang jauh ke bawah untuk mengcover scroll panjang
+                 Container(
+                   width: double.infinity,
+                   height: 8000,
+                   color: AppColors.background,
+                 ),
+               ],
+             ),
+          ),
+
+          // -----------------------------------------------------------------
+          // Layer 2b (Middle-Front): Area Konten (Transparan)
+          // -----------------------------------------------------------------
+          Positioned.fill(
+             child: CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Sediakan sedikit spasi atas agar konten tidak 
+                  // menabrak batas atas (cutOffY) langsung
+                  SliverPadding(padding: EdgeInsets.only(top: topCutOffY)),
+
+                  // Sticky Header "Klass"
+                  SliverAppBar(
+                        pinned: true,
+                        expandedHeight: 46, 
+                        toolbarHeight: 46,  
+                        backgroundColor: Colors.transparent,
+                        surfaceTintColor: Colors.transparent,
+                        automaticallyImplyLeading: false,
+                        title: AnimatedOpacity(
+                          opacity: _scrollOffset > 20 ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: const Text(
                             'Klass',
                             style: TextStyle(
                               fontFamily: 'Mona_Sans',
-                              fontSize: 51,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Generate Topik Pembelajaran',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 21,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
-                              letterSpacing: 0.5,
+                        ),
+                        flexibleSpace: FlexibleSpaceBar(
+                          background: ClipRect(
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  top: -_scrollOffset,
+                                  left: 0,
+                                  right: 0,
+                                  child: AnimatedOpacity(
+                                    opacity: _scrollOffset > 20 ? 1.0 : 0.0,
+                                    duration: const Duration(milliseconds: 200),
+                                    child: Column(
+                                      children: [
+                                        ClipPath(
+                                          clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
+                                          child: Container(
+                                            width: double.infinity,
+                                            height: 250,
+                                            color: AppColors.background.withValues(alpha: 0.95),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: double.infinity,
+                                          height: 8000,
+                                          color: AppColors.background.withValues(alpha: 0.95),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          PromptInputWidget(
-                            onSubmit: (text) {
-                              debugPrint('Prompt submitted: $text');
-                            },
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-
-                    // Project Suggestions (horizontal scroll, bleed effect)
-                    BleedingHorizontalList(
-                      title: 'Project Suggestions',
-                      height: 260,
-                      children: projects.map((p) {
-                        return ProjectSuggestionCard(
-                          title: p['title']!,
-                          author: p['author']!,
-                          ratio: p['ratio']!,
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Top Freelancers (bleed effect)
-                    BleedingHorizontalList(
-                      title: 'Top Freelancers',
-                      height: 140,
-                      itemSpacing: 25,
-                      children: freelancers.map((f) {
-                        return _buildFreelancerCard(f);
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 120), // Space for bottom nav
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Top right accent shape (hijau + coklat + gear)
-          TopRightAccent(onSettingsTap: widget.onSettingsTap),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBackgroundLayers(double topPadding) {
-    return Positioned.fill(
-      child: Container(
-        decoration: const BoxDecoration(
-          // Layer 1: Background hitam utama
-          color: AppColors.background,
-        ),
-        child: Stack(
-          children: [
-            // Layer 2: Subtle gradient diagonal
-            Positioned(
-              top: -100,
-              left: -100,
-              child: Container(
-                width: 400,
-                height: 400,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppColors.primary.withValues(alpha: 0.06),
-                      Colors.transparent,
+        
+                      // Content body
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Hero section: Logo + subtitle + prompt
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Klass',
+                                    style: TextStyle(
+                                      fontFamily: 'Mona_Sans',
+                                      fontSize: 51,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Generate Topik Pembelajaran',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 21,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.textPrimary,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  PromptInputWidget(
+                                    onSubmit: (text) {
+                                      debugPrint('Prompt submitted: $text');
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+        
+                            // Project Suggestions 
+                            BleedingHorizontalList(
+                              title: 'Project Suggestions',
+                              height: 260,
+                              children: projects.map((p) {
+                                return ProjectSuggestionCard(
+                                  title: p['title']!,
+                                  author: p['author']!,
+                                  ratio: p['ratio']!,
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 32),
+        
+                            // Top Freelancers 
+                            BleedingHorizontalList(
+                              title: 'Top Freelancers',
+                              height: 140,
+                              itemSpacing: 25,
+                              children: freelancers.map((f) {
+                                return _buildFreelancerCard(f);
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 120), // Space for bottom nav
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+
+          // -----------------------------------------------------------------
+          // Layer 3 (Front): Settings Gear Icon diletakkan secara terpisah
+          // -----------------------------------------------------------------
+          if (widget.onSettingsTap != null)
+             Positioned(
+               top: 62,
+               right: 29, 
+               child: GestureDetector(
+                 onTap: widget.onSettingsTap,
+                 child: Container(
+                   width: 50,
+                   height: 50,
+                   decoration: BoxDecoration(
+                     color: Colors.white,
+                     shape: BoxShape.circle,
+                     boxShadow: [
+                       BoxShadow(
+                         color: Colors.black.withValues(alpha: 0.1),
+                         blurRadius: 10,
+                         offset: const Offset(0, 4),
+                       ),
+                     ],
+                   ),
+                   child: const Icon(
+                     Icons.settings_rounded,
+                     color: AppColors.textMuted,
+                     size: 24,
+                   ),
+                 ),
+               ),
+             ),
+        ],
       ),
     );
   }
@@ -266,3 +353,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
