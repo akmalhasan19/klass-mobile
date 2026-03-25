@@ -149,68 +149,78 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Sticky Header "Klass"
                   SliverAppBar(
                         pinned: true,
-                        expandedHeight: 46, 
-                        toolbarHeight: 46,  
+                        expandedHeight: 40, 
+                        toolbarHeight: 40,  
                         backgroundColor: Colors.transparent,
                         surfaceTintColor: Colors.transparent,
                         automaticallyImplyLeading: false,
-                        title: AnimatedBuilder(
-                          animation: _scrollController,
-                          builder: (context, child) {
-                            double offset = _scrollController.hasClients ? _scrollController.offset : 0;
-                            return AnimatedOpacity(
-                              opacity: offset > 20 ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 200),
-                              child: child,
-                            );
-                          },
-                          child: const Text(
-                            'Klass',
-                            style: TextStyle(
-                              fontFamily: 'Mona_Sans',
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
                         flexibleSpace: FlexibleSpaceBar(
                           background: ClipRect(
-                            child: AnimatedBuilder(
-                              animation: _scrollController,
-                              builder: (context, child) {
-                                double offset = _scrollController.hasClients ? _scrollController.offset : 0;
-                                if (offset < 0) offset = 0;
-                                return Transform.translate(
-                                  offset: Offset(0, -offset),
-                                  child: AnimatedOpacity(
-                                    opacity: offset > 20 ? 1.0 : 0.0,
-                                    duration: const Duration(milliseconds: 200),
-                                    child: child,
+                            child: Stack(
+                              children: [
+                                // Background Layer
+                                AnimatedBuilder(
+                                  animation: _scrollController,
+                                  builder: (context, child) {
+                                    double offset = _scrollController.hasClients ? _scrollController.offset : 0;
+                                    if (offset < 0) offset = 0;
+                                    return Transform.translate(
+                                      offset: Offset(0, -offset),
+                                      child: AnimatedOpacity(
+                                        opacity: offset > 20 ? 1.0 : 0.0,
+                                        duration: const Duration(milliseconds: 200),
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: OverflowBox(
+                                    maxHeight: double.infinity,
+                                    alignment: Alignment.topCenter,
+                                    child: Column(
+                                      children: [
+                                        ClipPath(
+                                          clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
+                                          child: Container(
+                                            width: double.infinity,
+                                            height: 250,
+                                            color: AppColors.background.withValues(alpha: 0.95),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: double.infinity,
+                                          height: 8000,
+                                          color: AppColors.background.withValues(alpha: 0.95),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                );
-                              },
-                              child: OverflowBox(
-                                maxHeight: double.infinity,
-                                alignment: Alignment.topCenter,
-                                child: Column(
-                                  children: [
-                                    ClipPath(
-                                      clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
-                                      child: Container(
-                                        width: double.infinity,
-                                        height: 250,
-                                        color: AppColors.background.withValues(alpha: 0.95),
+                                ),
+                                // Pinned "Klass" Text
+                                Positioned(
+                                  left: 16,
+                                  top: topPadding - 18,
+                                  child: AnimatedBuilder(
+                                    animation: _scrollController,
+                                    builder: (context, child) {
+                                      double offset = _scrollController.hasClients ? _scrollController.offset : 0;
+                                      return AnimatedOpacity(
+                                        opacity: offset > 20 ? 1.0 : 0.0,
+                                        duration: const Duration(milliseconds: 200),
+                                        child: child,
+                                      );
+                                    },
+                                    child: const Text(
+                                      'Klass',
+                                      style: TextStyle(
+                                        fontFamily: 'Mona_Sans',
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
                                       ),
                                     ),
-                                    Container(
-                                      width: double.infinity,
-                                      height: 8000,
-                                      color: AppColors.background.withValues(alpha: 0.95),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
@@ -227,16 +237,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Klass',
-                                    style: TextStyle(
-                                      fontFamily: 'Mona_Sans',
-                                      fontSize: 51,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textPrimary,
+                                  Transform.translate(
+                                    offset: const Offset(0, -40),
+                                    child: const Text(
+                                      'Klass',
+                                      style: TextStyle(
+                                        fontFamily: 'Mona_Sans',
+                                        fontSize: 51,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary,
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 0),
                                   const Text(
                                     'Generate Topik Pembelajaran',
                                     style: TextStyle(
