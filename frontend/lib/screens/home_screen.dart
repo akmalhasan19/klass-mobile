@@ -20,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
-  double _scrollOffset = 0;
 
   // Dummy data — mereplikasi projects dari Next.js
   final List<Map<String, String>> projects = [
@@ -47,16 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
     {'name': 'Budi O', 'role': 'Developer', 'rate': 55},
     {'name': 'Susi', 'role': 'English', 'rate': 30},
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(() {
-      setState(() {
-        _scrollOffset = _scrollController.offset;
-      });
-    });
-  }
 
   @override
   void dispose() {
@@ -108,27 +97,41 @@ class _HomeScreenState extends State<HomeScreen> {
           // Bergerak naik tersinkronisasi dengan konten (scroll offset).
           // -----------------------------------------------------------------
           Positioned(
-             top: -_scrollOffset,
-             left: 0,
-             right: 0,
-             child: Column(
-               children: [
-                 ClipPath(
-                   clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
-                   child: Container(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AnimatedBuilder(
+              animation: _scrollController,
+              builder: (context, child) {
+                double offset = 0;
+                if (_scrollController.hasClients) {
+                  offset = _scrollController.offset;
+                  if (offset < 0) offset = 0;
+                }
+                return Transform.translate(
+                  offset: Offset(0, -offset),
+                  child: child,
+                );
+              },
+              child: Column(
+                 children: [
+                   ClipPath(
+                     clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
+                     child: Container(
+                       width: double.infinity,
+                       height: 250, // Cukup untuk mencakup tinggi blob (173px) + padding
+                       color: AppColors.background,
+                     ),
+                   ),
+                   // Memanjang jauh ke bawah untuk mengcover scroll panjang
+                   Container(
                      width: double.infinity,
-                     height: 250, // Cukup untuk mencakup tinggi blob (173px) + padding
+                     height: 8000,
                      color: AppColors.background,
                    ),
-                 ),
-                 // Memanjang jauh ke bawah untuk mengcover scroll panjang
-                 Container(
-                   width: double.infinity,
-                   height: 8000,
-                   color: AppColors.background,
-                 ),
-               ],
-             ),
+                 ],
+               ),
+            ),
           ),
 
           // -----------------------------------------------------------------
@@ -151,9 +154,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         backgroundColor: Colors.transparent,
                         surfaceTintColor: Colors.transparent,
                         automaticallyImplyLeading: false,
-                        title: AnimatedOpacity(
-                          opacity: _scrollOffset > 20 ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 200),
+                        title: AnimatedBuilder(
+                          animation: _scrollController,
+                          builder: (context, child) {
+                            double offset = _scrollController.hasClients ? _scrollController.offset : 0;
+                            return AnimatedOpacity(
+                              opacity: offset > 20 ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: child,
+                            );
+                          },
                           child: const Text(
                             'Klass',
                             style: TextStyle(
@@ -166,35 +176,41 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         flexibleSpace: FlexibleSpaceBar(
                           background: ClipRect(
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                  top: -_scrollOffset,
-                                  left: 0,
-                                  right: 0,
+                            child: AnimatedBuilder(
+                              animation: _scrollController,
+                              builder: (context, child) {
+                                double offset = _scrollController.hasClients ? _scrollController.offset : 0;
+                                if (offset < 0) offset = 0;
+                                return Transform.translate(
+                                  offset: Offset(0, -offset),
                                   child: AnimatedOpacity(
-                                    opacity: _scrollOffset > 20 ? 1.0 : 0.0,
+                                    opacity: offset > 20 ? 1.0 : 0.0,
                                     duration: const Duration(milliseconds: 200),
-                                    child: Column(
-                                      children: [
-                                        ClipPath(
-                                          clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
-                                          child: Container(
-                                            width: double.infinity,
-                                            height: 250,
-                                            color: AppColors.background.withValues(alpha: 0.95),
-                                          ),
-                                        ),
-                                        Container(
-                                          width: double.infinity,
-                                          height: 8000,
-                                          color: AppColors.background.withValues(alpha: 0.95),
-                                        ),
-                                      ],
-                                    ),
+                                    child: child,
                                   ),
+                                );
+                              },
+                              child: OverflowBox(
+                                maxHeight: double.infinity,
+                                alignment: Alignment.topCenter,
+                                child: Column(
+                                  children: [
+                                    ClipPath(
+                                      clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
+                                      child: Container(
+                                        width: double.infinity,
+                                        height: 250,
+                                        color: AppColors.background.withValues(alpha: 0.95),
+                                      ),
+                                    ),
+                                    Container(
+                                      width: double.infinity,
+                                      height: 8000,
+                                      color: AppColors.background.withValues(alpha: 0.95),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -353,4 +369,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
