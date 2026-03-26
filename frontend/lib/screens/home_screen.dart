@@ -78,12 +78,15 @@ class _HomeScreenState extends State<HomeScreen> {
                    Positioned(
                       top: -60,
                       right: -35,
-                      child: Container(
-                        width: 160,
-                        height: 140,
-                        decoration: const BoxDecoration(
-                          color: AppColors.brown,
-                          borderRadius: BorderRadius.all(Radius.elliptical(80, 70)),
+                      child: Transform.rotate(
+                        angle: 28 * 3.1415926535 / 180,
+                        child: Container(
+                          width: 165,
+                          height: 120,
+                          decoration: const BoxDecoration(
+                            color: AppColors.brown,
+                            borderRadius: BorderRadius.all(Radius.elliptical(82.5, 60)),
+                          ),
                         ),
                       ),
                     ),
@@ -302,32 +305,46 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // -----------------------------------------------------------------
-          // Layer 3 (Front): Settings Gear Icon diletakkan secara terpisah
+          // Layer 3 (Front): Settings Gear Icon (ikut scroll dengan offset)
           // -----------------------------------------------------------------
           if (widget.onSettingsTap != null)
              Positioned(
-               top: 62,
-               right: 29, 
-               child: GestureDetector(
-                 onTap: widget.onSettingsTap,
-                 child: Container(
-                   width: 50,
-                   height: 50,
-                   decoration: BoxDecoration(
-                     color: Colors.white,
-                     shape: BoxShape.circle,
-                     boxShadow: [
-                       BoxShadow(
-                         color: Colors.black.withValues(alpha: 0.1),
-                         blurRadius: 10,
-                         offset: const Offset(0, 4),
-                       ),
-                     ],
-                   ),
-                   child: const Icon(
-                     Icons.settings_rounded,
-                     color: AppColors.textMuted,
-                     size: 24,
+               top: 76,
+               right: 36, 
+               child: AnimatedBuilder(
+                 animation: _scrollController,
+                 builder: (context, child) {
+                   double offset = 0;
+                   if (_scrollController.hasClients) {
+                     offset = _scrollController.offset;
+                     if (offset < 0) offset = 0;
+                   }
+                   return Transform.translate(
+                     offset: Offset(0, -offset),
+                     child: child,
+                   );
+                 },
+                 child: GestureDetector(
+                   onTap: widget.onSettingsTap,
+                   child: Container(
+                     width: 42,
+                     height: 42,
+                     decoration: BoxDecoration(
+                       color: Colors.white,
+                       shape: BoxShape.circle,
+                       boxShadow: [
+                         BoxShadow(
+                           color: Colors.black.withValues(alpha: 0.1),
+                           blurRadius: 10,
+                           offset: const Offset(0, 4),
+                         ),
+                       ],
+                     ),
+                     child: const Icon(
+                       Icons.settings_rounded,
+                       color: AppColors.textMuted,
+                       size: 30,
+                     ),
                    ),
                  ),
                ),

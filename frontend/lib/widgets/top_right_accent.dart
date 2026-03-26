@@ -73,12 +73,15 @@ class TopRightAccent extends StatelessWidget {
                     Positioned(
                       top: -60,
                       right: -35, // Posisinya digeser lebih ke kanan
-                      child: Container(
-                        width: 160,
-                        height: 140,
-                        decoration: const BoxDecoration(
-                          color: AppColors.brown,
-                          borderRadius: BorderRadius.all(Radius.elliptical(80, 70)),
+                      child: Transform.rotate(
+                        angle: 28 * 3.1415926535 / 180,
+                        child: Container(
+                          width: 165,
+                          height: 120,
+                          decoration: const BoxDecoration(
+                            color: AppColors.brown,
+                            borderRadius: BorderRadius.all(Radius.elliptical(82.5, 60)),
+                          ),
                         ),
                       ),
                     ),
@@ -110,7 +113,7 @@ class TopRightAccent extends StatelessWidget {
                     child: const Icon(
                       Icons.settings_rounded,
                       color: AppColors.textMuted,
-                      size: 24,
+                      size: 42,
                     ),
                   ),
                 ),
