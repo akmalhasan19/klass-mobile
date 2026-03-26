@@ -10,6 +10,7 @@ class ProjectSuggestionCard extends StatelessWidget {
   final String author;
   final String ratio; // 'ppt', 'infographic', 'square'
   final String? imageUrl;
+  final String? imagePath;
   final VoidCallback? onTap;
 
   const ProjectSuggestionCard({
@@ -18,6 +19,7 @@ class ProjectSuggestionCard extends StatelessWidget {
     required this.author,
     required this.ratio,
     this.imageUrl,
+    this.imagePath,
     this.onTap,
   });
 
@@ -64,13 +66,19 @@ class ProjectSuggestionCard extends StatelessWidget {
                     ],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: imageUrl != null
-                      ? Image.network(
-                          imageUrl!,
+                  child: imagePath != null
+                      ? Image.asset(
+                          imagePath!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) => _placeholderIcon(),
                         )
-                      : _placeholderIcon(),
+                      : imageUrl != null
+                          ? Image.network(
+                              imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => _placeholderIcon(),
+                            )
+                          : _placeholderIcon(),
                 ),
               ),
             ),
