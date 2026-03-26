@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
+import 'project_confirmation_bottom_sheet.dart';
 
 class ProjectDetailsBottomSheet extends StatelessWidget {
   final Map<String, dynamic> project;
@@ -181,8 +182,18 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Close modal, maybe open confirmation in future
+                            // Close current modal then open confirmation modal
                             Navigator.pop(context);
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) {
+                                return ProjectConfirmationBottomSheet(
+                                  project: project,
+                                );
+                              },
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),

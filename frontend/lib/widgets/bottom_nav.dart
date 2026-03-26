@@ -16,22 +16,23 @@ class BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      _NavItem(icon: Icons.home_rounded, label: 'Home'),
-      _NavItem(icon: Icons.search_rounded, label: 'Search'),
-      _NavItem(icon: Icons.bookmark_rounded, label: 'Bookmark'),
-      _NavItem(icon: Icons.person_rounded, label: 'Profile'),
+      _NavItem(iconPath: 'assets/icons/house.png', label: 'Home'),
+      _NavItem(iconPath: 'assets/icons/search.png', label: 'Search'),
+      _NavItem(iconPath: 'assets/icons/bookmark.png', label: 'Bookmark'),
+      _NavItem(iconPath: 'assets/icons/profile.png', label: 'Profile'),
     ];
 
     return Container(
       height: 90,
+      padding: const EdgeInsets.only(bottom: 8), // Replikasi pb-2
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.95),
+        color: AppColors.background, // Tidak transparan (solid)
         border: const Border(
-          top: BorderSide(color: AppColors.border, width: 0.5),
+          top: BorderSide(color: AppColors.borderLight, width: 0.5),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.04), // Replikasi shadow
             blurRadius: 20,
             offset: const Offset(0, -8),
           ),
@@ -58,28 +59,34 @@ class BottomNav extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 300),
               width: 52,
               height: 52,
               decoration: BoxDecoration(
                 color: isActive
-                    ? AppColors.primary.withValues(alpha: 0.1)
+                    ? AppColors.primary.withValues(alpha: 0.05) // bg-[#529F60]/5
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(
-                item.icon,
-                size: 26,
-                color: isActive ? AppColors.primary : AppColors.textMuted,
+              child: Opacity(
+                opacity: isActive ? 1.0 : 0.6, // opacity-60 alih-alih 100
+                child: Center(
+                  child: Image.asset(
+                    item.iconPath,
+                    width: 26, // Ukuran ikon dikurangi dari 34 ke 26
+                    height: 26,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 0),
             Text(
               item.label,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 11,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                 color: isActive ? AppColors.primary : AppColors.textMuted,
                 letterSpacing: 0.3,
               ),
@@ -87,8 +94,8 @@ class BottomNav extends StatelessWidget {
             if (isActive)
               Container(
                 margin: const EdgeInsets.only(top: 4),
-                width: 4,
-                height: 4,
+                width: 3, // w-[3px]
+                height: 3, // h-[3px]
                 decoration: const BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
@@ -102,8 +109,8 @@ class BottomNav extends StatelessWidget {
 }
 
 class _NavItem {
-  final IconData icon;
+  final String iconPath;
   final String label;
 
-  _NavItem({required this.icon, required this.label});
+  _NavItem({required this.iconPath, required this.label});
 }

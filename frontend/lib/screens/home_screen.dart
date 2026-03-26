@@ -34,6 +34,13 @@ class _HomeScreenState extends State<HomeScreen> {
       'description':
           'Explore the journey of Indonesia from the colonial era to the modern age. This project covers key historical events, the struggle for independence, and the development of the nation. Perfect for students and history enthusiasts looking to understand the roots of contemporary Indonesia.',
       'tags': ['History', 'Indonesia', 'Education'],
+      'type': 'PPT',
+      'modules': [
+        {'title': 'Masa Kolonial Belanda', 'detail': '2 Slides'},
+        {'title': 'Perjuangan Kemerdekaan', 'detail': '3 Slides'},
+        {'title': 'Era Orde Lama & Baru', 'detail': '2 Slides'},
+        {'title': 'Indonesia Modern', 'detail': '1 Slide'}
+      ],
     },
     {
       'title': 'Benefits of Healthy Eating',
@@ -43,6 +50,12 @@ class _HomeScreenState extends State<HomeScreen> {
       'description':
           'Discover how nutrition impacts your daily life and long-term health. This infographic project breaks down complex dietary concepts into easy-to-understand visuals, covering vitamins, minerals, and the importance of a balanced diet. Great for health campaigns and personal awareness.',
       'tags': ['Health', 'Nutrition', 'Design'],
+      'type': 'Infographic',
+      'modules': [
+        {'title': 'Pentingnya Makronutrien', 'detail': 'Karbo, Protein, Lemak'},
+        {'title': 'Mikronutrien Esensial', 'detail': 'Vitamin & Mineral'},
+        {'title': 'Dampak Jangka Panjang', 'detail': 'Pencegahan Penyakit'}
+      ],
     },
     {
       'title': 'Mathematics Quiz',
@@ -52,6 +65,12 @@ class _HomeScreenState extends State<HomeScreen> {
       'description':
           'A fun and interactive way to test your mathematical skills. Covering algebra, geometry, and basic arithmetic, this project is designed to challenge students and make learning math enjoyable through gamification and clear visual feedback.',
       'tags': ['Math', 'Quiz', 'Learning'],
+      'type': 'Quiz',
+      'modules': [
+        {'title': 'Aljabar Dasar', 'detail': '5 Pertanyaan'},
+        {'title': 'Geometri', 'detail': '4 Pertanyaan'},
+        {'title': 'Aritmatika Lanjut', 'detail': '6 Pertanyaan'}
+      ],
     },
   ];
 
