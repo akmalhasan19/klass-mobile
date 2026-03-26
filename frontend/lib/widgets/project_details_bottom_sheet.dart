@@ -3,8 +3,13 @@ import '../config/app_colors.dart';
 
 class ProjectDetailsBottomSheet extends StatelessWidget {
   final Map<String, dynamic> project;
+  final Function(String)? onRecreate;
 
-  const ProjectDetailsBottomSheet({super.key, required this.project});
+  const ProjectDetailsBottomSheet({
+    super.key,
+    required this.project,
+    this.onRecreate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -147,8 +152,10 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
+                            if (onRecreate != null) {
+                              onRecreate!(project['description'] ?? '');
+                            }
                             Navigator.pop(context);
-                            // TODO: Pass description to prompt input if needed
                           },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),

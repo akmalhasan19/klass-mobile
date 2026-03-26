@@ -6,11 +6,13 @@ import '../config/app_colors.dart';
 class PromptInputWidget extends StatefulWidget {
   final Function(String)? onSubmit;
   final String? initialValue;
+  final TextEditingController? controller;
 
   const PromptInputWidget({
     super.key,
     this.onSubmit,
     this.initialValue,
+    this.controller,
   });
 
   @override
@@ -19,16 +21,24 @@ class PromptInputWidget extends StatefulWidget {
 
 class _PromptInputWidgetState extends State<PromptInputWidget> {
   late final TextEditingController _controller;
+  bool _isLocalController = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+    } else {
+      _controller = TextEditingController(text: widget.initialValue);
+      _isLocalController = true;
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_isLocalController) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 

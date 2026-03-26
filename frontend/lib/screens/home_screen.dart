@@ -6,6 +6,7 @@ import '../widgets/project_suggestion_card.dart';
 import '../widgets/bleeding_horizontal_list.dart';
 import '../widgets/layer2_white_clipper.dart';
 import '../widgets/project_details_bottom_sheet.dart';
+import '../widgets/freelancer_details_bottom_sheet.dart';
 
 /// Home Screen — mereplikasi halaman utama Klass.
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
@@ -21,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _promptController = TextEditingController();
 
   // Dummy data — mereplikasi projects dari Next.js
   final List<Map<String, dynamic>> projects = [
@@ -56,36 +58,57 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, dynamic>> freelancers = [
     {
       'name': 'Agus S',
-      'role': 'Math Tutor',
-      'rate': 45,
       'avatarPath': 'assets/avatars/agus.png',
+      'role': 'Advanced Mathematics Tutor',
+      'rate': 45,
+      'skills': ['Calculus', 'SAT Prep', 'Algebra', 'Physics'],
+      'projects': 42,
+      'rating': 4.9,
+      'responseTime': '< 1h',
+      'verified': true,
       'scale': 1.1,
     },
     {
       'name': 'Ani A',
-      'role': 'Designer',
-      'rate': 35,
       'avatarPath': 'assets/avatars/ani.png',
+      'role': 'Creative Graphic Designer',
+      'rate': 35,
+      'skills': ['UI/UX', 'Illustration', 'Branding', 'Figma'],
+      'projects': 28,
+      'rating': 4.8,
+      'responseTime': '< 2h',
+      'verified': true,
       'scale': 1.1,
     },
     {
       'name': 'Budi O',
-      'role': 'Developer',
-      'rate': 55,
       'avatarPath': 'assets/avatars/budi.png',
+      'role': 'Fullstack Web Developer',
+      'rate': 55,
+      'skills': ['Next.js', 'TypeScript', 'Node.js', 'Tailwind'],
+      'projects': 56,
+      'rating': 5.0,
+      'responseTime': '< 30m',
+      'verified': true,
       'scale': 1.3,
     },
     {
       'name': 'Susi',
-      'role': 'English',
-      'rate': 30,
       'avatarPath': 'assets/avatars/susi.png',
+      'role': 'English Language Specialist',
+      'rate': 30,
+      'skills': ['IELTS', 'TOEFL', 'Business English', 'Writing'],
+      'projects': 34,
+      'rating': 4.7,
+      'responseTime': '< 3h',
+      'verified': false,
       'scale': 1.2,
     },
   ];
 
   @override
   void dispose() {
+    _promptController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -101,8 +124,12 @@ class _HomeScreenState extends State<HomeScreen> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Stack(
-        children: [
+      child: GestureDetector(
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
+        child: Stack(
+          children: [
           // -----------------------------------------------------------------
           // Layer 1 (Back-most): Background Hijau Utama & Lingkaran Coklat
           // -----------------------------------------------------------------
@@ -315,6 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 10),
                             PromptInputWidget(
+                              controller: _promptController,
                               onSubmit: (text) {
                                 debugPrint('Prompt submitted: $text');
                               },
@@ -339,7 +367,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 isScrollControlled: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (context) {
-                                  return ProjectDetailsBottomSheet(project: p);
+                                  return ProjectDetailsBottomSheet(
+                                    project: p,
+                                    onRecreate: (description) {
+                                      _promptController.text = description;
+                                    },
+                                  );
                                 },
                               );
                             },
@@ -412,14 +445,26 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
+      ),
     );
   }
 
   Widget _buildFreelancerCard(Map<String, dynamic> freelancer) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return FreelancerDetailsBottomSheet(freelancer: freelancer);
+          },
+        );
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
           width: 90,
           height: 90,
           decoration: BoxDecoration(
@@ -469,6 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
+      ),
     );
   }
 }
