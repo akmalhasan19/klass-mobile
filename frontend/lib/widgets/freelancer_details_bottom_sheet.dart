@@ -192,7 +192,7 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      shadowColor: const Color(0xFF529F60).withOpacity(0.3),
+                      shadowColor: const Color(0xFF529F60).withValues(alpha: 0.3),
                     ),
                     onPressed: () {
                       Navigator.pop(context);
@@ -273,7 +273,7 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(
           color: const Color(0xFFF8FCFA),
-          border: Border.all(color: const Color(0xFF529F60).withOpacity(0.1)),
+          border: Border.all(color: const Color(0xFF529F60).withValues(alpha: 0.1)),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(

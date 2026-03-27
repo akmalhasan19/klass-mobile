@@ -182,8 +182,7 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Close current modal then open confirmation modal
-                            Navigator.pop(context);
+                            // Open confirmation modal without closing current one
                             showModalBottomSheet(
                               context: context,
                               isScrollControlled: true,

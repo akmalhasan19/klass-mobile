@@ -28,9 +28,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Container(
-        color: AppColors.background,
-        child: Stack(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
           children: [
             // Top right accent shape
             const TopRightAccent(),
@@ -117,9 +117,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _creativityLabel('Precise', _creativity == 1),
-                            _creativityLabel('Balanced', _creativity == 2),
-                            _creativityLabel('Creative', _creativity == 3),
+                            _creativityLabel('Precise', _creativity.round() == 1),
+                            _creativityLabel('Balanced', _creativity.round() == 2),
+                            _creativityLabel('Creative', _creativity.round() == 3),
                           ],
                         ),
                       ],
