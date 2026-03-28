@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'config/theme.dart';
 import 'config/app_colors.dart';
+import 'config/theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/profile_screen.dart';
 import 'widgets/bottom_nav.dart';
 
 void main() {
@@ -90,7 +91,7 @@ class _MainShellState extends State<MainShell> {
           const SearchScreen(),
           // Placeholder tabs
           const _PlaceholderScreen(title: 'Bookmarks'),
-          const _PlaceholderScreen(title: 'Profile'),
+          const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: BottomNav(
