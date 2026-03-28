@@ -77,7 +77,7 @@ class _SearchScreenState extends State<SearchScreen> {
             // Sticky Header "Discover"
             SliverAppBar(
               pinned: true,
-              expandedHeight: 80 + topPadding,
+              expandedHeight: 140 + topPadding,
               toolbarHeight: 70,
               backgroundColor: _scrollOffset > 10
                   ? AppColors.background.withValues(alpha: 0.92)
@@ -86,7 +86,7 @@ class _SearchScreenState extends State<SearchScreen> {
               automaticallyImplyLeading: false,
               flexibleSpace: FlexibleSpaceBar(
                 background: Padding(
-                  padding: EdgeInsets.only(top: topPadding + 12, left: 24, right: 24),
+                  padding: EdgeInsets.only(top: topPadding + 12, left: 24, right: 24, bottom: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -123,13 +123,16 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
               title: _scrollOffset > 60
-                  ? const Text(
-                      'Discover',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                  ? const Padding(
+                      padding: EdgeInsets.only(top: 16.0),
+                      child: Text(
+                        'Discover',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     )
                   : null,
