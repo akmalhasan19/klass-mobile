@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
+import 'account_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,15 +11,12 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final ScrollController _scrollController = ScrollController();
-  double _scrollOffset = 0;
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      setState(() => _scrollOffset = _scrollController.offset);
-    });
+    _scrollController = ScrollController();
   }
 
   @override
@@ -41,74 +39,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           controller: _scrollController,
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // Sticky Header
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 80 + topPadding,
-              toolbarHeight: 70,
-              backgroundColor: _scrollOffset > 10
-                  ? AppColors.surface.withValues(alpha: 0.92)
-                  : Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              automaticallyImplyLeading: false,
-              title: Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.menu_rounded, color: AppColors.primary),
-                          onPressed: () {},
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Klass',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.primary,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const Text(
-                          'Profile',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.primaryLight, width: 2),
-                            image: const DecorationImage(
-                              image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuDOK4A4yJ_IAQTFYM65FS5qysA-Ze8gpF5PC5Kd23OdEVSHkkthQcvpJBV4lVDVj85TKqbmp46iXNZ4qZ4dfOo_U7Pb0LM4riCZnC7PFOCJPl0LD0ZEecztmuZUtMfmFLHX0SQiU35A_eTEGiT3R07XBgaUIIXh8KS3hTTtITBpPKNDXsbPXVfYCO37RoFVAoJfwKce40GGakyKCD5G1xEXYBs6_av6snLKYB4tkay06X4LnHJZwrJF1WUDok5G_XOY9XfUYmdBu2Bs'),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
 
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                padding: EdgeInsets.only(
+                  left: 24.0,
+                  right: 24.0,
+                  bottom: 16.0,
+                  top: 16.0 + topPadding,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -119,6 +58,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildAuthoringTools(),
                     const SizedBox(height: 32),
                     _buildTeachingMaterials(),
+                    const SizedBox(height: 32),
+                    _buildAccountSupport(),
                     const SizedBox(height: 120), // Bottom nav padding
                   ],
                 ),
@@ -641,6 +582,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAccountSupport() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Account & Support',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildAccountSupportItem(
+            icon: Icons.settings_rounded,
+            label: 'Account Settings',
+            isError: false,
+          ),
+          const SizedBox(height: 12),
+          _buildAccountSupportItem(
+            icon: Icons.help_rounded,
+            label: 'Help Center',
+            isError: false,
+          ),
+          const SizedBox(height: 12),
+          _buildAccountSupportItem(
+            icon: Icons.logout_rounded,
+            label: 'Logout',
+            isError: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountSupportItem({
+    required IconData icon,
+    required String label,
+    required bool isError,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (label == 'Account Settings') {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
+            ).then((_) {
+              if (mounted) {
+                _scrollController.animateTo(
+                  0,
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutQuart,
+                );
+              }
+            });
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isError
+                ? AppColors.red.withValues(alpha: 0.1)
+                : AppColors.surfaceCard,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isError
+                          ? AppColors.red.withValues(alpha: 0.1)
+                          : AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: isError ? AppColors.red : AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: isError ? AppColors.red : AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              if (!isError)
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textMuted,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
