@@ -55,8 +55,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 24),
                     _buildStatsBento(),
                     const SizedBox(height: 32),
-                    _buildAuthoringTools(),
-                    const SizedBox(height: 32),
                     _buildTeachingMaterials(),
                     const SizedBox(height: 32),
                     _buildAccountSupport(),
@@ -256,104 +254,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAuthoringTools() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Authoring Tools',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildToolButton(
-            icon: Icons.add_circle_rounded,
-            label: 'Create New Module',
-            isPrimary: true,
-          ),
-          const SizedBox(height: 12),
-          _buildToolButton(
-            icon: Icons.group_rounded,
-            label: 'Manage Students',
-            isPrimary: false,
-          ),
-          const SizedBox(height: 12),
-          _buildToolButton(
-            icon: Icons.leaderboard_rounded,
-            label: 'Analytics Dashboard',
-            isPrimary: false,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolButton({
-    required IconData icon,
-    required String label,
-    required bool isPrimary,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isPrimary ? AppColors.primary : AppColors.surfaceLight,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    icon,
-                    color: isPrimary ? Colors.white : AppColors.textSecondary,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: isPrimary ? Colors.white : AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: isPrimary ? Colors.white : AppColors.textMuted,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildTeachingMaterials() {
     return Column(

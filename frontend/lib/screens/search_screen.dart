@@ -14,7 +14,6 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   String _activeCategory = 'All';
   final ScrollController _scrollController = ScrollController();
-  double _scrollOffset = 0;
 
   final List<Map<String, dynamic>> categories = [
     {'name': 'All', 'icon': Icons.grid_view_rounded},
@@ -49,9 +48,6 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      setState(() => _scrollOffset = _scrollController.offset);
-    });
   }
 
   @override
@@ -68,135 +64,152 @@ class _SearchScreenState extends State<SearchScreen> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Container(
-        color: AppColors.background,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Sticky Header "Discover"
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 140 + topPadding,
-              toolbarHeight: 70,
-              backgroundColor: _scrollOffset > 10
-                  ? AppColors.background.withValues(alpha: 0.92)
-                  : Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              automaticallyImplyLeading: false,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Padding(
-                  padding: EdgeInsets.only(top: topPadding + 12, left: 24, right: 24, bottom: 20),
+      child: GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          color: AppColors.background,
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Sticky Header "Discover"
+              AnimatedBuilder(
+                animation: _scrollController,
+                builder: (context, child) {
+                  final offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+                  final headerOpacity = (offset / 60).clamp(0.0, 1.0);
+                  
+                  return SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 140 + topPadding,
+                    toolbarHeight: 70,
+                    backgroundColor: AppColors.background.withValues(
+                      alpha: headerOpacity * 0.92,
+                    ),
+                    surfaceTintColor: Colors.transparent,
+                    automaticallyImplyLeading: false,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Padding(
+                        padding: EdgeInsets.only(top: topPadding + 12, left: 24, right: 24, bottom: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Opacity(
+                              opacity: (1 - headerOpacity * 1.5).clamp(0.0, 1.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Discover',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.textPrimary,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'EXPLORE TEACHERS',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textMuted,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _buildFilterButton(),
+                          ],
+                        ),
+                      ),
+                    ),
+                    title: AnimatedOpacity(
+                      opacity: headerOpacity > 0.8 ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Padding(
+                        padding: EdgeInsets.only(top: 16.0),
+                        child: Text(
+                          'Discover',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(56),
+                      child: _buildCategoryPills(),
+                    ),
+                  );
+                },
+              ),
+
+              // Search stats
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                sliver: SliverToBoxAdapter(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Discover',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'EXPLORE TEACHERS',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textMuted,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ],
-                      ),
-                      _buildFilterButton(),
-                    ],
-                  ),
-                ),
-              ),
-              title: _scrollOffset > 60
-                  ? const Padding(
-                      padding: EdgeInsets.only(top: 16.0),
-                      child: Text(
-                        'Discover',
+                      const Text(
+                        'Recommended For You',
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 26,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                    )
-                  : null,
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(56),
-                child: _buildCategoryPills(),
-              ),
-            ),
-
-            // Search stats
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-              sliver: SliverToBoxAdapter(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Recommended For You',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                      Text(
+                        'View All',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'View All',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // Teacher cards
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index < teachers.length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _buildTeacherCard(teachers[index]),
-                      );
-                    }
-                    // Skeleton placeholder
-                    return _buildSkeletonCard();
-                  },
-                  childCount: teachers.length + 1,
+              // Teacher cards
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      if (index < teachers.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _buildTeacherCard(teachers[index]),
+                        );
+                      }
+                      // Skeleton placeholder
+                      return _buildSkeletonCard();
+                    },
+                    childCount: teachers.length + 1,
+                  ),
                 ),
               ),
-            ),
 
-            // Bottom spacing
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 120),
-            ),
-          ],
+              // Bottom spacing
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 120),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -286,255 +299,264 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildTeacherCard(Map<String, dynamic> teacher) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // Future details navigation
+        },
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
-              Stack(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      color: AppColors.surfaceLight,
-                      border: Border.all(color: AppColors.border, width: 2),
-                    ),
-                    child: Center(
-                      child: Text(
-                        teacher['name'][0],
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (teacher['online'] == true)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 16,
-                        height: 16,
+                  // Avatar
+                  Stack(
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.surfaceCard, width: 2),
+                          borderRadius: BorderRadius.circular(22),
+                          color: AppColors.surfaceLight,
+                          border: Border.all(color: AppColors.border, width: 2),
                         ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
+                        child: Center(
                           child: Text(
-                            teacher['name'],
+                            teacher['name'][0],
                             style: const TextStyle(
                               fontFamily: 'Inter',
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0x1AF59E0B),
-                            borderRadius: BorderRadius.circular(12),
+                      ),
+                      if (teacher['online'] == true)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.surfaceCard, width: 2),
+                            ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star_rounded,
-                                  size: 14, color: AppColors.amber),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${teacher['rating']}',
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                teacher['name'],
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
-                                  fontSize: 12,
+                                  fontSize: 17,
                                   fontWeight: FontWeight.w900,
-                                  color: AppColors.amber,
+                                  color: AppColors.textPrimary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0x1AF59E0B),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.star_rounded,
+                                      size: 14, color: AppColors.amber),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${teacher['rating']}',
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.amber,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          teacher['role'],
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textMuted,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Tags
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: (teacher['tags'] as List<String>).map((tag) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceLight,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Text(
+                      tag.toUpperCase(),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textSecondary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              // Description
+              Text(
+                teacher['description'],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Action row
+              Container(
+                padding: const EdgeInsets.only(top: 16),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: AppColors.border, width: 0.5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Student avatars
+                    Row(
+                      children: [
+                        ...List.generate(
+                          3,
+                          (i) => Container(
+                            width: 28,
+                            height: 28,
+                            margin: const EdgeInsets.only(left: 0),
+                            transform: Matrix4.translationValues(i * -8.0, 0, 0),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.surfaceLight,
+                              border: Border.all(color: AppColors.surfaceCard, width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${i + 1}',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textMuted,
                                 ),
                               ),
-                            ],
+                            ),
+                          ),
+                        ),
+                        Transform.translate(
+                          offset: const Offset(-16, 0),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.surfaceLight,
+                              border: Border.all(color: AppColors.surfaceCard, width: 2),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                '12+',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      teacher['role'],
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textMuted,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Text(
+                          'View Profile',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Tags
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: (teacher['tags'] as List<String>).map((tag) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Text(
-                  tag.toUpperCase(),
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-          // Description
-          Text(
-            teacher['description'],
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Action row
-          Container(
-            padding: const EdgeInsets.only(top: 16),
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: AppColors.border, width: 0.5),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Student avatars
-                Row(
-                  children: [
-                    ...List.generate(
-                      3,
-                      (i) => Container(
-                        width: 28,
-                        height: 28,
-                        margin: EdgeInsets.only(left: i > 0 ? 0 : 0),
-                        transform: Matrix4.translationValues(i * -8.0, 0, 0),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.surfaceLight,
-                          border: Border.all(color: AppColors.surfaceCard, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Transform.translate(
-                      offset: const Offset(-16, 0),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.surfaceLight,
-                          border: Border.all(color: AppColors.surfaceCard, width: 2),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '12+',
-                            style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'View Profile',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

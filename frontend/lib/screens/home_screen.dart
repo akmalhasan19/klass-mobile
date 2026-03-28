@@ -201,24 +201,58 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: child,
                 );
               },
-              child: Column(
-                children: [
-                  ClipPath(
-                    clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
-                    child: Container(
-                      width: double.infinity,
-                      height:
-                          250, // Cukup untuk mencakup tinggi blob (173px) + padding
-                      color: AppColors.background,
-                    ),
+              child: Hero(
+                tag: 'layer2_bg',
+                flightShuttleBuilder: (
+                  BuildContext flightContext,
+                  Animation<double> animation,
+                  HeroFlightDirection flightDirection,
+                  BuildContext fromHeroContext,
+                  BuildContext toHeroContext,
+                ) {
+                  return AnimatedBuilder(
+                    animation: animation,
+                    builder: (context, child) {
+                      final currentCutOff = Tween<double>(
+                        begin: flightDirection == HeroFlightDirection.push ? topCutOffY : 0.0,
+                        end: flightDirection == HeroFlightDirection.push ? 0.0 : topCutOffY,
+                      ).evaluate(animation);
+                      return Material(
+                        color: Colors.transparent,
+                        child: ClipPath(
+                          clipper: Layer2WhiteClipper(cutOffY: currentCutOff),
+                          child: Container(
+                            width: double.infinity,
+                            height: double.infinity,
+                            color: AppColors.background,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    children: [
+                      ClipPath(
+                        clipper: Layer2WhiteClipper(cutOffY: topCutOffY),
+                        child: Container(
+                          width: double.infinity,
+                          height:
+                              250, // Cukup untuk mencakup tinggi blob (173px) + padding
+                          color: AppColors.background,
+                        ),
+                      ),
+                      // Memanjang jauh ke bawah untuk mengcover scroll panjang
+                      Container(
+                        width: double.infinity,
+                        height: 8000,
+                        color: AppColors.background,
+                      ),
+                    ],
                   ),
-                  // Memanjang jauh ke bawah untuk mengcover scroll panjang
-                  Container(
-                    width: double.infinity,
-                    height: 8000,
-                    color: AppColors.background,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -227,7 +261,17 @@ class _HomeScreenState extends State<HomeScreen> {
           // Layer 2b (Middle-Front): Area Konten (Transparan)
           // -----------------------------------------------------------------
           Positioned.fill(
-            child: CustomScrollView(
+            child: AnimatedBuilder(
+              animation: ModalRoute.of(context)?.secondaryAnimation ?? const AlwaysStoppedAnimation(0.0),
+              builder: (context, child) {
+                final val = ModalRoute.of(context)?.secondaryAnimation?.value ?? 0.0;
+                final opacity = val < 0.5 ? 1.0 - (val * 2) : 0.0;
+                return Opacity(
+                  opacity: opacity.clamp(0.0, 1.0),
+                  child: child,
+                );
+              },
+              child: CustomScrollView(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               slivers: [
@@ -415,6 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+            ),
           ),
 
           // -----------------------------------------------------------------
@@ -425,38 +470,49 @@ class _HomeScreenState extends State<HomeScreen> {
               top: 76,
               right: 36,
               child: AnimatedBuilder(
-                animation: _scrollController,
+                animation: ModalRoute.of(context)?.secondaryAnimation ?? const AlwaysStoppedAnimation(0.0),
                 builder: (context, child) {
-                  double offset = 0;
-                  if (_scrollController.hasClients) {
-                    offset = _scrollController.offset;
-                    if (offset < 0) offset = 0;
-                  }
-                  return Transform.translate(
-                    offset: Offset(0, -offset),
+                  final val = ModalRoute.of(context)?.secondaryAnimation?.value ?? 0.0;
+                  final opacity = val < 0.5 ? 1.0 - (val * 2) : 0.0;
+                  return Opacity(
+                    opacity: opacity.clamp(0.0, 1.0),
                     child: child,
                   );
                 },
-                child: GestureDetector(
-                  onTap: widget.onSettingsTap,
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.settings_rounded,
-                      color: AppColors.textMuted,
-                      size: 30,
+                child: AnimatedBuilder(
+                  animation: _scrollController,
+                  builder: (context, child) {
+                    double offset = 0;
+                    if (_scrollController.hasClients) {
+                      offset = _scrollController.offset;
+                      if (offset < 0) offset = 0;
+                    }
+                    return Transform.translate(
+                      offset: Offset(0, -offset),
+                      child: child,
+                    );
+                  },
+                  child: GestureDetector(
+                    onTap: widget.onSettingsTap,
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.settings_rounded,
+                        color: AppColors.textMuted,
+                        size: 30,
+                      ),
                     ),
                   ),
                 ),

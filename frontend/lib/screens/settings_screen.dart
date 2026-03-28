@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
 import '../widgets/top_right_accent.dart';
+import '../widgets/layer2_white_clipper.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
@@ -29,19 +30,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         body: Stack(
           children: [
-            // Top right accent shape
+            // Top right accent shape (Layer 1, will be covered by Layer 2)
             const TopRightAccent(),
 
+            // Layer 2 background expanding from Hero
+            Positioned.fill(
+              child: Hero(
+                tag: 'layer2_bg',
+                flightShuttleBuilder: (
+                  BuildContext flightContext,
+                  Animation<double> animation,
+                  HeroFlightDirection flightDirection,
+                  BuildContext fromHeroContext,
+                  BuildContext toHeroContext,
+                ) {
+                  final topCutOffY = topPadding > 0 ? topPadding + 8.0 : 24.0;
+                  return AnimatedBuilder(
+                    animation: animation,
+                    builder: (context, child) {
+                      final currentCutOff = Tween<double>(
+                        begin: flightDirection == HeroFlightDirection.push ? topCutOffY : 0.0,
+                        end: flightDirection == HeroFlightDirection.push ? 0.0 : topCutOffY,
+                      ).evaluate(animation);
+                      return Material(
+                        color: Colors.transparent,
+                        child: ClipPath(
+                          clipper: Layer2WhiteClipper(cutOffY: currentCutOff),
+                          child: Container(
+                            width: double.infinity,
+                            height: double.infinity,
+                            color: AppColors.background,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: Material(
+                  color: Colors.transparent,
+                  child: ClipPath(
+                    clipper: Layer2WhiteClipper(cutOffY: 0.0),
+                    child: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: AppColors.background,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
             // Main content
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: topPadding + 12),
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: ModalRoute.of(context)?.animation ?? const AlwaysStoppedAnimation(1.0),
+                builder: (context, child) {
+                  final val = ModalRoute.of(context)?.animation?.value ?? 1.0;
+                  final opacity = val < 0.5 ? 0.0 : (val - 0.5) * 2;
+                  return Opacity(
+                    opacity: opacity.clamp(0.0, 1.0),
+                    child: child,
+                  );
+                },
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: topPadding + 12),
                   // Header
                   Padding(
                     padding:
@@ -441,6 +500,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 120),
                 ],
               ),
+            ),
+            ),
             ),
           ],
         ),

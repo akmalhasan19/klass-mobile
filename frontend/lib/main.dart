@@ -56,23 +56,13 @@ class _MainShellState extends State<MainShell> {
   void _navigateToSettings() {
     Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (_, _, _) => const SettingsScreen(),
-        transitionsBuilder: (_, animation, _, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.05, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              )),
-              child: child,
-            ),
-          );
+        opaque: false, // Ensures Home is visible beneath during transition
+        transitionDuration: const Duration(milliseconds: 700),
+        reverseTransitionDuration: const Duration(milliseconds: 700),
+        pageBuilder: (_, __, ___) => const SettingsScreen(),
+        transitionsBuilder: (_, animation, __, child) {
+          return child;
         },
-        transitionDuration: const Duration(milliseconds: 300),
       ),
     );
   }
@@ -94,9 +84,20 @@ class _MainShellState extends State<MainShell> {
           const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: BottomNav(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+      bottomNavigationBar: AnimatedBuilder(
+        animation: ModalRoute.of(context)?.secondaryAnimation ?? const AlwaysStoppedAnimation(0.0),
+        builder: (context, child) {
+          final val = ModalRoute.of(context)?.secondaryAnimation?.value ?? 0.0;
+          final opacity = val < 0.5 ? 1.0 - (val * 2) : 0.0;
+          return Opacity(
+            opacity: opacity,
+            child: child,
+          );
+        },
+        child: BottomNav(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+        ),
       ),
     );
   }
