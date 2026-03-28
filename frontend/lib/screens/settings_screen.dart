@@ -52,8 +52,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     animation: animation,
                     builder: (context, child) {
                       final currentCutOff = Tween<double>(
-                        begin: flightDirection == HeroFlightDirection.push ? topCutOffY : 0.0,
-                        end: flightDirection == HeroFlightDirection.push ? 0.0 : topCutOffY,
+                        begin: topCutOffY,
+                        end: 0.0,
                       ).evaluate(animation);
                       return Material(
                         color: Colors.transparent,
