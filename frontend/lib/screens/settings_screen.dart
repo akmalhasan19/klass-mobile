@@ -229,16 +229,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _buildLabel('LEARNING STYLES'),
                         const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 10,
-                          children: ['Visual', 'Hands-on', 'Reading']
-                              .map((style) => _buildChip(
-                                    label: style,
-                                    isActive: _learningStyle == style,
-                                    onTap: () =>
-                                        setState(() => _learningStyle = style),
-                                  ))
-                              .toList(),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            alignment: WrapAlignment.center,
+                            children: ['Visual', 'Hands-on', 'Reading']
+                                .map((style) => _buildChip(
+                                      label: style,
+                                      isActive: _learningStyle == style,
+                                      onTap: () =>
+                                          setState(() => _learningStyle = style),
+                                    ))
+                                .toList(),
+                          ),
                         ),
                       ],
                     ),
@@ -252,17 +257,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _buildLabel('DEFAULT PROJECT COMPLEXITY'),
                         const SizedBox(height: 16),
-                        Row(
-                          children: ['Beginner', 'Intermediate', 'Advanced']
-                              .map((lvl) => Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(
-                                        right: lvl != 'Advanced' ? 8 : 0,
-                                      ),
-                                      child: _buildComplexityButton(lvl),
-                                    ),
-                                  ))
-                              .toList(),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            alignment: WrapAlignment.center,
+                            children: ['Beginner', 'Intermediate', 'Advanced']
+                                .map((lvl) => _buildComplexityButton(lvl))
+                                .toList(),
+                          ),
                         ),
                       ],
                     ),
@@ -674,7 +678,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: () => setState(() => _complexity = level),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: isActive
               ? AppColors.primary.withValues(alpha: 0.08)
