@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
 import '../widgets/top_right_accent.dart';
 import '../widgets/layer2_white_clipper.dart';
+import '../config/animations.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
@@ -20,49 +21,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _complexity = 'Intermediate';
   bool _isDarkMode = true;
   bool _autoSave = true;
-
-  Widget _contentFlightShuttleBuilder(
-    BuildContext flightContext,
-    Animation<double> animation,
-    HeroFlightDirection flightDirection,
-    BuildContext fromHeroContext,
-    BuildContext toHeroContext,
-  ) {
-    final isPush = flightDirection == HeroFlightDirection.push;
-    final fromWidget = (fromHeroContext.widget as Hero).child;
-    final toWidget = (toHeroContext.widget as Hero).child;
-
-    final homeWidget = isPush ? fromWidget : toWidget;
-    final settingsWidget = isPush ? toWidget : fromWidget;
-
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        final val = animation.value;
-        // outgoing fades out from 1.0 to 0.0 during the first half (val 0.0 -> 0.5)
-        final outgoingOpacity = (1.0 - (val * 2)).clamp(0.0, 1.0);
-        // incoming fades in from 0.0 to 1.0 during the second half (val 0.5 -> 1.0)
-        final incomingOpacity = ((val - 0.5) * 2).clamp(0.0, 1.0);
-
-        return Material(
-          color: Colors.transparent,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Opacity(
-                opacity: outgoingOpacity,
-                child: homeWidget,
-              ),
-              Opacity(
-                opacity: incomingOpacity,
-                child: settingsWidget,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Positioned.fill(
               child: Hero(
                 tag: 'content_fade',
-                flightShuttleBuilder: _contentFlightShuttleBuilder,
+                flightShuttleBuilder: buildStaggeredFlightShuttle,
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Column(

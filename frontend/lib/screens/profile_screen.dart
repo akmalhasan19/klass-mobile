@@ -33,38 +33,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Container(
-        color: AppColors.surface,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
+      child: Stack(
+        children: [
+          // Layer 2 background (matches Home/Search logic)
+          Positioned.fill(
+            child: Hero(
+              tag: 'layer2_bg',
+              child: Container(color: AppColors.surface),
+            ),
+          ),
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 24.0,
-                  right: 24.0,
-                  bottom: 16.0,
-                  top: 16.0 + topPadding,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProfileHeader(),
-                    const SizedBox(height: 24),
-                    _buildStatsBento(),
-                    const SizedBox(height: 32),
-                    _buildTeachingMaterials(),
-                    const SizedBox(height: 32),
-                    _buildAccountSupport(),
-                    const SizedBox(height: 120), // Bottom nav padding
-                  ],
-                ),
+          // Content
+          Positioned.fill(
+            child: Hero(
+              tag: 'content_fade',
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: 24.0,
+                        right: 24.0,
+                        bottom: 16.0,
+                        top: 16.0 + topPadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildProfileHeader(),
+                          const SizedBox(height: 24),
+                          _buildStatsBento(),
+                          const SizedBox(height: 32),
+                          _buildTeachingMaterials(),
+                          const SizedBox(height: 32),
+                          _buildAccountSupport(),
+                          const SizedBox(height: 120), // Bottom nav padding
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

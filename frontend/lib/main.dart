@@ -7,6 +7,7 @@ import 'screens/search_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/bottom_nav.dart';
+// import 'config/animations.dart'; 
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,12 +60,33 @@ class _MainShellState extends State<MainShell> {
         opaque: false, // Ensures Home is visible beneath during transition
         transitionDuration: const Duration(milliseconds: 1000),
         reverseTransitionDuration: const Duration(milliseconds: 1000),
-        pageBuilder: (_, __, ___) => const SettingsScreen(),
-        transitionsBuilder: (_, animation, __, child) {
+        pageBuilder: (_, _, _) => const SettingsScreen(),
+        transitionsBuilder: (_, animation, _, child) {
           return child;
         },
       ),
     );
+  }
+
+  Widget _buildCurrentPage() {
+    switch (_currentIndex) {
+      case 0:
+        return HomeScreen(
+          key: const ValueKey('home'),
+          onSettingsTap: _navigateToSettings,
+        );
+      case 1:
+        return const SearchScreen(key: ValueKey('search'));
+      case 2:
+        return const _PlaceholderScreen(
+          key: ValueKey('bookmarks'),
+          title: 'Bookmarks',
+        );
+      case 3:
+        return const ProfileScreen(key: ValueKey('profile'));
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   @override
@@ -74,15 +96,32 @@ class _MainShellState extends State<MainShell> {
       // `extendBody` agar konten bisa extend di belakang bottom nav
       extendBody: true,
       extendBodyBehindAppBar: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          HomeScreen(onSettingsTap: _navigateToSettings),
-          const SearchScreen(),
-          // Placeholder tabs
-          const _PlaceholderScreen(title: 'Bookmarks'),
-          const ProfileScreen(),
-        ],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 1000),
+        switchInCurve: Curves.linear,
+        switchOutCurve: Curves.linear,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation.drive(
+              Tween<double>(begin: -1.0, end: 1.0).chain(
+                CurveTween(curve: const Interval(0.0, 1.0)),
+              ),
+            ).drive(
+              // Custom clamping logic via a Tween or manual Opacity
+              CurveTween(curve: const _ClampedLinearCurve()),
+            ),
+            child: child,
+          );
+        },
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            children: [
+              ...previousChildren,
+              ...[currentChild].nonNulls,
+            ],
+          );
+        },
+        child: _buildCurrentPage(),
       ),
       bottomNavigationBar: Hero(
         tag: 'bottom_nav_fade',
@@ -114,11 +153,21 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
+/// Custom curve for staggering fade (2v - 1 clamped to 0..1).
+class _ClampedLinearCurve extends Curve {
+  const _ClampedLinearCurve();
+
+  @override
+  double transformInternal(double t) {
+    return (2 * t - 1).clamp(0.0, 1.0);
+  }
+}
+
 /// Placeholder screen untuk tab yang belum diimplementasi.
 class _PlaceholderScreen extends StatelessWidget {
   final String title;
 
-  const _PlaceholderScreen({required this.title});
+  const _PlaceholderScreen({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {

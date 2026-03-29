@@ -67,149 +67,164 @@ class _SearchScreenState extends State<SearchScreen> {
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          color: AppColors.background,
-          child: CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Sticky Header "Discover"
-              AnimatedBuilder(
-                animation: _scrollController,
-                builder: (context, child) {
-                  final offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
-                  final headerOpacity = (offset / 60).clamp(0.0, 1.0);
-                  
-                  return SliverAppBar(
-                    pinned: true,
-                    expandedHeight: 140 + topPadding,
-                    toolbarHeight: 70,
-                    backgroundColor: AppColors.background.withValues(
-                      alpha: headerOpacity * 0.92,
-                    ),
-                    surfaceTintColor: Colors.transparent,
-                    automaticallyImplyLeading: false,
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: Padding(
-                        padding: EdgeInsets.only(top: topPadding + 12, left: 24, right: 24, bottom: 20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Opacity(
-                              opacity: (1 - headerOpacity * 1.5).clamp(0.0, 1.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
+        child: Stack(
+          children: [
+            // Layer 2 background (matches Home/Settings logic)
+            Positioned.fill(
+              child: Hero(
+                tag: 'layer2_bg',
+                child: Container(color: AppColors.background),
+              ),
+            ),
+            
+            // Content
+            Positioned.fill(
+              child: Hero(
+                tag: 'content_fade',
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    // Sticky Header "Discover"
+                    AnimatedBuilder(
+                      animation: _scrollController,
+                      builder: (context, child) {
+                        final offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+                        final headerOpacity = (offset / 60).clamp(0.0, 1.0);
+                        
+                        return SliverAppBar(
+                          pinned: true,
+                          expandedHeight: 140 + topPadding,
+                          toolbarHeight: 70,
+                          backgroundColor: AppColors.background.withValues(
+                            alpha: headerOpacity * 0.92,
+                          ),
+                          surfaceTintColor: Colors.transparent,
+                          automaticallyImplyLeading: false,
+                          flexibleSpace: FlexibleSpaceBar(
+                            background: Padding(
+                              padding: EdgeInsets.only(top: topPadding + 12, left: 24, right: 24, bottom: 20),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    'Discover',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.textPrimary,
-                                      letterSpacing: -0.5,
+                                  Opacity(
+                                    opacity: (1 - headerOpacity * 1.5).clamp(0.0, 1.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          'Discover',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.w900,
+                                            color: AppColors.textPrimary,
+                                            letterSpacing: -0.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'EXPLORE TEACHERS',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.textMuted,
+                                            letterSpacing: 2,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'EXPLORE TEACHERS',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textMuted,
-                                      letterSpacing: 2,
-                                    ),
-                                  ),
+                                  _buildFilterButton(),
                                 ],
                               ),
                             ),
-                            _buildFilterButton(),
+                          ),
+                          title: AnimatedOpacity(
+                            opacity: headerOpacity > 0.8 ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: const Padding(
+                              padding: EdgeInsets.only(top: 16.0),
+                              child: Text(
+                                'Discover',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          bottom: PreferredSize(
+                            preferredSize: const Size.fromHeight(56),
+                            child: _buildCategoryPills(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    // Search stats
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                      sliver: SliverToBoxAdapter(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Recommended For You',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              'View All',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
-                    title: AnimatedOpacity(
-                      opacity: headerOpacity > 0.8 ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: const Padding(
-                        padding: EdgeInsets.only(top: 16.0),
-                        child: Text(
-                          'Discover',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
+
+                    // Teacher cards
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            if (index < teachers.length) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildTeacherCard(teachers[index]),
+                              );
+                            }
+                            // Skeleton placeholder
+                            return _buildSkeletonCard();
+                          },
+                          childCount: teachers.length + 1,
                         ),
                       ),
                     ),
-                    bottom: PreferredSize(
-                      preferredSize: const Size.fromHeight(56),
-                      child: _buildCategoryPills(),
+
+                    // Bottom spacing
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: 120),
                     ),
-                  );
-                },
-              ),
-
-              // Search stats
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                sliver: SliverToBoxAdapter(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Recommended For You',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'View All',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
-
-              // Teacher cards
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      if (index < teachers.length) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildTeacherCard(teachers[index]),
-                        );
-                      }
-                      // Skeleton placeholder
-                      return _buildSkeletonCard();
-                    },
-                    childCount: teachers.length + 1,
-                  ),
-                ),
-              ),
-
-              // Bottom spacing
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 120),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
