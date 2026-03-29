@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 
-/// Bottom Navigation Bar — 4 tabs: Home, Search, Bookmark, Profile.
+/// Bottom Navigation Bar — 4 tabs: Home, Search, Workspace, Profile.
 /// Active state dengan highlight hijau.
 class BottomNav extends StatelessWidget {
   final int currentIndex;
@@ -18,7 +18,7 @@ class BottomNav extends StatelessWidget {
     final items = [
       _NavItem(iconPath: 'assets/icons/house.png', label: 'Home'),
       _NavItem(iconPath: 'assets/icons/search.png', label: 'Search'),
-      _NavItem(iconPath: 'assets/icons/bookmark.png', label: 'Bookmark'),
+      _NavItem(iconPath: 'assets/icons/workspaces.png', label: 'Workspace'),
       _NavItem(iconPath: 'assets/icons/profile.png', label: 'Profile'),
     ];
 

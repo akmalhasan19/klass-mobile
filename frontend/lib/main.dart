@@ -43,7 +43,7 @@ class KlassApp extends StatelessWidget {
 }
 
 /// Main Shell — Container utama dengan Bottom Navigation.
-/// Mengelola switching antar 3 tab utama: Home, Search, Bookmark (placeholder).
+/// Mengelola switching antar 4 tab utama: Home, Search, Workspace, Profile.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 

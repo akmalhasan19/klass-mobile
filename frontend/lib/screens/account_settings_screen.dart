@@ -319,51 +319,55 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       children: [
         _buildSectionLabel('DEFAULT COMPLEXITY'),
         const SizedBox(height: 12),
-        Row(
-          children: ['Beginner', 'Intermediate', 'Advanced'].map((lvl) {
-            final isSelected = _complexity == lvl;
-            return Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(right: lvl != 'Advanced' ? 8 : 0),
-                child: GestureDetector(
-                  onTap: () => setState(() => _complexity = lvl),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary.withAlpha(26) : AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : Colors.transparent,
-                        width: 2,
-                      ),
+        SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: ['Beginner', 'Intermediate', 'Advanced'].map((lvl) {
+              final isSelected = _complexity == lvl;
+              return GestureDetector(
+                onTap: () => setState(() => _complexity = lvl),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primary.withAlpha(26) : AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : Colors.transparent,
+                      width: 2,
                     ),
-                    child: Center(
-                      child: Text(
-                        lvl,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                          color: isSelected ? AppColors.primary : AppColors.textMuted,
-                        ),
-                      ),
+                  ),
+                  child: Text(
+                    lvl,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                      color: isSelected ? AppColors.primary : AppColors.textMuted,
                     ),
                   ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
         const SizedBox(height: 24),
         _buildSectionLabel('PREFERRED TEACHING STYLE'),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          children: [
-            _buildStyleChip('Visual', Icons.visibility_outlined),
-            _buildStyleChip('Hands-on', Icons.front_hand_outlined),
-            _buildStyleChip('Reading', Icons.menu_book_outlined),
-          ],
+        SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: [
+              _buildStyleChip('Visual', Icons.visibility_outlined),
+              _buildStyleChip('Hands-on', Icons.front_hand_outlined),
+              _buildStyleChip('Reading', Icons.menu_book_outlined),
+            ],
+          ),
         ),
         const SizedBox(height: 24),
         _buildSectionLabel('AI ASSISTANCE LEVEL'),
