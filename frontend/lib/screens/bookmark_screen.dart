@@ -4,8 +4,13 @@ import '../config/app_colors.dart';
 
 class BookmarkScreen extends StatefulWidget {
   final VoidCallback? onCreateNewModule;
+  final VoidCallback? onViewGallery;
 
-  const BookmarkScreen({super.key, this.onCreateNewModule});
+  const BookmarkScreen({
+    super.key, 
+    this.onCreateNewModule,
+    this.onViewGallery,
+  });
 
   @override
   State<BookmarkScreen> createState() => _BookmarkScreenState();
@@ -129,9 +134,11 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         const SizedBox(height: 24),
         Container(
           height: 56,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: AppColors.surfaceCard,
             borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
             boxShadow: [
               BoxShadow(
                 color: AppColors.textPrimary.withValues(alpha: 0.03),
@@ -156,6 +163,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                 ),
               ),
               border: InputBorder.none,
+              filled: false,
               contentPadding: const EdgeInsets.symmetric(vertical: 18),
             ),
           ),
@@ -234,13 +242,16 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             const SizedBox(width: 24),
             Row(
               children: [
-                Text(
-                  'View Gallery',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+                GestureDetector(
+                  onTap: widget.onViewGallery,
+                  child: Text(
+                    'View Gallery',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),

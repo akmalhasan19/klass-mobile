@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
+import '../widgets/animated_search_bar.dart';
 
 /// Search/Discover Screen — mereplikasi halaman Search dari Klass Next.js.
 /// Fitur: Sticky header "Discover", category pills, teacher cards.
@@ -14,6 +15,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   String _activeCategory = 'All';
   final ScrollController _scrollController = ScrollController();
+  bool _isSearching = false;
 
   final List<Map<String, dynamic>> categories = [
     {'name': 'All', 'icon': Icons.grid_view_rounded},
@@ -104,46 +106,55 @@ class _SearchScreenState extends State<SearchScreen> {
                           flexibleSpace: FlexibleSpaceBar(
                             background: Padding(
                               padding: EdgeInsets.only(top: topPadding + 12, left: 24, right: 24, bottom: 20),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              child: Stack(
+                                alignment: Alignment.centerRight,
                                 children: [
-                                  Opacity(
-                                    opacity: (1 - headerOpacity * 1.5).clamp(0.0, 1.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text(
-                                          'Discover',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.w900,
-                                            color: AppColors.textPrimary,
-                                            letterSpacing: -0.5,
+                                  // Discover Title
+                                  Positioned(
+                                    left: 0,
+                                    child: AnimatedOpacity(
+                                      duration: const Duration(milliseconds: 200),
+                                      opacity: _isSearching ? 0.0 : (1 - headerOpacity * 1.5).clamp(0.0, 1.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text(
+                                            'Discover',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.w900,
+                                              color: AppColors.textPrimary,
+                                              letterSpacing: -0.5,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'EXPLORE TEACHERS',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w800,
-                                            color: AppColors.textMuted,
-                                            letterSpacing: 2,
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'EXPLORE TEACHERS',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.textMuted,
+                                              letterSpacing: 2,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  _buildFilterButton(),
+                                  // Animated Search Bar
+                                  AnimatedSearchBar(
+                                    onExpanded: () => setState(() => _isSearching = true),
+                                    onCollapsed: () => setState(() => _isSearching = false),
+                                  ),
                                 ],
                               ),
                             ),
                           ),
                           title: AnimatedOpacity(
-                            opacity: headerOpacity > 0.8 ? 1.0 : 0.0,
+                            opacity: (headerOpacity > 0.8 && !_isSearching) ? 1.0 : 0.0,
                             duration: const Duration(milliseconds: 200),
                             child: const Padding(
                               padding: EdgeInsets.only(top: 16.0),
@@ -226,23 +237,6 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildFilterButton() {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Icon(
-        Icons.tune_rounded,
-        size: 20,
-        color: AppColors.textPrimary,
       ),
     );
   }

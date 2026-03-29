@@ -6,6 +6,7 @@ import 'screens/search_screen.dart';
 import 'screens/bookmark_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/gallery_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'config/animations.dart'; 
 
@@ -76,6 +77,12 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  void _navigateToGallery() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const GalleryScreen()),
+    );
+  }
+
   Widget _buildCurrentPage() {
     switch (_currentIndex) {
       case 0:
@@ -93,6 +100,7 @@ class _MainShellState extends State<MainShell> {
         return BookmarkScreen(
           key: const ValueKey('bookmarks'),
           onCreateNewModule: () => _handleNavigateToHome(true),
+          onViewGallery: _navigateToGallery,
         );
       case 3:
         return const ProfileScreen(key: ValueKey('profile'));
