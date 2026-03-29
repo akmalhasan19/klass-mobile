@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'config/app_colors.dart';
 import 'config/theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
+import 'screens/bookmark_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/bottom_nav.dart';
-// import 'config/animations.dart'; 
+import 'config/animations.dart'; 
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,10 +78,7 @@ class _MainShellState extends State<MainShell> {
       case 1:
         return const SearchScreen(key: ValueKey('search'));
       case 2:
-        return const _PlaceholderScreen(
-          key: ValueKey('bookmarks'),
-          title: 'Bookmarks',
-        );
+        return const BookmarkScreen(key: ValueKey('bookmarks'));
       case 3:
         return const ProfileScreen(key: ValueKey('profile'));
       default:
@@ -101,15 +98,8 @@ class _MainShellState extends State<MainShell> {
         switchInCurve: Curves.linear,
         switchOutCurve: Curves.linear,
         transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation.drive(
-              Tween<double>(begin: -1.0, end: 1.0).chain(
-                CurveTween(curve: const Interval(0.0, 1.0)),
-              ),
-            ).drive(
-              // Custom clamping logic via a Tween or manual Opacity
-              CurveTween(curve: const _ClampedLinearCurve()),
-            ),
+          return StaggeredFadeTransition(
+            animation: animation,
             child: child,
           );
         },
@@ -148,59 +138,6 @@ class _MainShellState extends State<MainShell> {
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
         ),
-      ),
-    );
-  }
-}
-
-/// Custom curve for staggering fade (2v - 1 clamped to 0..1).
-class _ClampedLinearCurve extends Curve {
-  const _ClampedLinearCurve();
-
-  @override
-  double transformInternal(double t) {
-    return (2 * t - 1).clamp(0.0, 1.0);
-  }
-}
-
-/// Placeholder screen untuk tab yang belum diimplementasi.
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-
-  const _PlaceholderScreen({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.construction_rounded,
-            size: 48,
-            color: AppColors.textMuted.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Coming Soon',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
-            ),
-          ),
-        ],
       ),
     );
   }

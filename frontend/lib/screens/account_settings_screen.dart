@@ -117,6 +117,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Stack(
+                clipBehavior: Clip.none,
                 children: [
                   Container(
                     width: 100,

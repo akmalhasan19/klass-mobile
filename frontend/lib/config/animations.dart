@@ -63,8 +63,22 @@ Widget buildStaggeredFlightShuttle(
     animation: animation,
     builder: (context, _) {
       final val = animation.value;
-      final outgoingOpacity = (1.0 - (val * 2)).clamp(0.0, 1.0);
-      final incomingOpacity = ((val - 0.5) * 2).clamp(0.0, 1.0);
+      final isPush = flightDirection == HeroFlightDirection.push;
+
+      double fromOpacity;
+      double toOpacity;
+
+      if (isPush) {
+        // Push: val 0.0 -> 1.0
+        fromOpacity = (1.0 - (val * 2)).clamp(0.0, 1.0);
+        toOpacity = ((val - 0.5) * 2).clamp(0.0, 1.0);
+      } else {
+        // Pop: val 1.0 -> 0.0
+        // fromWidget (Settings) starts visible (val=1) and fades out by val=0.5
+        fromOpacity = ((val - 0.5) * 2).clamp(0.0, 1.0);
+        // toWidget (Home) starts invisible (val=1) and fades in after val=0.5
+        toOpacity = (1.0 - (val * 2)).clamp(0.0, 1.0);
+      }
 
       // Kita butuh widget asal dan tujuan. Hero memberikan konteks, 
       // tetapi widget yang sedang terbang biasanya sudah disediakan oleh sistem.
@@ -80,11 +94,11 @@ Widget buildStaggeredFlightShuttle(
           fit: StackFit.expand,
           children: [
             Opacity(
-              opacity: outgoingOpacity,
+              opacity: fromOpacity,
               child: fromWidget,
             ),
             Opacity(
-              opacity: incomingOpacity,
+              opacity: toOpacity,
               child: toWidget,
             ),
           ],
