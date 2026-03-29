@@ -132,6 +132,49 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Widget _contentFlightShuttleBuilder(
+    BuildContext flightContext,
+    Animation<double> animation,
+    HeroFlightDirection flightDirection,
+    BuildContext fromHeroContext,
+    BuildContext toHeroContext,
+  ) {
+    final isPush = flightDirection == HeroFlightDirection.push;
+    final fromWidget = (fromHeroContext.widget as Hero).child;
+    final toWidget = (toHeroContext.widget as Hero).child;
+
+    final homeWidget = isPush ? fromWidget : toWidget;
+    final settingsWidget = isPush ? toWidget : fromWidget;
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final val = animation.value;
+        // outgoing fades out from 1.0 to 0.0 during the first half (val 0.0 -> 0.5)
+        final outgoingOpacity = (1.0 - (val * 2)).clamp(0.0, 1.0);
+        // incoming fades in from 0.0 to 1.0 during the second half (val 0.5 -> 1.0)
+        final incomingOpacity = ((val - 0.5) * 2).clamp(0.0, 1.0);
+
+        return Material(
+          color: Colors.transparent,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(
+                opacity: outgoingOpacity,
+                child: homeWidget,
+              ),
+              Opacity(
+                opacity: incomingOpacity,
+                child: settingsWidget,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Kita gunakan topPadding agar hijau Layer 1 meliputi area status bar,
@@ -192,8 +235,8 @@ class _HomeScreenState extends State<HomeScreen> {
               animation: _scrollController,
               builder: (context, child) {
                 double offset = 0;
-                if (_scrollController.hasClients) {
-                  offset = _scrollController.offset;
+                if (_scrollController.hasClients && _scrollController.positions.isNotEmpty) {
+                  offset = _scrollController.positions.first.pixels;
                   if (offset < 0) offset = 0;
                 }
                 return Transform.translate(
@@ -258,20 +301,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // -----------------------------------------------------------------
-          // Layer 2b (Middle-Front): Area Konten (Transparan)
+          // Layer 2b & 3: Area Konten & Settings Gear (Transparan)
           // -----------------------------------------------------------------
           Positioned.fill(
-            child: AnimatedBuilder(
-              animation: ModalRoute.of(context)?.secondaryAnimation ?? const AlwaysStoppedAnimation(0.0),
-              builder: (context, child) {
-                final val = ModalRoute.of(context)?.secondaryAnimation?.value ?? 0.0;
-                final opacity = val < 0.5 ? 1.0 - (val * 2) : 0.0;
-                return Opacity(
-                  opacity: opacity.clamp(0.0, 1.0),
-                  child: child,
-                );
-              },
-              child: CustomScrollView(
+            child: Hero(
+              tag: 'content_fade',
+              flightShuttleBuilder: _contentFlightShuttleBuilder,
+              child: Stack(
+                children: [
+                  CustomScrollView(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               slivers: [
@@ -295,8 +333,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           AnimatedBuilder(
                             animation: _scrollController,
                             builder: (context, child) {
-                              double offset = _scrollController.hasClients
-                                  ? _scrollController.offset
+                              double offset = _scrollController.hasClients && _scrollController.positions.isNotEmpty
+                                  ? _scrollController.positions.first.pixels
                                   : 0;
                               if (offset < 0) offset = 0;
                               return Transform.translate(
@@ -343,8 +381,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: AnimatedBuilder(
                               animation: _scrollController,
                               builder: (context, child) {
-                                double offset = _scrollController.hasClients
-                                    ? _scrollController.offset
+                                double offset = _scrollController.hasClients && _scrollController.positions.isNotEmpty
+                                    ? _scrollController.positions.first.pixels
                                     : 0;
                                 return AnimatedOpacity(
                                   opacity: offset > 20 ? 1.0 : 0.0,
@@ -459,65 +497,56 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            ),
-          ),
-
-          // -----------------------------------------------------------------
-          // Layer 3 (Front): Settings Gear Icon (ikut scroll dengan offset)
-          // -----------------------------------------------------------------
-          if (widget.onSettingsTap != null)
-            Positioned(
-              top: 76,
-              right: 36,
-              child: AnimatedBuilder(
-                animation: ModalRoute.of(context)?.secondaryAnimation ?? const AlwaysStoppedAnimation(0.0),
-                builder: (context, child) {
-                  final val = ModalRoute.of(context)?.secondaryAnimation?.value ?? 0.0;
-                  final opacity = val < 0.5 ? 1.0 - (val * 2) : 0.0;
-                  return Opacity(
-                    opacity: opacity.clamp(0.0, 1.0),
-                    child: child,
-                  );
-                },
-                child: AnimatedBuilder(
-                  animation: _scrollController,
-                  builder: (context, child) {
-                    double offset = 0;
-                    if (_scrollController.hasClients) {
-                      offset = _scrollController.offset;
-                      if (offset < 0) offset = 0;
-                    }
-                    return Transform.translate(
-                      offset: Offset(0, -offset),
-                      child: child,
-                    );
-                  },
-                  child: GestureDetector(
-                    onTap: widget.onSettingsTap,
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+            
+                  // -----------------------------------------------------------------
+                  // Layer 3 (Front): Settings Gear Icon (ikut scroll dengan offset)
+                  // -----------------------------------------------------------------
+                  if (widget.onSettingsTap != null)
+                    Positioned(
+                      top: 76,
+                      right: 36,
+                      child: AnimatedBuilder(
+                        animation: _scrollController,
+                        builder: (context, child) {
+                          double offset = 0;
+                          if (_scrollController.hasClients && _scrollController.positions.isNotEmpty) {
+                            offset = _scrollController.positions.first.pixels;
+                            if (offset < 0) offset = 0;
+                          }
+                          return Transform.translate(
+                            offset: Offset(0, -offset),
+                            child: child,
+                          );
+                        },
+                        child: GestureDetector(
+                          onTap: widget.onSettingsTap,
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.settings_rounded,
+                              color: AppColors.textMuted,
+                              size: 30,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.settings_rounded,
-                        color: AppColors.textMuted,
-                        size: 30,
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                ],
               ),
             ),
+          ),
         ],
       ),
       ),

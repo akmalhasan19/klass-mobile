@@ -57,8 +57,8 @@ class _MainShellState extends State<MainShell> {
     Navigator.of(context).push(
       PageRouteBuilder(
         opaque: false, // Ensures Home is visible beneath during transition
-        transitionDuration: const Duration(milliseconds: 700),
-        reverseTransitionDuration: const Duration(milliseconds: 700),
+        transitionDuration: const Duration(milliseconds: 1000),
+        reverseTransitionDuration: const Duration(milliseconds: 1000),
         pageBuilder: (_, __, ___) => const SettingsScreen(),
         transitionsBuilder: (_, animation, __, child) {
           return child;
@@ -84,14 +84,25 @@ class _MainShellState extends State<MainShell> {
           const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: AnimatedBuilder(
-        animation: ModalRoute.of(context)?.secondaryAnimation ?? const AlwaysStoppedAnimation(0.0),
-        builder: (context, child) {
-          final val = ModalRoute.of(context)?.secondaryAnimation?.value ?? 0.0;
-          final opacity = val < 0.5 ? 1.0 - (val * 2) : 0.0;
-          return Opacity(
-            opacity: opacity,
-            child: child,
+      bottomNavigationBar: Hero(
+        tag: 'bottom_nav_fade',
+        flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+          final isPush = flightDirection == HeroFlightDirection.push;
+          final navWidget = isPush ? (fromHeroContext.widget as Hero).child : (toHeroContext.widget as Hero).child;
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (context, child) {
+              return Material(
+                color: Colors.transparent,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Opacity(
+                    opacity: (1.0 - animation.value).clamp(0.0, 1.0),
+                    child: navWidget,
+                  ),
+                ),
+              );
+            },
           );
         },
         child: BottomNav(

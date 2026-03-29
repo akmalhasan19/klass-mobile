@@ -21,6 +21,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = true;
   bool _autoSave = true;
 
+  Widget _contentFlightShuttleBuilder(
+    BuildContext flightContext,
+    Animation<double> animation,
+    HeroFlightDirection flightDirection,
+    BuildContext fromHeroContext,
+    BuildContext toHeroContext,
+  ) {
+    final isPush = flightDirection == HeroFlightDirection.push;
+    final fromWidget = (fromHeroContext.widget as Hero).child;
+    final toWidget = (toHeroContext.widget as Hero).child;
+
+    final homeWidget = isPush ? fromWidget : toWidget;
+    final settingsWidget = isPush ? toWidget : fromWidget;
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final val = animation.value;
+        // outgoing fades out from 1.0 to 0.0 during the first half (val 0.0 -> 0.5)
+        final outgoingOpacity = (1.0 - (val * 2)).clamp(0.0, 1.0);
+        // incoming fades in from 0.0 to 1.0 during the second half (val 0.5 -> 1.0)
+        final incomingOpacity = ((val - 0.5) * 2).clamp(0.0, 1.0);
+
+        return Material(
+          color: Colors.transparent,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(
+                opacity: outgoingOpacity,
+                child: homeWidget,
+              ),
+              Opacity(
+                opacity: incomingOpacity,
+                child: settingsWidget,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
@@ -85,16 +128,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // Main content
             Positioned.fill(
-              child: AnimatedBuilder(
-                animation: ModalRoute.of(context)?.animation ?? const AlwaysStoppedAnimation(1.0),
-                builder: (context, child) {
-                  final val = ModalRoute.of(context)?.animation?.value ?? 1.0;
-                  final opacity = val < 0.5 ? 0.0 : (val - 0.5) * 2;
-                  return Opacity(
-                    opacity: opacity.clamp(0.0, 1.0),
-                    child: child,
-                  );
-                },
+              child: Hero(
+                tag: 'content_fade',
+                flightShuttleBuilder: _contentFlightShuttleBuilder,
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Column(
@@ -502,6 +538,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             ),
+            ),
+
+            // Bottom Nav Dummy for Hero fade
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Hero(
+                tag: 'bottom_nav_fade',
+                child: Container(height: 80, color: Colors.transparent),
+              ),
             ),
           ],
         ),
