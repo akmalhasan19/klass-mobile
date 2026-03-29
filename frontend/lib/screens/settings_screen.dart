@@ -4,6 +4,7 @@ import '../config/app_colors.dart';
 import '../widgets/top_right_accent.dart';
 import '../widgets/layer2_white_clipper.dart';
 import '../config/animations.dart';
+import '../widgets/feature_coming_soon.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
@@ -353,21 +354,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Container(
-                            width: double.infinity,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(14),
+                          GestureDetector(
+                            onTap: () => FeatureComingSoon.show(
+                              context,
+                              title: 'Creator Dashboard',
+                              description:
+                                  'We are building a powerful dashboard for creators to manage their educational content, track student progress, and analyze engagement.',
+                              featureName: 'Content Analytics',
+                              featureDescription:
+                                  'Deep insights into how students interact with your materials.',
+                              icon: Icons.dashboard_rounded,
+                              previewIcon: Icons.analytics_rounded,
                             ),
-                            child: const Center(
-                              child: Text(
-                                'Open Creator Dashboard',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                            child: Container(
+                              width: double.infinity,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Open Creator Dashboard',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
@@ -383,68 +397,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // ═══════════════════════════════════════════════
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: AppColors.brown,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.brown.withValues(alpha: 0.3),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+                    child: GestureDetector(
+                      onTap: () => FeatureComingSoon.show(
+                        context,
+                        title: 'Request a Club',
+                        description:
+                            'Clubs are coming to Klass! You will soon be able to create and join communities focused on specific subjects and interests.',
+                        featureName: 'Club Communities',
+                        featureDescription:
+                            'Collaborate with other students and teachers in specialized groups.',
+                        icon: Icons.group_add_rounded,
+                        previewIcon: Icons.groups_rounded,
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppColors.brown,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.brown.withValues(alpha: 0.3),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
                             ),
-                            child: const Icon(
-                              Icons.group_add_rounded,
-                              color: Colors.white,
-                              size: 20,
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.group_add_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Request New Club',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Request New Club',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Ajukan klub baru untuk komunitas Anda',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white.withValues(alpha: 0.7),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Ajukan klub baru untuk komunitas Anda',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withValues(alpha: 0.7),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.white.withValues(alpha: 0.5),
-                            size: 24,
-                          ),
-                        ],
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.white.withValues(alpha: 0.5),
+                              size: 24,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
 import 'account_settings_screen.dart';
+import '../widgets/feature_coming_soon.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -226,7 +227,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () => FeatureComingSoon.show(
+                  context,
+                  title: 'Class Dashboard',
+                  description:
+                      'The Class Dashboard is being refined to provide you with a comprehensive overview of your teaching performance and student engagement metrics.',
+                  featureName: 'Performance Analytics',
+                  featureDescription:
+                      'Real-time data on class participation and curriculum progress.',
+                  icon: Icons.dashboard_customize_rounded,
+                  previewIcon: Icons.insights_rounded,
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   foregroundColor: Colors.white,
@@ -421,7 +432,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: () => FeatureComingSoon.show(
+            context,
+            title: label.replaceAll('\n', ' '),
+            description:
+                'We are working on bringing ${label.replaceAll('\n', ' ')} directly to your mobile device for seamless institutional management.',
+            featureName: 'Institutional Sync',
+            featureDescription:
+                'Stay connected with your school\'s management systems on the go.',
+            icon: icon,
+            previewIcon: Icons.sync_rounded,
+          ),
           borderRadius: BorderRadius.circular(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

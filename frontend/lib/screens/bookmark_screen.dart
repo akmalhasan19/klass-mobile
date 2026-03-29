@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../config/app_colors.dart';
+import '../widgets/feature_coming_soon.dart';
 
 class BookmarkScreen extends StatefulWidget {
   final VoidCallback? onCreateNewModule;
@@ -110,7 +111,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Curate your craft.',
+          'Kelola karya Anda.',
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 36,
@@ -122,50 +123,13 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         ),
         const SizedBox(height: 12),
         const Text(
-          'Manage your curriculum materials, draft new lecture ideas, and organize your academic digital atelier.',
+          'Kelola materi kurikulum, susun ide kuliah baru, dan atur ruang kerja digital Anda.',
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 15,
             fontWeight: FontWeight.w500,
             color: AppColors.textMuted,
             height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          height: 56,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.textPrimary.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search materials...',
-              hintStyle: TextStyle(
-                fontFamily: 'Inter',
-                color: AppColors.textMuted.withValues(alpha: 0.6),
-                fontSize: 15,
-              ),
-              prefixIcon: Padding(
-                padding: const EdgeInsets.only(left: 16, right: 8),
-                child: Icon(
-                  Icons.search_rounded,
-                  color: AppColors.textMuted.withValues(alpha: 0.6),
-                ),
-              ),
-              border: InputBorder.none,
-              filled: false,
-              contentPadding: const EdgeInsets.symmetric(vertical: 18),
-            ),
           ),
         ),
       ],
@@ -483,74 +447,65 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildDraftsSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.lightbulb_outline_rounded, color: AppColors.amber),
+            const SizedBox(width: 12),
+            const Text(
+              'Drafts & Ideas',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        
+        _buildDraftItem(
+          text: 'Compare the ecological impact of traditional vs modern farming in Java...',
+          tags: ['GEOGRAPHY', 'IDEA'],
+        ),
+        const SizedBox(height: 12),
+        _buildDraftItem(
+          text: 'Vocabulary quiz for Semester 2 - Advanced Literature...',
+          tags: ['LIT', 'QUIZ'],
+        ),
+        
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.border,
+              width: 2,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lightbulb_outline_rounded, color: AppColors.amber),
-              const SizedBox(width: 12),
-              const Text(
-                'Drafts & Ideas',
+              Icon(Icons.edit_note_rounded, color: AppColors.textMuted),
+              const SizedBox(width: 8),
+              Text(
+                'Quick Capture',
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textMuted,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          
-          _buildDraftItem(
-            text: 'Compare the ecological impact of traditional vs modern farming in Java...',
-            tags: ['GEOGRAPHY', 'IDEA'],
-          ),
-          const SizedBox(height: 12),
-          _buildDraftItem(
-            text: 'Vocabulary quiz for Semester 2 - Advanced Literature...',
-            tags: ['LIT', 'QUIZ'],
-          ),
-          
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.border,
-                width: 2,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.edit_note_rounded, color: AppColors.textMuted),
-                const SizedBox(width: 8),
-                Text(
-                  'Quick Capture',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -604,112 +559,103 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildResourceLibrarySection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.folder_special_rounded, color: AppColors.primary),
+            const SizedBox(width: 12),
+            const Text(
+              'Resource Library',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 1.2,
+          children: [
+            _buildResourceGridItem(Icons.description_rounded, 'Templates'),
+            _buildResourceGridItem(Icons.image_rounded, 'Assets'),
+            _buildResourceGridItem(Icons.video_library_rounded, 'Lectures'),
+            _buildResourceGridItem(Icons.upload_file_rounded, 'Upload'),
+          ],
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Storage Progress
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+          ),
+          child: Row(
             children: [
-              Icon(Icons.folder_special_rounded, color: AppColors.primary),
-              const SizedBox(width: 12),
-              const Text(
-                'Resource Library',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.cloud_done_rounded, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Storage 72% full',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 6,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: 0.72,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 1.2,
-            children: [
-              _buildResourceGridItem(Icons.description_rounded, 'Templates'),
-              _buildResourceGridItem(Icons.image_rounded, 'Assets'),
-              _buildResourceGridItem(Icons.video_library_rounded, 'Lectures'),
-              _buildResourceGridItem(Icons.upload_file_rounded, 'Upload'),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Storage Progress
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.cloud_done_rounded, color: AppColors.primary, size: 20),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Storage 72% full',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 6,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: 0.72,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -723,7 +669,17 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {},
+          onTap: () => FeatureComingSoon.show(
+            context,
+            title: '$label Library',
+            description:
+                'The $label section of your Resource Library is currently under construction. Soon you will be able to manage all your educational assets in one place.',
+            featureName: 'Cloud Sync',
+            featureDescription:
+                'Access your $label from any device, anywhere.',
+            icon: icon,
+            previewIcon: Icons.cloud_sync_rounded,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

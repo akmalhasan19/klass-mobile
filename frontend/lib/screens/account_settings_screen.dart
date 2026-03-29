@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
+import '../widgets/feature_coming_soon.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -439,19 +440,49 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         _buildNavAction(
           icon: Icons.lock_outline_rounded,
           label: 'Change Password',
-          onTap: () {},
+          onTap: () => FeatureComingSoon.show(
+            context,
+            title: 'Security Settings',
+            description:
+                'We are enhancing our security features. You will soon be able to change your password, enable two-factor authentication, and manage active sessions.',
+            featureName: 'Two-Factor Auth',
+            featureDescription:
+                'Add an extra layer of protection to your account.',
+            icon: Icons.security_rounded,
+            previewIcon: Icons.phonelink_lock_rounded,
+          ),
         ),
         const SizedBox(height: 12),
         _buildNavAction(
           icon: Icons.description_outlined,
           label: 'Privacy Policy',
-          onTap: () {},
+          onTap: () => FeatureComingSoon.show(
+            context,
+            title: 'Privacy & Legal',
+            description:
+                'Our legal team is finalizing the updated privacy policy and terms of service to ensure full compliance with the latest regulations.',
+            featureName: 'Data Export',
+            featureDescription:
+                'Download a complete copy of your personal data at any time.',
+            icon: Icons.policy_rounded,
+            previewIcon: Icons.download_rounded,
+          ),
         ),
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () => FeatureComingSoon.show(
+              context,
+              title: 'Account Management',
+              description:
+                  'We are working on a streamlined process for account deletion and data archival to respect your right to be forgotten.',
+              featureName: 'Data Archival',
+              featureDescription:
+                  'Archive your account instead of deleting it to preserve your work.',
+              icon: Icons.person_remove_rounded,
+              previewIcon: Icons.archive_rounded,
+            ),
             icon: const Icon(Icons.delete_outline_rounded, size: 20),
             label: const Text('Delete Account'),
             style: OutlinedButton.styleFrom(
