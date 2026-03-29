@@ -38,13 +38,41 @@ class BottomNav extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(items.length, (index) {
-          final item = items[index];
-          final isActive = currentIndex == index;
-          return _buildNavButton(item, isActive, () => onTap(index));
-        }),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = constraints.maxWidth / items.length;
+
+          return Stack(
+            children: [
+              // Sliding Indicator Background
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeOutQuart,
+                left: (currentIndex * itemWidth) + (itemWidth - 38) / 2,
+                top: 11, // Diselaraskan dengan posisi ikon di Column (pusat di y=30)
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08), // Sedikit lebih pekat karena lebih kecil
+                    borderRadius: BorderRadius.circular(12), // Radius disesuaikan dengan ukuran
+                  ),
+                ),
+              ),
+
+              // Navigation Buttons
+              Row(
+                children: List.generate(items.length, (index) {
+                  final item = items[index];
+                  final isActive = currentIndex == index;
+                  return Expanded(
+                    child: _buildNavButton(item, isActive, () => onTap(index)),
+                  );
+                }),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -53,56 +81,37 @@ class BottomNav extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 70,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? AppColors.primary.withValues(alpha: 0.05) // bg-[#529F60]/5
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Opacity(
-                opacity: isActive ? 1.0 : 0.6, // opacity-60 alih-alih 100
-                child: Center(
-                  child: Image.asset(
-                    item.iconPath,
-                    width: 26, // Ukuran ikon dikurangi dari 34 ke 26
-                    height: 26,
-                    fit: BoxFit.contain,
-                  ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Icon Container
+          SizedBox(
+            width: 52,
+            height: 52, // Menjaga area sentuh dan layout tetap stabil
+            child: Opacity(
+              opacity: isActive ? 1.0 : 0.6,
+              child: Center(
+                child: Image.asset(
+                  item.iconPath,
+                  width: 26,
+                  height: 26,
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
-            const SizedBox(height: 0),
-            Text(
-              item.label,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? AppColors.primary : AppColors.textMuted,
-                letterSpacing: 0.3,
-              ),
+          ),
+          const SizedBox(height: 0),
+          Text(
+            item.label,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              color: isActive ? AppColors.primary : AppColors.textMuted,
+              letterSpacing: 0.3,
             ),
-            if (isActive)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                width: 3, // w-[3px]
-                height: 3, // h-[3px]
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
