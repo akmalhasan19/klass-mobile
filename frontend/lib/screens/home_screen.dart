@@ -14,8 +14,13 @@ import '../config/animations.dart';
 /// project recommendations (bleed), top freelancers (bleed).
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsTap;
+  final bool shouldFocusPrompt;
 
-  const HomeScreen({super.key, this.onSettingsTap});
+  const HomeScreen({
+    super.key,
+    this.onSettingsTap,
+    this.shouldFocusPrompt = false,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -24,6 +29,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _promptController = TextEditingController();
+  final FocusNode _promptFocusNode = FocusNode();
 
   // Dummy data — mereplikasi projects dari Next.js
   final List<Map<String, dynamic>> projects = [
@@ -127,9 +133,20 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.shouldFocusPrompt) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _promptFocusNode.requestFocus();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _promptController.dispose();
     _scrollController.dispose();
+    _promptFocusNode.dispose();
     super.dispose();
   }
 
@@ -402,6 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 10),
                             PromptInputWidget(
                               controller: _promptController,
+                              focusNode: _promptFocusNode,
                               onSubmit: (text) {
                                 debugPrint('Prompt submitted: $text');
                               },

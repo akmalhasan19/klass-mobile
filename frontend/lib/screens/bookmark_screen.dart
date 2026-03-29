@@ -3,7 +3,9 @@ import 'dart:ui';
 import '../config/app_colors.dart';
 
 class BookmarkScreen extends StatefulWidget {
-  const BookmarkScreen({super.key});
+  final VoidCallback? onCreateNewModule;
+
+  const BookmarkScreen({super.key, this.onCreateNewModule});
 
   @override
   State<BookmarkScreen> createState() => _BookmarkScreenState();
@@ -216,17 +218,20 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'My Teaching Materials',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+            const Expanded(
+              child: Text(
+                'My Teaching Materials',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
+            const SizedBox(width: 24),
             Row(
               children: [
                 Text(
@@ -239,7 +244,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                Icon(Icons.arrow_forward_rounded, color: AppColors.primary, size: 16),
+                Icon(Icons.arrow_forward_rounded,
+                    color: AppColors.primary, size: 16),
               ],
             ),
           ],
@@ -282,7 +288,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(24),
-              onTap: () {},
+              onTap: widget.onCreateNewModule,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -613,12 +619,13 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
             mainAxisSpacing: 16,
             crossAxisSpacing: 16,
             childAspectRatio: 1.2,
@@ -630,7 +637,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             ],
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           
           // Storage Progress
           Container(

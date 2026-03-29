@@ -53,6 +53,14 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  bool _shouldFocusHomePrompt = false;
+
+  void _handleNavigateToHome(bool focusPrompt) {
+    setState(() {
+      _currentIndex = 0;
+      _shouldFocusHomePrompt = focusPrompt;
+    });
+  }
 
   void _navigateToSettings() {
     Navigator.of(context).push(
@@ -71,14 +79,21 @@ class _MainShellState extends State<MainShell> {
   Widget _buildCurrentPage() {
     switch (_currentIndex) {
       case 0:
-        return HomeScreen(
+        final home = HomeScreen(
           key: const ValueKey('home'),
           onSettingsTap: _navigateToSettings,
+          shouldFocusPrompt: _shouldFocusHomePrompt,
         );
+        // Reset flag after consumption
+        _shouldFocusHomePrompt = false;
+        return home;
       case 1:
         return const SearchScreen(key: ValueKey('search'));
       case 2:
-        return const BookmarkScreen(key: ValueKey('bookmarks'));
+        return BookmarkScreen(
+          key: const ValueKey('bookmarks'),
+          onCreateNewModule: () => _handleNavigateToHome(true),
+        );
       case 3:
         return const ProfileScreen(key: ValueKey('profile'));
       default:

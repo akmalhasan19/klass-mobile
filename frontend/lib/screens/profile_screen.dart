@@ -66,6 +66,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 24),
                           _buildStatsBento(),
                           const SizedBox(height: 32),
+                          _buildInstitutionalTools(),
+                          const SizedBox(height: 8),
                           _buildTeachingMaterials(),
                           const SizedBox(height: 32),
                           _buildAccountSupport(),
@@ -105,7 +107,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                   image: const DecorationImage(
-                    image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuCVWwvza0o2NMoRQf464SP4rJrFCtVIpw7EEgxfKiiQ5JhKlGOdHyjSC2-1CdzUKVrrwm6LGC0pz46SKonWBZpC9i3gZTmfpIu0eQf3J_ZjxaEtuh7WI7HaqE9Z-SwqL8Hum1eAmuQ4jlqfvsEvUbGS5kRg1Ffv7U5g-TwLpeZ1JaCIQcYRmidTMGEtNAvc6Ki-jknKj5cXipM1CvOeFPG91rvDjM4W7sdQRqKJnIU9WI8KwYo0gb_jHp9nq2c_pPqi86FcVC9iMTNo'),
+                    image: NetworkImage(
+                      'https://lh3.googleusercontent.com/aida-public/AB6AXuC5VnMYOq0N2jV1mbYtKbSs-WVMbZE_5DYxCzo5nNqe2cWB54X4kx5yyMfK29_rm80S-5kbXUZUHEW37y04uAAmBj5Rj-L5McanjlkZuXslPjFrEsb1-aaECyJUtn5xp2eZVTJeIl02mYJz2uyIsQVKocXclnxH1Ye1GMsontGxBYkjUYAkrRR71qg0lg3Zo9z1gWhSF4AI6b8L7vMBqyyD1pWKcZTYeQEixvO0KfeqHtXvQ7KlRItXuSoJmKhhzo836vjkNSNinkuU',
+                    ),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -114,7 +118,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 bottom: -8,
                 right: -8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(20),
@@ -129,7 +136,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.verified_rounded, color: Colors.white, size: 14),
+                      Icon(
+                        Icons.verified_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                       SizedBox(width: 4),
                       Text(
                         'VERIFIED',
@@ -162,16 +173,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             textAlign: TextAlign.center,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         const Center(
           child: Text(
-            'Dedicated educator specializing in high-impact educational modules. Expert in translating complex scientific theories into accessible digital learning experiences for global audiences.',
+            'Senior Mathematics Instructor & Head of STEM',
             style: TextStyle(
               fontFamily: 'Inter',
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-              height: 1.5,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -179,88 +189,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 20),
         Center(
           child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 12,
+            runSpacing: 12,
             alignment: WrapAlignment.center,
             children: [
-              _buildTag('QUANTUM PHYSICS', isPrimary: true),
-              _buildTag('DIGITAL PEDAGOGY', isPrimary: true),
-              _buildTag('CURRICULUM DESIGN', isPrimary: false),
+              _buildInfoChip(
+                Icons.account_balance_rounded,
+                'Greenwood International School',
+              ),
+              _buildInfoChip(
+                Icons.history_edu_rounded,
+                '12 Years in Education',
+              ),
             ],
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildTag(String text, {bool isPrimary = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isPrimary ? AppColors.primaryLight : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: isPrimary ? AppColors.primaryDark : AppColors.textSecondary,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsBento() {
-    return Row(
-      children: [
-        Expanded(child: _buildStatCard('48', 'Modules Created')),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('12.4k', 'Students Reached')),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('4.9', 'Avg. Rating', icon: Icons.star_rounded)),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String value, String label, {IconData? icon}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
+        const SizedBox(height: 32),
+        Center(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: const Text(
+                  'Class Dashboard',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-              if (icon != null) ...[
-                const SizedBox(width: 4),
-                Icon(icon, color: AppColors.primary, size: 20),
-              ]
-            ],
+            ),
           ),
-          const SizedBox(height: 8),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 18),
+          const SizedBox(width: 8),
           Text(
-            label.toUpperCase(),
+            text,
             style: const TextStyle(
               fontFamily: 'Inter',
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textMuted,
-              letterSpacing: 0.5,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -268,6 +279,178 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildStatsBento() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard('06', 'Classes Taught', subtext: 'Active'),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard('180', 'Student Count', subtext: 'Enrolled'),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard('24', 'Curriculum Hours', subtext: 'h/week'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(
+    String value,
+    String label, {
+    String? subtext,
+    IconData? icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textMuted,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.bottomLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textPrimary,
+                    height: 1.1,
+                  ),
+                ),
+                if (icon != null) ...[
+                  const SizedBox(width: 4),
+                  Icon(icon, color: AppColors.primary, size: 20),
+                ] else if (subtext != null) ...[
+                  const SizedBox(width: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(
+                      subtext,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstitutionalTools() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Institutional Tools',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textPrimary,
+            letterSpacing: -0.5,
+          ),
+        ),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.2,
+          children: [
+            _buildToolButton(
+              Icons.assignment_turned_in_rounded,
+              'Gradebook &\nAttendance',
+            ),
+            _buildToolButton(
+              Icons.edit_calendar_rounded,
+              'Curriculum\nPlanner',
+            ),
+            _buildToolButton(Icons.campaign_rounded, 'School\nAnnouncements'),
+            _buildToolButton(Icons.groups_rounded, 'Parent\nPortal'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToolButton(IconData icon, String label) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {},
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 28),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildTeachingMaterials() {
     return Column(
@@ -282,7 +465,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'My Teaching Materials',
+                    'Curriculum Modules',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 22,
@@ -321,16 +504,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 20),
         _buildModuleCard(
           title: 'Intro to Quantum Physics',
-          description: 'A comprehensive journey from classical mechanics to the mysteries of quantum entanglements.',
-          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTGKxSjUWwWvC2HvRdzg_RmvbCSLmCQH4UIU84ACn48uxwjyucMwK_wWVloZS99Ija6TT0Qr8yWPeti7JYBlEwelvNYlUTZ_rv5tQTZ7JqQ6H3oNIAjgCk0zGA_mjuh7FMYP92E5O8iA1zAiciFWoMTuFEqFxvhiNq5-i5tpKHdoI03HZphV9FcfsUUrzuu6vLitJfPtQVkvJ9Jxmcfzz8dyBwk2dJylV8Scjv6d22YZpLbpnRh1EQjmki4XCJ5iaz61XHKpHUxusQ',
+          description:
+              'A comprehensive journey from classical mechanics to the mysteries of quantum entanglements.',
+          imageUrl:
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuBTGKxSjUWwWvC2HvRdzg_RmvbCSLmCQH4UIU84ACn48uxwjyucMwK_wWVloZS99Ija6TT0Qr8yWPeti7JYBlEwelvNYlUTZ_rv5tQTZ7JqQ6H3oNIAjgCk0zGA_mjuh7FMYP92E5O8iA1zAiciFWoMTuFEqFxvhiNq5-i5tpKHdoI03HZphV9FcfsUUrzuu6vLitJfPtQVkvJ9Jxmcfzz8dyBwk2dJylV8Scjv6d22YZpLbpnRh1EQjmki4XCJ5iaz61XHKpHUxusQ',
           status: 'Published',
           isDraft: false,
           stats: [
-            const Icon(Icons.group_rounded, size: 16, color: AppColors.textMuted),
+            const Icon(
+              Icons.group_rounded,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(width: 4),
             const Text('1.2k', style: _statStyle),
             const SizedBox(width: 16),
-            const Icon(Icons.schedule_rounded, size: 16, color: AppColors.textMuted),
+            const Icon(
+              Icons.schedule_rounded,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(width: 4),
             const Text('14h', style: _statStyle),
           ],
@@ -338,16 +531,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 16),
         _buildModuleCard(
           title: 'Modern Art History',
-          description: 'Exploring the seismic shifts in artistic expression from the mid-19th century to today.',
-          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAE7PoZ9LTIoG5uutNqz6Xt6gD2YUvbqq305GgIp-hfioQTmG3nGy3Oueh2HGA6A0lCtP1lUmn17dyLJ2gaphosdX3DwcPgBMk8-EhDHoMWq3WmL5pVaYXw_ohoMasfJV49PFhNeIJ1Tn7i1lyKuPxvoofnIF63eoOciRZ7wDUKCpxezigtDmQajbBiTf0jU1Xi1hIUeXxYJphhgn96vCQIJencrKhiN9HuG1j5gprRDmnP4ETdGnst1cXyPh1pVICDPNqoGZHywo7g',
+          description:
+              'Exploring the seismic shifts in artistic expression from the mid-19th century to today.',
+          imageUrl:
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuAE7PoZ9LTIoG5uutNqz6Xt6gD2YUvbqq305GgIp-hfioQTmG3nGy3Oueh2HGA6A0lCtP1lUmn17dyLJ2gaphosdX3DwcPgBMk8-EhDHoMWq3WmL5pVaYXw_ohoMasfJV49PFhNeIJ1Tn7i1lyKuPxvoofnIF63eoOciRZ7wDUKCpxezigtDmQajbBiTf0jU1Xi1hIUeXxYJphhgn96vCQIJencrKhiN9HuG1j5gprRDmnP4ETdGnst1cXyPh1pVICDPNqoGZHywo7g',
           status: 'Published',
           isDraft: false,
           stats: [
-            const Icon(Icons.group_rounded, size: 16, color: AppColors.textMuted),
+            const Icon(
+              Icons.group_rounded,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(width: 4),
             const Text('850', style: _statStyle),
             const SizedBox(width: 16),
-            const Icon(Icons.schedule_rounded, size: 16, color: AppColors.textMuted),
+            const Icon(
+              Icons.schedule_rounded,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(width: 4),
             const Text('8h', style: _statStyle),
           ],
@@ -355,12 +558,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 16),
         _buildModuleCard(
           title: 'Advanced Thermodynamics',
-          description: 'In-depth analysis of entropy, enthalpy, and energy conversion systems.',
-          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCR6hR6bvffsyKtu12OhoJs6jMLIN6XlZ7V_c10UhZ4NnbX-CVQzaD48EjnPlC_ZG76rC7T7d82o5F7bBRsNmeezOeU7-Rmtkn_BXIU88LmGYkaduQGJhsEZHbEYkvc0x_Jpll2b4-3oBvv0b0V711JUu--D242lHRWTM0pPN6dZVKx8kON4x5QfsP4d_kRrzv0gyf6WyyKFkKbkjcHPqQq3PUtcf3K1lrg-j-6jPoH3dZo_H62th4HDgoOU9K8Jzv-2LMxpn0Lcwnj',
+          description:
+              'In-depth analysis of entropy, enthalpy, and energy conversion systems.',
+          imageUrl:
+              'https://lh3.googleusercontent.com/aida-public/AB6AXuCR6hR6bvffsyKtu12OhoJs6jMLIN6XlZ7V_c10UhZ4NnbX-CVQzaD48EjnPlC_ZG76rC7T7d82o5F7bBRsNmeezOeU7-Rmtkn_BXIU88LmGYkaduQGJhsEZHbEYkvc0x_Jpll2b4-3oBvv0b0V711JUu--D242lHRWTM0pPN6dZVKx8kON4x5QfsP4d_kRrzv0gyf6WyyKFkKbkjcHPqQq3PUtcf3K1lrg-j-6jPoH3dZo_H62th4HDgoOU9K8Jzv-2LMxpn0Lcwnj',
           status: 'Draft',
           isDraft: true,
           stats: [
-            const Icon(Icons.history_edu_rounded, size: 16, color: AppColors.textMuted),
+            const Icon(
+              Icons.history_edu_rounded,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(width: 4),
             const Text('4/12 Modules', style: _statStyle),
           ],
@@ -405,12 +614,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 height: 180,
                 decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
                   image: DecorationImage(
                     image: NetworkImage(imageUrl),
                     fit: BoxFit.cover,
                     colorFilter: isDraft
-                        ? ColorFilter.mode(Colors.black.withValues(alpha: 0.5), BlendMode.saturation)
+                        ? ColorFilter.mode(
+                            Colors.black.withValues(alpha: 0.5),
+                            BlendMode.saturation,
+                          )
                         : null,
                   ),
                 ),
@@ -419,7 +633,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 top: 16,
                 right: 16,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isDraft ? AppColors.surfaceLight : AppColors.primary,
                     borderRadius: BorderRadius.circular(20),
@@ -552,17 +769,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: InkWell(
         onTap: () {
           if (label == 'Account Settings') {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
-            ).then((_) {
-              if (mounted) {
-                _scrollController.animateTo(
-                  0,
-                  duration: const Duration(milliseconds: 600),
-                  curve: Curves.easeOutQuart,
-                );
-              }
-            });
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (context) => const AccountSettingsScreen(),
+                  ),
+                )
+                .then((_) {
+                  if (mounted) {
+                    _scrollController.animateTo(
+                      0,
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutQuart,
+                    );
+                  }
+                });
           }
         },
         borderRadius: BorderRadius.circular(16),

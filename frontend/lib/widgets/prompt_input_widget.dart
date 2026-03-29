@@ -7,12 +7,14 @@ class PromptInputWidget extends StatefulWidget {
   final Function(String)? onSubmit;
   final String? initialValue;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
 
   const PromptInputWidget({
     super.key,
     this.onSubmit,
     this.initialValue,
     this.controller,
+    this.focusNode,
   });
 
   @override
@@ -69,6 +71,7 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
           Expanded(
             child: TextField(
               controller: _controller,
+              focusNode: widget.focusNode,
               maxLines: 6,
               minLines: 1,
               style: const TextStyle(
