@@ -1,5 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
+import '../services/project_service.dart';
+import '../main.dart';
 
 class ProjectSuccessScreen extends StatefulWidget {
   final Map<String, dynamic> project;
@@ -13,15 +16,19 @@ class ProjectSuccessScreen extends StatefulWidget {
   State<ProjectSuccessScreen> createState() => _ProjectSuccessScreenState();
 }
 
-class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
-    with SingleTickerProviderStateMixin {
+class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with SingleTickerProviderStateMixin {
+  final ProjectService _projectService = ProjectService();
   late final AnimationController _contentController;
   late final Animation<double> _contentFade;
   late final Animation<Offset> _contentSlide;
+  final ScrollController _scrollController = ScrollController();
+  bool _isScrolled = false;
 
   @override
   void initState() {
     super.initState();
+    
+    _scrollController.addListener(_onScroll);
 
     _contentController = AnimationController(
       vsync: this,
@@ -49,8 +56,31 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Gunakan threshold yang sedikit lebih besar untuk stabilitas
+    final bool isScrolled = _scrollController.offset > 20;
+    if (isScrolled != _isScrolled) {
+      setState(() {
+        _isScrolled = isScrolled;
+      });
+    }
+  }
+
+  void _handleGoToWorkspace() {
+    // 1. Sinkronisasi State: Tambahkan proyek ke service
+    _projectService.addProject(widget.project);
+
+    // 2. Navigasi: Kembali ke MainShell dan pindah ke tab Workspace (indeks 2)
+    Navigator.of(context).popUntil((route) => route.isFirst);
+
+    // Gunakan GlobalKey untuk mengubah tab di MainShell
+    KlassApp.mainShellKey.currentState?.setTabIndex(2);
   }
 
   @override
@@ -61,8 +91,6 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: Stack(
-        // StackFit.expand forces non-positioned children to fill
-        // the full screen — this is the critical fix.
         fit: StackFit.expand,
         children: [
           // ── Atmospheric Decorations ───────────────────────────────────
@@ -92,21 +120,19 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
           ),
 
           // ── Main Scrollable Content ───────────────────────────────────
-          // Non-positioned → expands to full screen due to StackFit.expand
           SingleChildScrollView(
+            controller: _scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Reserve space for the safe-area + header
-                SizedBox(height: topPadding + 80),
+                SizedBox(height: topPadding + 100),
 
-                // ── Checklist Icon (pop-up animation, NOT in slide-up) ──
+                // ── Checklist Icon ──
                 Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
-                    // Decorative elements
                     Positioned(
                       top: -10,
                       right: -10,
@@ -135,7 +161,6 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
                       ),
                     ),
 
-                    // Main icon with elastic pop-up
                     TweenAnimationBuilder<double>(
                       tween: Tween(begin: 0.0, end: 1.0),
                       duration: const Duration(milliseconds: 800),
@@ -175,14 +200,13 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
 
                 const SizedBox(height: 48),
 
-                // ── Slide-up Content (text, card, buttons) ───────────────
+                // ── Slide-up Content ──
                 SlideTransition(
                   position: _contentSlide,
                   child: FadeTransition(
                     opacity: _contentFade,
                     child: Column(
                       children: [
-                        // Title
                         const Text(
                           'Project Added Successfully!',
                           style: TextStyle(
@@ -210,7 +234,6 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
 
                         const SizedBox(height: 48),
 
-                        // Summary Card
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(32),
@@ -231,7 +254,6 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Project title row
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -290,7 +312,6 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
                                 color: AppColors.border.withValues(alpha: 0.5),
                               ),
                               const SizedBox(height: 24),
-                              // Modules + Access row
                               Row(
                                 children: [
                                   Expanded(
@@ -374,9 +395,8 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
 
                         const SizedBox(height: 48),
 
-                        // Action Buttons
                         ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: _handleGoToWorkspace,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
@@ -406,7 +426,7 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
                         ),
                         const SizedBox(height: 16),
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
                           style: TextButton.styleFrom(
                             minimumSize: const Size(double.infinity, 64),
                             shape: RoundedRectangleBorder(
@@ -437,45 +457,70 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen>
             ),
           ),
 
-          // ── Header overlay (Positioned → exact top anchor) ───────────
-          // Rendered last so it is always on top of scroll content.
+          // ── Fixed Header Overlay ──────────────────────────────────────
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Klass',
-                      style: TextStyle(
-                        fontFamily: 'Mona_Sans',
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        fontStyle: FontStyle.italic,
-                        color: AppColors.primary,
-                        letterSpacing: -1,
+            child: ClipRect(
+              child: Stack(
+                children: [
+                  // Latar belakang blur & warna yang beranimasi serempak
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.0, end: _isScrolled ? 1.0 : 0.0),
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    builder: (context, value, child) {
+                      if (value <= 0) return const SizedBox.shrink();
+                      return BackdropFilter(
+                        filter: ImageFilter.blur(
+                          sigmaX: value * 10,
+                          sigmaY: value * 10,
+                        ),
+                        child: Container(
+                          height: topPadding + 72,
+                          color: AppColors.surface.withValues(alpha: value * 0.8),
+                        ),
+                      );
+                    },
+                  ),
+                  // Konten Header (selalu tajam, tidak ikut blur)
+                  SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Klass',
+                            style: TextStyle(
+                              fontFamily: 'Mona_Sans',
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              fontStyle: FontStyle.italic,
+                              color: AppColors.primary,
+                              letterSpacing: -1,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                            icon: const Icon(
+                              Icons.close,
+                              color: AppColors.textMuted,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black.withValues(alpha: 0.05),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.close,
-                        color: AppColors.textMuted,
-                      ),
-                      style: IconButton.styleFrom(
-                        backgroundColor:
-                            Colors.black.withValues(alpha: 0.05),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

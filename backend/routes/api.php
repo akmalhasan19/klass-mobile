@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ContentController;
+use App\Http\Controllers\Api\FileUploadController;
 use App\Http\Controllers\Api\MarketplaceTaskController;
 use App\Http\Controllers\Api\StudentProgressController;
 use App\Http\Controllers\Api\TopicController;
@@ -25,3 +26,16 @@ Route::apiResource('topics', TopicController::class);
 Route::apiResource('contents', ContentController::class);
 Route::apiResource('marketplace-tasks', MarketplaceTaskController::class);
 Route::apiResource('student-progress', StudentProgressController::class);
+
+/*
+|--------------------------------------------------------------------------
+| File Upload Routes
+|--------------------------------------------------------------------------
+| POST   /api/upload/{category}  — Upload file (category: avatars, gallery, materials, attachments)
+| DELETE /api/upload/{category}  — Hapus file (query param: path)
+*/
+Route::post('/upload/{category}', [FileUploadController::class, 'upload'])
+    ->where('category', 'avatars|gallery|materials|attachments');
+
+Route::delete('/upload/{category}', [FileUploadController::class, 'destroy'])
+    ->where('category', 'avatars|gallery|materials|attachments');

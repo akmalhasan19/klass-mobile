@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../config/app_colors.dart';
 import '../widgets/feature_coming_soon.dart';
+import '../services/project_service.dart';
 
 class BookmarkScreen extends StatefulWidget {
   final VoidCallback? onCreateNewModule;
@@ -19,6 +20,25 @@ class BookmarkScreen extends StatefulWidget {
 
 class _BookmarkScreenState extends State<BookmarkScreen> {
   String _selectedFilter = 'All';
+  final ProjectService _projectService = ProjectService();
+
+  @override
+  void initState() {
+    super.initState();
+    _projectService.addListener(_onProjectServiceUpdate);
+  }
+
+  @override
+  void dispose() {
+    _projectService.removeListener(_onProjectServiceUpdate);
+    super.dispose();
+  }
+
+  void _onProjectServiceUpdate() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +252,24 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         ),
         const SizedBox(height: 20),
         
-        // Cards List
+        // Dynamic Added Projects from Service
+        ..._projectService.addedProjects.map((project) {
+          final String imagePath = project['imagePath'] ?? project['image'] ?? 'assets/images/ppt_design_3.jpg';
+          
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 20.0),
+            child: _buildMaterialCard(
+              imagePath: imagePath,
+              title: project['title'] ?? 'Untitled Project',
+              desc: project['description'] ?? 'No description provided.',
+              status: 'NEW',
+              isPublished: false,
+              dateText: 'Added just now',
+            ),
+          );
+        }),
+        
+        // Cards List (Hardcoded for now)
         _buildMaterialCard(
           imagePath: 'assets/images/ppt_design_3.jpg', 
           title: 'Modern History of Indonesia',

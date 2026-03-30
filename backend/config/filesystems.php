@@ -60,6 +60,76 @@ return [
             'report' => false,
         ],
 
+        /*
+        |----------------------------------------------------------------------
+        | Supabase Storage Disk (S3-Compatible API)
+        |----------------------------------------------------------------------
+        |
+        | Supabase Storage menyediakan endpoint S3-compatible sehingga bisa
+        | menggunakan driver 's3' bawaan Laravel/Flysystem.
+        |
+        | Naming convention path di dalam bucket:
+        |   - avatars/       → foto profil user
+        |   - gallery/       → aset galeri/materi visual
+        |   - materials/     → file materi pelajaran (PDF, doc, dsb)
+        |   - attachments/   → lampiran umum lainnya
+        |
+        | Public URL pattern:
+        |   {SUPABASE_URL}/storage/v1/object/public/{bucket}/{path}
+        |
+        */
+        'supabase' => [
+            'driver' => 's3',
+            'key' => env('SUPABASE_STORAGE_KEY'),
+            'secret' => env('SUPABASE_STORAGE_SECRET'),
+            'region' => env('SUPABASE_STORAGE_REGION', 'ap-southeast-1'),
+            'bucket' => env('SUPABASE_STORAGE_BUCKET', 'klass-storage'),
+            'endpoint' => env('SUPABASE_STORAGE_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'throw' => true,
+            'report' => true,
+            'visibility' => 'public',
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allowed Upload Categories
+    |--------------------------------------------------------------------------
+    |
+    | Daftar kategori upload yang valid beserta aturan validasinya.
+    | Dipakai oleh FileUploadService untuk menentukan path, mime types,
+    | dan max file size untuk setiap kategori.
+    |
+    */
+
+    'upload_categories' => [
+
+        'avatars' => [
+            'path' => 'avatars',
+            'allowed_mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+            'max_size_kb' => 2048, // 2 MB
+        ],
+
+        'gallery' => [
+            'path' => 'gallery',
+            'allowed_mimes' => ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'],
+            'max_size_kb' => 5120, // 5 MB
+        ],
+
+        'materials' => [
+            'path' => 'materials',
+            'allowed_mimes' => ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'md'],
+            'max_size_kb' => 10240, // 10 MB
+        ],
+
+        'attachments' => [
+            'path' => 'attachments',
+            'allowed_mimes' => ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'zip'],
+            'max_size_kb' => 10240, // 10 MB
+        ],
+
     ],
 
     /*

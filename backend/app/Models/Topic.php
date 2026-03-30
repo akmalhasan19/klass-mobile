@@ -14,6 +14,7 @@ class Topic extends Model
     protected $fillable = [
         'title',
         'teacher_id',
+        'thumbnail_url',
     ];
 
     /**

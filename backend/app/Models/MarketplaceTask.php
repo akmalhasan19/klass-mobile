@@ -15,6 +15,7 @@ class MarketplaceTask extends Model
         'content_id',
         'status',
         'creator_id',
+        'attachment_url',
     ];
 
     /**

@@ -15,7 +15,9 @@ class Content extends Model
     protected $fillable = [
         'topic_id',
         'type',
+        'title',
         'data',
+        'media_url',
     ];
 
     protected function casts(): array
