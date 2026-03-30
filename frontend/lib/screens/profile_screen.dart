@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
 import 'account_settings_screen.dart';
+import 'help_screen.dart';
 import '../widgets/feature_coming_soon.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -805,6 +806,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   }
                 });
+          } else if (label == 'Help Center') {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const HelpScreen(),
+              ),
+            );
           }
         },
         borderRadius: BorderRadius.circular(16),

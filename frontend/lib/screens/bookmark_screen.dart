@@ -23,7 +23,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surfaceLight, // Equivalent to #f7f9fb
+      backgroundColor: AppColors.background,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 90), // Above bottom nav
         child: FloatingActionButton(
@@ -156,17 +156,22 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   color: isSelected ? AppColors.primary : AppColors.surfaceCard,
                   borderRadius: BorderRadius.circular(100),
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.border,
+                    color: Colors.transparent,
                   ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          )
-                        ]
-                      : [],
+                  boxShadow: [
+                    if (isSelected)
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      )
+                    else
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                  ],
                 ),
                 child: Text(
                   filter,
@@ -252,12 +257,19 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           height: 220,
           width: double.infinity,
           decoration: BoxDecoration(
+            color: AppColors.surfaceCard,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: AppColors.border,
+              color: Colors.transparent,
               width: 2,
-              style: BorderStyle.solid,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Material(
             color: Colors.transparent,
@@ -316,11 +328,12 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.transparent),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -482,11 +495,19 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
+            color: AppColors.surfaceCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.border,
-              width: 2,
+              color: Colors.transparent,
+              width: 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -513,9 +534,16 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+        border: Border.all(color: Colors.transparent),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -601,9 +629,16 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.05),
+            color: AppColors.surfaceCard,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+            border: Border.all(color: Colors.transparent),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -611,7 +646,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.cloud_done_rounded, color: AppColors.primary, size: 20),
@@ -662,8 +697,17 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   Widget _buildResourceGridItem(IconData icon, String label) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: AppColors.background, // Match scaffold to allow shadow visibility
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.transparent, width: 0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
