@@ -127,6 +127,22 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        /*
+        |----------------------------------------------------------------------
+        | API Log Channel — dedicated channel for structured API logging
+        |----------------------------------------------------------------------
+        | Used by StructuredApiLogger middleware to keep API request/response
+        | logs separate from general application logs. Uses daily rotation
+        | with 7 day retention.
+        */
+        'api' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/api.log'),
+            'level' => env('LOG_API_LEVEL', 'debug'),
+            'days' => 7,
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

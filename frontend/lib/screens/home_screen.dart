@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
-import '../data/mock_data.dart';
 import '../widgets/prompt_input_widget.dart';
 import '../widgets/project_suggestion_card.dart';
 import '../widgets/bleeding_horizontal_list.dart';
@@ -60,16 +59,16 @@ class _HomeScreenState extends State<HomeScreen> {
       
       if (mounted) {
         setState(() {
-          projects = futures[0].isNotEmpty ? futures[0] : MockData.projects;
-          freelancers = futures[1].isNotEmpty ? futures[1] : MockData.freelancers;
+          projects = futures[0];
+          freelancers = futures[1];
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          projects = MockData.projects;
-          freelancers = MockData.freelancers;
+          projects = [];
+          freelancers = [];
           _hasError = true;
           _isLoading = false;
         });
@@ -367,53 +366,129 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       // Project Suggestions
                       _isLoading
-                          ? const Center(child: CircularProgressIndicator())
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
                           : _hasError
-                              ? const Center(child: Text("Gagal memuat projects", style: TextStyle(color: AppColors.red)))
-                              : BleedingHorizontalList(
-                                  title: 'Project Suggestions',
-                                  height: 260,
-                                  children: projects.map((p) {
-                                    return ProjectSuggestionCard(
-                                      title: p['title'] ?? 'Untitled',
-                                      author: p['author'] ?? p['author_name'] ?? 'By Unknown',
-                                      ratio: p['ratio'] ?? 'ppt',
-                                      imagePath: p['imagePath'] ?? p['media_url'] ?? 'assets/images/ppt_design_3.jpg',
-                                      onTap: () {
-                                        showModalBottomSheet(
-                                          context: context,
-                                          isScrollControlled: true,
-                                          backgroundColor: Colors.transparent,
-                                          builder: (context) {
-                                            return ProjectDetailsBottomSheet(
-                                              project: p,
-                                              onRecreate: (description) async {
-                                                if (await requireAuth(context)) {
-                                                  _promptController.text = description;
-                                                }
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 40),
+                                  child: Center(
+                                    child: Column(
+                                      children: [
+                                        const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.red),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'Gagal memuat projects',
+                                          style: TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton(
+                                          onPressed: _fetchData,
+                                          child: const Text('Retry'),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : projects.isEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 40),
+                                      child: Center(
+                                        child: Column(
+                                          children: [
+                                            const Icon(Icons.folder_open_rounded, size: 48, color: AppColors.border),
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                              'Belum ada project',
+                                              style: TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  : BleedingHorizontalList(
+                                      title: 'Project Suggestions',
+                                      height: 260,
+                                      children: projects.map((p) {
+                                        return ProjectSuggestionCard(
+                                          title: p['title'] ?? 'Untitled',
+                                          author: p['author'] ?? p['author_name'] ?? 'By Unknown',
+                                          ratio: p['ratio'] ?? 'ppt',
+                                          imagePath: p['imagePath'] ?? p['media_url'] ?? 'assets/images/ppt_design_3.jpg',
+                                          onTap: () {
+                                            showModalBottomSheet(
+                                              context: context,
+                                              isScrollControlled: true,
+                                              backgroundColor: Colors.transparent,
+                                              builder: (context) {
+                                                return ProjectDetailsBottomSheet(
+                                                  project: p,
+                                                  onRecreate: (description) async {
+                                                    if (await requireAuth(context)) {
+                                                      _promptController.text = description;
+                                                    }
+                                                  },
+                                                );
                                               },
                                             );
                                           },
                                         );
-                                      },
-                                    );
-                                  }).toList(),
-                                ),
+                                      }).toList(),
+                                    ),
                       const SizedBox(height: 32),
 
                       // Top Freelancers
                       _isLoading
-                          ? const Center(child: CircularProgressIndicator())
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
                           : _hasError
-                              ? const Center(child: Text("Gagal memuat freelancers", style: TextStyle(color: AppColors.red)))
-                              : BleedingHorizontalList(
-                                  title: 'Top Freelancers',
-                                  height: 140,
-                                  itemSpacing: 25,
-                                  children: freelancers.map((f) {
-                                    return _buildFreelancerCard(f);
-                                  }).toList(),
-                                ),
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 40),
+                                  child: Center(
+                                    child: Column(
+                                      children: [
+                                        const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.red),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'Gagal memuat freelancers',
+                                          style: TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton(
+                                          onPressed: _fetchData,
+                                          child: const Text('Retry'),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : freelancers.isEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 40),
+                                      child: Center(
+                                        child: Column(
+                                          children: [
+                                            const Icon(Icons.group_off_rounded, size: 48, color: AppColors.border),
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                              'Belum ada freelancer',
+                                              style: TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  : BleedingHorizontalList(
+                                      title: 'Top Freelancers',
+                                      height: 140,
+                                      itemSpacing: 25,
+                                      children: freelancers.map((f) {
+                                        return _buildFreelancerCard(f);
+                                      }).toList(),
+                                    ),
                       const SizedBox(height: 120), // Space for bottom nav
                     ],
                   ),

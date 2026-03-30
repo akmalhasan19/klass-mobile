@@ -1,9 +1,14 @@
 import 'api_service.dart';
+import '../config/feature_flags.dart';
 
 class SearchService {
   final ApiService _apiService = ApiService();
 
   Future<List<Map<String, dynamic>>> searchTopics({String? q, String? category}) async {
+    if (!FeatureFlags.useApiData || !FeatureFlags.enableServerSearch) {
+      return []; // Fallback: return empty when API/search is disabled
+    }
+
     try {
        final queryParams = <String, dynamic>{};
        if (q != null && q.isNotEmpty) queryParams['search'] = q;

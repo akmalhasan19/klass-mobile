@@ -1,9 +1,14 @@
 import 'api_service.dart';
+import '../config/feature_flags.dart';
 
 class GalleryService {
   final ApiService _apiService = ApiService();
 
   Future<List<Map<String, dynamic>>> fetchGallery({String? search, String? category}) async {
+    if (!FeatureFlags.useApiData || !FeatureFlags.enableGalleryApi) {
+      return []; // Fallback: return empty when API/gallery is disabled
+    }
+
     try {
       final queryParams = <String, dynamic>{};
       if (search != null && search.isNotEmpty) queryParams['search'] = search;

@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Middleware\StructuredApiLogger;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -17,7 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Structured API logging for all API routes
+        $middleware->api(append: [
+            StructuredApiLogger::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /*
@@ -68,6 +73,25 @@ return Application::configure(basePath: dirname(__DIR__))
                     'success' => false,
                     'message' => 'Tidak memiliki akses. Silakan login terlebih dahulu.',
                 ], 401);
+            }
+        });
+
+        // Catch-all: unexpected exceptions → 500
+        $exceptions->renderable(function (\Throwable $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                Log::error('[API] Unhandled Exception', [
+                    'exception' => get_class($e),
+                    'message'   => $e->getMessage(),
+                    'file'      => $e->getFile(),
+                    'line'      => $e->getLine(),
+                    'path'      => $request->path(),
+                    'method'    => $request->method(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan pada server.',
+                ], 500);
             }
         });
     })->create();

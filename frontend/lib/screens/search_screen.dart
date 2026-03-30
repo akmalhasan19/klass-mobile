@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
-import '../data/mock_data.dart';
+
 import '../widgets/animated_search_bar.dart';
 import '../services/home_service.dart';
 
@@ -19,7 +19,14 @@ class _SearchScreenState extends State<SearchScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isSearching = false;
 
-  final List<Map<String, dynamic>> categories = MockData.searchCategories;
+  final List<Map<String, dynamic>> categories = const [
+    {'name': 'All', 'icon': Icons.grid_view_rounded},
+    {'name': 'Science', 'icon': Icons.science_rounded},
+    {'name': 'Math', 'icon': Icons.calculate_rounded},
+    {'name': 'Art', 'icon': Icons.palette_rounded},
+    {'name': 'Code', 'icon': Icons.code_rounded},
+    {'name': 'History', 'icon': Icons.menu_book_rounded},
+  ];
   
   final _homeService = HomeService();
   List<Map<String, dynamic>> teachers = [];

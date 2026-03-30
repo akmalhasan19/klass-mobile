@@ -11,9 +11,9 @@ Arsitektur yang dipakai:
 - [x] Phase 0 selesai
 - [x] Phase 1 selesai
 - [x] Phase 2 selesai
-- [ ] Phase 3 selesai
-- [ ] Phase 4 selesai
-- [ ] Phase 5 selesai
+- [x] Phase 3 selesai
+- [x] Phase 4 selesai
+- [x] Phase 5 selesai
 - [ ] Phase 6 selesai
 - [ ] Go-live readiness tercapai
 
@@ -110,8 +110,8 @@ Memindahkan sumber data layar prioritas dari in-memory hardcoded ke API Laravel.
 ### Checklist Global
 - [x] Tambahkan dependency HTTP client yang dibutuhkan di Flutter
 - [x] Buat API layer (base URL, headers, auth token, error mapping)
-- [ ] Refactor service agar sumber data berasal dari API
-- [ ] Terapkan loading/empty/error/retry pattern konsisten di semua layar prioritas
+- [x] Refactor service agar sumber data berasal dari API
+- [x] Terapkan loading/empty/error/retry pattern konsisten di semua layar prioritas
 
 ### Prioritas Implementasi Layar
 
@@ -154,16 +154,16 @@ Memindahkan sumber data layar prioritas dari in-memory hardcoded ke API Laravel.
 Menstabilkan sistem sebelum dianggap production-ready.
 
 ### Checklist
-- [ ] Tambahkan logging terstruktur untuk endpoint prioritas
-- [ ] Tambahkan timeout dan retry policy di client
-- [ ] Tambahkan monitoring error rate endpoint utama
-- [ ] Audit dan hapus file/kode dummy yang sudah tidak dipakai
-- [ ] Audit ulang bucket policy (tetap public sesuai keputusan fase ini)
-- [ ] (Opsional) Tambahkan feature flag sederhana untuk rollback aman
+- [x] Tambahkan logging terstruktur untuk endpoint prioritas
+- [x] Tambahkan timeout dan retry policy di client
+- [x] Tambahkan monitoring error rate endpoint utama
+- [x] Audit dan hapus file/kode dummy yang sudah tidak dipakai
+- [x] Audit ulang bucket policy (tetap public sesuai keputusan fase ini)
+- [x] (Opsional) Tambahkan feature flag sederhana untuk rollback aman
 
 ### Exit Criteria
-- [ ] Error handling stabil di backend dan frontend
-- [ ] Referensi static mode pada domain utama sudah dibersihkan
+- [x] Error handling stabil di backend dan frontend
+- [x] Referensi static mode pada domain utama sudah dibersihkan
 
 ---
 
@@ -204,8 +204,8 @@ Memastikan seluruh alur utama berjalan dari sisi user nyata.
 - [x] M1: Fondasi DB + Storage selesai
 - [x] M2: Kontrak API prioritas selesai
 - [x] M3: Seed data + media tersedia
-- [ ] M4: 5 layar prioritas sudah live data
-- [ ] M5: Hardening + E2E selesai
+- [x] M4: 5 layar prioritas sudah live data
+- [x] M5: Hardening + E2E selesai
 - [ ] M6: Release Candidate
 
 ## Catatan Eksekusi
