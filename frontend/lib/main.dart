@@ -9,8 +9,6 @@ import 'screens/profile_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'config/animations.dart'; 
-import 'screens/login_screen.dart';
-import 'services/auth_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,33 +40,7 @@ class KlassApp extends StatelessWidget {
       title: 'Klass',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: AuthWrapper(key: mainShellKey),
-    );
-  }
-}
-
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: AuthService().isLoggedIn(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-        final isLoggedIn = snapshot.data ?? false;
-        if (isLoggedIn) {
-          return const MainShell();
-        } else {
-          return const LoginScreen();
-        }
-      },
+      home: MainShell(key: mainShellKey),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
+import '../utils/auth_guard.dart';
 
 class FreelancerDetailsBottomSheet extends StatelessWidget {
   final Map<String, dynamic> freelancer;
@@ -194,8 +195,10 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                       ),
                       shadowColor: const Color(0xFF529F60).withValues(alpha: 0.3),
                     ),
-                    onPressed: () {
-                      Navigator.pop(context);
+                    onPressed: () async {
+                      if (await requireAuth(context)) {
+                        if (context.mounted) Navigator.pop(context);
+                      }
                     },
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,

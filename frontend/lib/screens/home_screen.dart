@@ -10,6 +10,7 @@ import '../widgets/project_details_bottom_sheet.dart';
 import '../widgets/freelancer_details_bottom_sheet.dart';
 import '../config/animations.dart';
 import '../services/home_service.dart';
+import '../utils/auth_guard.dart';
 
 /// Home Screen — mereplikasi halaman utama Klass.
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
@@ -354,8 +355,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             PromptInputWidget(
                               controller: _promptController,
                               focusNode: _promptFocusNode,
-                              onSubmit: (text) {
-                                debugPrint('Prompt submitted: $text');
+                              onSubmit: (text) async {
+                                if (await requireAuth(context)) {
+                                  debugPrint('Prompt submitted: $text');
+                                }
                               },
                             ),
                           ],
@@ -384,8 +387,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                           builder: (context) {
                                             return ProjectDetailsBottomSheet(
                                               project: p,
-                                              onRecreate: (description) {
-                                                _promptController.text = description;
+                                              onRecreate: (description) async {
+                                                if (await requireAuth(context)) {
+                                                  _promptController.text = description;
+                                                }
                                               },
                                             );
                                           },

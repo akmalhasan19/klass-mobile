@@ -3,6 +3,7 @@ import 'dart:ui';
 import '../config/app_colors.dart';
 import '../widgets/feature_coming_soon.dart';
 import '../services/project_service.dart';
+import '../utils/auth_guard.dart';
 
 class BookmarkScreen extends StatefulWidget {
   final VoidCallback? onCreateNewModule;
@@ -51,7 +52,11 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 90), // Above bottom nav
         child: FloatingActionButton(
-          onPressed: () {},
+          onPressed: () async {
+            if (await requireAuth(context)) {
+              widget.onCreateNewModule?.call();
+            }
+          },
           backgroundColor: AppColors.primary,
           elevation: 8,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -368,7 +373,11 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(24),
-              onTap: widget.onCreateNewModule,
+              onTap: () async {
+                if (await requireAuth(context)) {
+                  widget.onCreateNewModule?.call();
+                }
+              },
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

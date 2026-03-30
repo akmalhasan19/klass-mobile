@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import '../utils/auth_guard.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -750,12 +751,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: 'Help Center',
             isError: false,
           ),
-          const SizedBox(height: 12),
           _buildAccountSupportItem(
-            icon: Icons.logout_rounded,
-            label: 'Logout',
-            isError: true,
+            icon: Icons.work_outline_rounded,
+            label: 'Register as Freelancer',
+            isError: false,
           ),
+          const SizedBox(height: 12),
+          if (_user != null)
+            _buildAccountSupportItem(
+              icon: Icons.logout_rounded,
+              label: 'Logout',
+              isError: true,
+            )
+          else
+            _buildAccountSupportItem(
+              icon: Icons.login_rounded,
+              label: 'Log In / Create Account',
+              isError: false,
+            ),
         ],
       ),
     );
@@ -769,31 +782,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
+        onTap: () async {
           if (label == 'Account Settings') {
-            Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                    builder: (context) => const AccountSettingsScreen(),
-                  ),
-                )
-                .then((_) {
-                  if (mounted) {
-                    _scrollController.animateTo(
-                      0,
-                      duration: const Duration(milliseconds: 600),
-                      curve: Curves.easeOutQuart,
-                    );
-                  }
-                });
+            if (await requireAuth(context)) {
+              if (mounted) {
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => const AccountSettingsScreen(),
+                      ),
+                    )
+                    .then((_) {
+                      if (mounted) {
+                        _scrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.easeOutQuart,
+                        );
+                      }
+                    });
+              }
+            }
           } else if (label == 'Help Center') {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => const HelpScreen(),
               ),
             );
+          } else if (label == 'Register as Freelancer') {
+            if (await requireAuth(context)) {
+              if (mounted) {
+                FeatureComingSoon.show(
+                  context,
+                  title: 'Freelancer Registration',
+                  description: 'Our freelancer registration portal is currently under construction.',
+                  featureName: 'Become a Teacher',
+                  featureDescription: 'Share your curicullum and earn from your creations.',
+                  icon: Icons.work_rounded,
+                  previewIcon: Icons.rocket_launch_rounded,
+                );
+              }
+            }
           } else if (label == 'Logout') {
             _handleLogout();
+          } else if (label == 'Log In / Create Account') {
+            Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
           }
         },
         borderRadius: BorderRadius.circular(16),
