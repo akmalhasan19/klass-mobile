@@ -9,8 +9,8 @@ Arsitektur yang dipakai:
 ## Status Ringkas
 
 - [x] Phase 0 selesai
-- [ ] Phase 1 selesai
-- [ ] Phase 2 selesai
+- [x] Phase 1 selesai
+- [x] Phase 2 selesai
 - [ ] Phase 3 selesai
 - [ ] Phase 4 selesai
 - [ ] Phase 5 selesai
@@ -44,7 +44,7 @@ Menyiapkan infrastruktur agar Laravel terkoneksi ke Supabase DB dan bucket stora
 
 ### Checklist
 - [x] Konfigurasi Laravel ke Supabase PostgreSQL (`.env`, koneksi database, SSL bila dibutuhkan)
-- [ ] Jalankan migration ke Supabase dan validasi semua tabel utama
+- [x] Jalankan migration ke Supabase dan validasi semua tabel utama
 - [x] Tambahkan/rapikan disk storage Supabase di Laravel (`config/filesystems.php`)
 - [x] Tentukan naming convention path bucket:
   - [x] `avatars/`
@@ -56,8 +56,8 @@ Menyiapkan infrastruktur agar Laravel terkoneksi ke Supabase DB dan bucket stora
 - [x] Uji generate public URL dari Laravel untuk file di bucket
 
 ### Exit Criteria
-- [ ] Laravel CRUD berjalan di Supabase PostgreSQL
-- [ ] Upload file ke bucket berhasil dan URL dapat diakses
+- [x] Laravel CRUD berjalan di Supabase PostgreSQL
+- [x] Upload file ke bucket berhasil dan URL dapat diakses
 
 ---
 
@@ -67,19 +67,19 @@ Menyiapkan infrastruktur agar Laravel terkoneksi ke Supabase DB dan bucket stora
 Membuat kontrak API stabil agar Flutter bisa migrasi dari static source tanpa sering breaking.
 
 ### Checklist
-- [ ] Audit endpoint existing di `routes/api.php`
-- [ ] Standarisasi response schema (list/detail/create/update)
-- [ ] Tambahkan field media URL pada resource yang dibutuhkan UI
-- [ ] Tambahkan endpoint upload avatar
-- [ ] Tambahkan endpoint upload material/gallery asset
-- [ ] Implementasikan search query server-side
-- [ ] Implementasikan filter query server-side
-- [ ] Tambahkan pagination untuk list endpoint yang relevan
-- [ ] Tambahkan validasi request yang konsisten + message error terstruktur
+- [x] Audit endpoint existing di `routes/api.php`
+- [x] Standarisasi response schema (list/detail/create/update)
+- [x] Tambahkan field media URL pada resource yang dibutuhkan UI
+- [x] Tambahkan endpoint upload avatar
+- [x] Tambahkan endpoint upload material/gallery asset
+- [x] Implementasikan search query server-side
+- [x] Implementasikan filter query server-side
+- [x] Tambahkan pagination untuk list endpoint yang relevan
+- [x] Tambahkan validasi request yang konsisten + message error terstruktur
 
 ### Exit Criteria
-- [ ] Semua endpoint prioritas punya kontrak response final
-- [ ] Search/filter/pagination berjalan sesuai parameter
+- [x] Semua endpoint prioritas punya kontrak response final
+- [x] Search/filter/pagination berjalan sesuai parameter
 
 ---
 
@@ -201,8 +201,8 @@ Memastikan seluruh alur utama berjalan dari sisi user nyata.
 
 ## Tracking Milestone
 
-- [ ] M1: Fondasi DB + Storage selesai
-- [ ] M2: Kontrak API prioritas selesai
+- [x] M1: Fondasi DB + Storage selesai
+- [x] M2: Kontrak API prioritas selesai
 - [ ] M3: Seed data + media tersedia
 - [ ] M4: 5 layar prioritas sudah live data
 - [ ] M5: Hardening + E2E selesai

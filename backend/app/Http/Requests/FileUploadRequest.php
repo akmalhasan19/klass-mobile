@@ -2,24 +2,14 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
 /**
  * FileUploadRequest
  *
  * Validasi request upload file.
  * Rules dinamis berdasarkan kategori upload yang dikirim di route parameter.
  */
-class FileUploadRequest extends FormRequest
+class FileUploadRequest extends ApiFormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     /**
      * Get the validation rules that apply to the request.
      *

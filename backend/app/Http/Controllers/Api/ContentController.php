@@ -3,61 +3,99 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreContentRequest;
+use App\Http\Requests\UpdateContentRequest;
+use App\Http\Resources\ContentResource;
+use App\Http\Traits\ApiResponseTrait;
 use App\Models\Content;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ContentController extends Controller
 {
+    use ApiResponseTrait;
+
+    /**
+     * Menampilkan daftar contents.
+     *
+     * GET /api/contents
+     *   ?search=keyword            — Cari berdasarkan title
+     *   ?topic_id=uuid             — Filter berdasarkan topik
+     *   ?type=module|quiz|brief    — Filter berdasarkan tipe
+     *   ?per_page=15               — Jumlah item per halaman (max 50)
+     */
     public function index(Request $request): JsonResponse
     {
         $query = Content::with('topic');
 
-        // Optional filter berdasarkan topic_id
-        if ($request->has('topic_id')) {
-            $query->where('topic_id', $request->topic_id);
+        // Search by title
+        if ($search = $request->query('search')) {
+            $query->where('title', 'ilike', "%{$search}%");
         }
 
-        $contents = $query->latest()->get();
-        return response()->json(['data' => $contents]);
+        // Filter by topic_id
+        if ($topicId = $request->query('topic_id')) {
+            $query->where('topic_id', $topicId);
+        }
+
+        // Filter by type
+        if ($type = $request->query('type')) {
+            $query->where('type', $type);
+        }
+
+        $perPage = min((int) $request->query('per_page', 15), 50);
+        $paginator = $query->latest()->paginate($perPage);
+
+        return $this->paginated($paginator, ContentResource::class);
     }
 
-    public function store(Request $request): JsonResponse
+    /**
+     * Menyimpan content baru.
+     */
+    public function store(StoreContentRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'topic_id' => 'required|uuid|exists:topics,id',
-            'type'     => 'required|in:module,quiz,brief',
-            'data'     => 'nullable|array',
-        ]);
-
-        $content = Content::create($validated);
+        $content = Content::create($request->validated());
         $content->load('topic');
 
-        return response()->json(['data' => $content], 201);
+        return $this->created(
+            new ContentResource($content),
+            'Konten berhasil dibuat.',
+        );
     }
 
+    /**
+     * Menampilkan detail satu content.
+     */
     public function show(Content $content): JsonResponse
     {
         $content->load(['topic', 'tasks']);
-        return response()->json(['data' => $content]);
+
+        return $this->success(
+            new ContentResource($content),
+            'Detail konten berhasil diambil.',
+        );
     }
 
-    public function update(Request $request, Content $content): JsonResponse
+    /**
+     * Mengupdate content.
+     */
+    public function update(UpdateContentRequest $request, Content $content): JsonResponse
     {
-        $validated = $request->validate([
-            'topic_id' => 'sometimes|uuid|exists:topics,id',
-            'type'     => 'sometimes|in:module,quiz,brief',
-            'data'     => 'nullable|array',
-        ]);
+        $content->update($request->validated());
 
-        $content->update($validated);
-
-        return response()->json(['data' => $content]);
+        return $this->success(
+            new ContentResource($content),
+            'Konten berhasil diupdate.',
+        );
     }
 
+    /**
+     * Menghapus content.
+     */
     public function destroy(Content $content): JsonResponse
     {
         $content->delete();
-        return response()->json(null, 204);
+
+        return $this->noContent('Konten berhasil dihapus.');
     }
 }

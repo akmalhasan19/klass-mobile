@@ -3,59 +3,101 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreMarketplaceTaskRequest;
+use App\Http\Requests\UpdateMarketplaceTaskRequest;
+use App\Http\Resources\MarketplaceTaskResource;
+use App\Http\Traits\ApiResponseTrait;
 use App\Models\MarketplaceTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MarketplaceTaskController extends Controller
 {
+    use ApiResponseTrait;
+
+    /**
+     * Menampilkan daftar marketplace tasks.
+     *
+     * GET /api/marketplace-tasks
+     *   ?search=keyword            — Cari (melalui relasi content.title)
+     *   ?status=open|taken|done    — Filter berdasarkan status
+     *   ?content_id=uuid           — Filter berdasarkan konten
+     *   ?per_page=15               — Jumlah item per halaman (max 50)
+     */
     public function index(Request $request): JsonResponse
     {
         $query = MarketplaceTask::with('content');
 
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        // Search via content title
+        if ($search = $request->query('search')) {
+            $query->whereHas('content', function ($q) use ($search) {
+                $q->where('title', 'ilike', "%{$search}%");
+            });
         }
 
-        $tasks = $query->latest()->get();
-        return response()->json(['data' => $tasks]);
+        // Filter by status
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        // Filter by content_id
+        if ($contentId = $request->query('content_id')) {
+            $query->where('content_id', $contentId);
+        }
+
+        $perPage = min((int) $request->query('per_page', 15), 50);
+        $paginator = $query->latest()->paginate($perPage);
+
+        return $this->paginated($paginator, MarketplaceTaskResource::class);
     }
 
-    public function store(Request $request): JsonResponse
+    /**
+     * Menyimpan marketplace task baru.
+     */
+    public function store(StoreMarketplaceTaskRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'content_id' => 'required|uuid|exists:contents,id',
-            'status'     => 'sometimes|in:open,taken,done',
-            'creator_id' => 'nullable|string|max:255',
-        ]);
-
-        $task = MarketplaceTask::create($validated);
+        $task = MarketplaceTask::create($request->validated());
         $task->load('content');
 
-        return response()->json(['data' => $task], 201);
+        return $this->created(
+            new MarketplaceTaskResource($task),
+            'Task berhasil dibuat.',
+        );
     }
 
+    /**
+     * Menampilkan detail satu marketplace task.
+     */
     public function show(MarketplaceTask $marketplaceTask): JsonResponse
     {
         $marketplaceTask->load('content.topic');
-        return response()->json(['data' => $marketplaceTask]);
+
+        return $this->success(
+            new MarketplaceTaskResource($marketplaceTask),
+            'Detail task berhasil diambil.',
+        );
     }
 
-    public function update(Request $request, MarketplaceTask $marketplaceTask): JsonResponse
+    /**
+     * Mengupdate marketplace task.
+     */
+    public function update(UpdateMarketplaceTaskRequest $request, MarketplaceTask $marketplaceTask): JsonResponse
     {
-        $validated = $request->validate([
-            'status'     => 'sometimes|in:open,taken,done',
-            'creator_id' => 'nullable|string|max:255',
-        ]);
+        $marketplaceTask->update($request->validated());
 
-        $marketplaceTask->update($validated);
-
-        return response()->json(['data' => $marketplaceTask]);
+        return $this->success(
+            new MarketplaceTaskResource($marketplaceTask),
+            'Task berhasil diupdate.',
+        );
     }
 
+    /**
+     * Menghapus marketplace task.
+     */
     public function destroy(MarketplaceTask $marketplaceTask): JsonResponse
     {
         $marketplaceTask->delete();
-        return response()->json(null, 204);
+
+        return $this->noContent('Task berhasil dihapus.');
     }
 }

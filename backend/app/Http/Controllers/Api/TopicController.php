@@ -3,34 +3,56 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTopicRequest;
+use App\Http\Requests\UpdateTopicRequest;
+use App\Http\Resources\TopicResource;
+use App\Http\Traits\ApiResponseTrait;
 use App\Models\Topic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TopicController extends Controller
 {
+    use ApiResponseTrait;
+
     /**
-     * Menampilkan semua topics (dengan contents).
+     * Menampilkan daftar topics (dengan contents).
+     *
+     * GET /api/topics
+     *   ?search=keyword   — Cari berdasarkan title
+     *   ?per_page=15      — Jumlah item per halaman (max 50)
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $topics = Topic::with('contents')->latest()->get();
-        return response()->json(['data' => $topics]);
+        $query = Topic::with('contents');
+
+        // Search by title
+        if ($search = $request->query('search')) {
+            $query->where('title', 'ilike', "%{$search}%");
+        }
+
+        // Filter by teacher_id
+        if ($teacherId = $request->query('teacher_id')) {
+            $query->where('teacher_id', $teacherId);
+        }
+
+        $perPage = min((int) $request->query('per_page', 15), 50);
+        $paginator = $query->latest()->paginate($perPage);
+
+        return $this->paginated($paginator, TopicResource::class);
     }
 
     /**
      * Menyimpan topic baru.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreTopicRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title'      => 'required|string|max:255',
-            'teacher_id' => 'required|string|max:255',
-        ]);
+        $topic = Topic::create($request->validated());
 
-        $topic = Topic::create($validated);
-
-        return response()->json(['data' => $topic], 201);
+        return $this->created(
+            new TopicResource($topic),
+            'Topik berhasil dibuat.',
+        );
     }
 
     /**
@@ -39,22 +61,24 @@ class TopicController extends Controller
     public function show(Topic $topic): JsonResponse
     {
         $topic->load('contents.tasks');
-        return response()->json(['data' => $topic]);
+
+        return $this->success(
+            new TopicResource($topic),
+            'Detail topik berhasil diambil.',
+        );
     }
 
     /**
      * Mengupdate topic.
      */
-    public function update(Request $request, Topic $topic): JsonResponse
+    public function update(UpdateTopicRequest $request, Topic $topic): JsonResponse
     {
-        $validated = $request->validate([
-            'title'      => 'sometimes|string|max:255',
-            'teacher_id' => 'sometimes|string|max:255',
-        ]);
+        $topic->update($request->validated());
 
-        $topic->update($validated);
-
-        return response()->json(['data' => $topic]);
+        return $this->success(
+            new TopicResource($topic),
+            'Topik berhasil diupdate.',
+        );
     }
 
     /**
@@ -63,6 +87,7 @@ class TopicController extends Controller
     public function destroy(Topic $topic): JsonResponse
     {
         $topic->delete();
-        return response()->json(null, 204);
+
+        return $this->noContent('Topik berhasil dihapus.');
     }
 }

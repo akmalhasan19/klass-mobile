@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AvatarController;
 use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\FileUploadController;
+use App\Http\Controllers\Api\GalleryController;
 use App\Http\Controllers\Api\MarketplaceTaskController;
 use App\Http\Controllers\Api\StudentProgressController;
 use App\Http\Controllers\Api\TopicController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,27 +15,51 @@ use Illuminate\Support\Facades\Route;
 | Klass API Routes
 |--------------------------------------------------------------------------
 | Semua route di-prefix dengan /api secara otomatis oleh Laravel.
-| Route yang dilindungi Sanctum dibungkus middleware auth:sanctum.
+|
+| Struktur:
+|   - Public routes (auth)
+|   - Protected routes (require Sanctum token)
+|   - File upload routes
 */
 
-// Public route — info user yang sedang login
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// =========================================================================
+// Auth Routes (Public)
+// =========================================================================
+Route::prefix('auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
 
-// RESTful API Resources
+    // Protected auth routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/me', [AuthController::class, 'me']);
+    });
+});
+
+// =========================================================================
+// Public API Resources (accessible without auth for now)
+// =========================================================================
 Route::apiResource('topics', TopicController::class);
 Route::apiResource('contents', ContentController::class);
 Route::apiResource('marketplace-tasks', MarketplaceTaskController::class);
 Route::apiResource('student-progress', StudentProgressController::class);
 
-/*
-|--------------------------------------------------------------------------
-| File Upload Routes
-|--------------------------------------------------------------------------
-| POST   /api/upload/{category}  — Upload file (category: avatars, gallery, materials, attachments)
-| DELETE /api/upload/{category}  — Hapus file (query param: path)
-*/
+// =========================================================================
+// Gallery (Public — read-only list of media-rich content)
+// =========================================================================
+Route::get('/gallery', [GalleryController::class, 'index']);
+
+// =========================================================================
+// Protected Routes (require Sanctum auth)
+// =========================================================================
+Route::middleware('auth:sanctum')->group(function () {
+    // Avatar Upload
+    Route::post('/user/avatar', [AvatarController::class, 'store']);
+});
+
+// =========================================================================
+// File Upload Routes
+// =========================================================================
 Route::post('/upload/{category}', [FileUploadController::class, 'upload'])
     ->where('category', 'avatars|gallery|materials|attachments');
 

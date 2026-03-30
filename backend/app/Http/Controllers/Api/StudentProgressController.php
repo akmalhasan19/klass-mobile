@@ -3,52 +3,84 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreStudentProgressRequest;
+use App\Http\Requests\UpdateStudentProgressRequest;
+use App\Http\Resources\StudentProgressResource;
+use App\Http\Traits\ApiResponseTrait;
 use App\Models\StudentProgress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StudentProgressController extends Controller
 {
-    public function index(): JsonResponse
+    use ApiResponseTrait;
+
+    /**
+     * Menampilkan daftar student progress.
+     *
+     * GET /api/student-progress
+     *   ?search=keyword   — Cari berdasarkan student_name
+     *   ?per_page=15      — Jumlah item per halaman (max 50)
+     */
+    public function index(Request $request): JsonResponse
     {
-        $progress = StudentProgress::orderByDesc('completion_date')->get();
-        return response()->json(['data' => $progress]);
+        $query = StudentProgress::query();
+
+        // Search by student name
+        if ($search = $request->query('search')) {
+            $query->where('student_name', 'ilike', "%{$search}%");
+        }
+
+        $perPage = min((int) $request->query('per_page', 15), 50);
+        $paginator = $query->orderByDesc('completion_date')->paginate($perPage);
+
+        return $this->paginated($paginator, StudentProgressResource::class);
     }
 
-    public function store(Request $request): JsonResponse
+    /**
+     * Menyimpan student progress baru.
+     */
+    public function store(StoreStudentProgressRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'student_name'    => 'required|string|max:255',
-            'score'           => 'required|integer|min:0|max:100',
-            'completion_date' => 'nullable|date',
-        ]);
+        $progress = StudentProgress::create($request->validated());
 
-        $progress = StudentProgress::create($validated);
-
-        return response()->json(['data' => $progress], 201);
+        return $this->created(
+            new StudentProgressResource($progress),
+            'Progress siswa berhasil dibuat.',
+        );
     }
 
+    /**
+     * Menampilkan detail satu student progress.
+     */
     public function show(StudentProgress $studentProgress): JsonResponse
     {
-        return response()->json(['data' => $studentProgress]);
+        return $this->success(
+            new StudentProgressResource($studentProgress),
+            'Detail progress siswa berhasil diambil.',
+        );
     }
 
-    public function update(Request $request, StudentProgress $studentProgress): JsonResponse
+    /**
+     * Mengupdate student progress.
+     */
+    public function update(UpdateStudentProgressRequest $request, StudentProgress $studentProgress): JsonResponse
     {
-        $validated = $request->validate([
-            'student_name'    => 'sometimes|string|max:255',
-            'score'           => 'sometimes|integer|min:0|max:100',
-            'completion_date' => 'nullable|date',
-        ]);
+        $studentProgress->update($request->validated());
 
-        $studentProgress->update($validated);
-
-        return response()->json(['data' => $studentProgress]);
+        return $this->success(
+            new StudentProgressResource($studentProgress),
+            'Progress siswa berhasil diupdate.',
+        );
     }
 
+    /**
+     * Menghapus student progress.
+     */
     public function destroy(StudentProgress $studentProgress): JsonResponse
     {
         $studentProgress->delete();
-        return response()->json(null, 204);
+
+        return $this->noContent('Progress siswa berhasil dihapus.');
     }
 }

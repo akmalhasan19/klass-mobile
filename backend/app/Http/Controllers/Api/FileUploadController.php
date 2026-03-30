@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FileUploadRequest;
+use App\Http\Traits\ApiResponseTrait;
 use App\Services\FileUploadService;
 use Illuminate\Http\JsonResponse;
 
@@ -13,20 +14,19 @@ use Illuminate\Http\JsonResponse;
  * Endpoint untuk upload file ke Supabase Storage bucket.
  * Mendukung kategori: avatars, gallery, materials, attachments.
  *
- * POST /api/upload/{category}
+ * POST   /api/upload/{category}  — Upload file
+ * DELETE /api/upload/{category}  — Hapus file (query param: path)
  */
 class FileUploadController extends Controller
 {
+    use ApiResponseTrait;
+
     public function __construct(
         protected FileUploadService $uploadService,
     ) {}
 
     /**
      * Upload file ke kategori yang ditentukan.
-     *
-     * @param  FileUploadRequest  $request
-     * @param  string             $category  avatars|gallery|materials|attachments
-     * @return JsonResponse
      */
     public function upload(FileUploadRequest $request, string $category): JsonResponse
     {
@@ -36,36 +36,22 @@ class FileUploadController extends Controller
                 $category,
             );
 
-            return response()->json([
-                'success' => true,
-                'message' => 'File berhasil di-upload.',
-                'data' => [
-                    'path' => $result['path'],
-                    'url' => $result['url'],
-                    'category' => $category,
-                ],
-            ], 201);
+            return $this->created([
+                'path' => $result['path'],
+                'url' => $result['url'],
+                'category' => $category,
+            ], 'File berhasil di-upload.');
 
         } catch (\InvalidArgumentException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return $this->error($e->getMessage(), 422);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $e->errors(),
-            ], 422);
+            return $this->validationError($e->errors(), 'Validasi gagal.');
 
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal meng-upload file. Silakan coba lagi.',
-            ], 500);
+            return $this->error('Gagal meng-upload file. Silakan coba lagi.', 500);
         }
     }
 
@@ -79,27 +65,22 @@ class FileUploadController extends Controller
         $path = request()->query('path');
 
         if (!$path) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Parameter "path" wajib dikirim.',
-            ], 422);
+            return $this->error('Parameter "path" wajib dikirim.', 422);
         }
 
         try {
             $deleted = $uploadService->delete($path);
 
-            return response()->json([
-                'success' => $deleted,
-                'message' => $deleted ? 'File berhasil dihapus.' : 'File tidak ditemukan.',
-            ], $deleted ? 200 : 404);
+            if ($deleted) {
+                return $this->success(null, 'File berhasil dihapus.');
+            }
+
+            return $this->notFound('File tidak ditemukan.');
 
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menghapus file. Silakan coba lagi.',
-            ], 500);
+            return $this->error('Gagal menghapus file. Silakan coba lagi.', 500);
         }
     }
 }
