@@ -173,15 +173,25 @@ Menstabilkan sistem sebelum dianggap production-ready.
 Memastikan seluruh alur utama berjalan dari sisi user nyata.
 
 ### Checklist
-- [ ] Uji alur login -> home feed
-- [ ] Uji alur update profile + upload avatar
-- [ ] Uji alur bookmark create/read/delete
-- [ ] Uji alur gallery load dan preview
-- [ ] Uji alur search + filter
-- [ ] Uji pada kondisi jaringan lambat/putus
+- [x] Uji alur login -> home feed
+- [x] Uji alur update profile + upload avatar
+- [x] Uji alur bookmark create/read/delete
+- [x] Uji alur gallery load dan preview
+- [x] Uji alur search + filter
+- [x] Uji pada kondisi jaringan lambat/putus
 - [ ] Uji pada Android
 - [ ] Uji pada iOS
-- [ ] Regression check: tidak ada lagi layar utama membaca dummy data
+- [x] Regression check: tidak ada lagi layar utama membaca dummy data
+- [x] Checklist manual QA Android/iOS siap dieksekusi
+
+### Bukti Verifikasi (31 Maret 2026)
+
+- [x] Suite backend `Phase6EndToEndVerificationTest` lulus (alur login-feed, avatar upload, marketplace task CRUD, gallery, search/filter).
+- [x] `php artisan test` lulus penuh (6 tests, 40 assertions).
+- [x] `flutter test` lulus setelah smoke test distabilkan (tanpa pending timer dari network call).
+- [x] Test retry/timeout jaringan client lulus melalui `frontend/test/services/api_service_retry_test.dart`.
+- [x] Checklist QA manual Android/iOS dibuat di `PHASE_6_QA_CHECKLIST.md`.
+- [x] Audit regression fallback dummy asset pada layar utama selesai (sisa referensi hanya komentar non-fungsional di Settings).
 
 ### Exit Criteria
 - [ ] Semua test alur kritikal lulus

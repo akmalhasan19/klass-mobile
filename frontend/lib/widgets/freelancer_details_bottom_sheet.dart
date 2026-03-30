@@ -12,6 +12,13 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayName =
+      (freelancer['name'] ?? freelancer['creator_id'] ?? 'Unknown').toString();
+    final avatarSource =
+      (freelancer['avatar_url'] ?? freelancer['avatarPath'] ?? '').toString();
+    final isNetworkAvatar = avatarSource.startsWith('http');
+    final rateValue = (freelancer['rate'] ?? freelancer['budget'] ?? '-').toString();
+
     // The main container of the bottom sheet
     return Container(
       width: double.infinity,
@@ -68,7 +75,7 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '\$${freelancer['rate']}',
+                                '\$$rateValue',
                                 style: const TextStyle(
                                   fontFamily: 'Mona_Sans',
                                   fontSize: 20, // text-xl
@@ -95,7 +102,7 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                     // Header Info (mt-3 in HTML = 12px)
                     const SizedBox(height: 12),
                     Text(
-                      freelancer['name']!,
+                      displayName,
                       style: const TextStyle(
                         fontFamily: 'Mona_Sans',
                         fontSize: 24, // text-2xl
@@ -204,7 +211,7 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Hire ${freelancer['name']?.split(' ')[0]}',
+                          'Hire ${displayName.split(' ').first}',
                           style: const TextStyle(
                             fontFamily: 'Mona_Sans',
                             fontSize: 18,
@@ -240,21 +247,24 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                 ],
               ),
               child: ClipOval(
-                child: (freelancer['avatarPath'] != null)
-                    ? Image.asset(
-                        freelancer['avatarPath'],
-                        fit: BoxFit.cover,
-                      )
+                child: avatarSource.isNotEmpty
+                    ? (isNetworkAvatar
+                        ? Image.network(
+                            avatarSource,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildAvatarInitial(displayName);
+                            },
+                          )
+                        : Image.asset(
+                            avatarSource,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildAvatarInitial(displayName);
+                            },
+                          ))
                     : Center(
-                        child: Text(
-                          freelancer['name']![0],
-                          style: const TextStyle(
-                            fontFamily: 'Mona_Sans',
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
-                        ),
+                        child: _buildAvatarInitial(displayName),
                       ),
               ),
             ),
@@ -262,6 +272,22 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
         ],
       ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarInitial(String displayName) {
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+
+    return Center(
+      child: Text(
+        initial,
+        style: const TextStyle(
+          fontFamily: 'Mona_Sans',
+          fontSize: 32,
+          fontWeight: FontWeight.w800,
+          color: AppColors.primary,
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ use App\Http\Traits\ApiResponseTrait;
 use App\Models\Content;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ContentController extends Controller
 {
@@ -27,10 +28,11 @@ class ContentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Content::with('topic');
+        $likeOperator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         // Search by title
         if ($search = $request->query('search')) {
-            $query->where('title', 'ilike', "%{$search}%");
+            $query->where('title', $likeOperator, "%{$search}%");
         }
 
         // Filter by topic_id

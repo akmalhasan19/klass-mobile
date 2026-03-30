@@ -10,6 +10,7 @@ use App\Http\Traits\ApiResponseTrait;
 use App\Models\Topic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TopicController extends Controller
 {
@@ -25,10 +26,11 @@ class TopicController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Topic::with('contents');
+        $likeOperator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         // Search by title
         if ($search = $request->query('search')) {
-            $query->where('title', 'ilike', "%{$search}%");
+            $query->where('title', $likeOperator, "%{$search}%");
         }
 
         // Filter by teacher_id

@@ -128,7 +128,11 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           child: CircleAvatar(
             radius: 18,
             backgroundColor: AppColors.border,
-            backgroundImage: const AssetImage('assets/avatars/ani.png'),
+            child: const Icon(
+              Icons.person_rounded,
+              size: 18,
+              color: AppColors.textMuted,
+            ),
           ),
         ),
       ],
@@ -330,7 +334,9 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         ] else ...[
           ..._projectService.addedProjects.map((project) {
             // Backend maps `cover_image` or `image`
-            final String imagePath = project['cover_image'] ?? project['image'] ?? 'assets/images/ppt_design_3.jpg';
+            final String imagePath =
+                (project['cover_image'] ?? project['image'] ?? project['media_url'] ?? '')
+                    .toString();
             final String title = project['title'] ?? 'Untitled Project';
             final String desc = project['description'] ?? 'No description provided.';
             
@@ -450,7 +456,14 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                imagePath.startsWith('http')
+                imagePath.isEmpty
+                    ? Container(
+                        color: AppColors.border,
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported_rounded, color: Colors.grey),
+                        ),
+                      )
+                    : imagePath.startsWith('http')
                     ? Image.network(
                         imagePath,
                         fit: BoxFit.cover,

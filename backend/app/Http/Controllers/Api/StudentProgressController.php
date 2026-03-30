@@ -10,6 +10,7 @@ use App\Http\Traits\ApiResponseTrait;
 use App\Models\StudentProgress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StudentProgressController extends Controller
 {
@@ -25,10 +26,11 @@ class StudentProgressController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = StudentProgress::query();
+        $likeOperator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         // Search by student name
         if ($search = $request->query('search')) {
-            $query->where('student_name', 'ilike', "%{$search}%");
+            $query->where('student_name', $likeOperator, "%{$search}%");
         }
 
         $perPage = min((int) $request->query('per_page', 15), 50);

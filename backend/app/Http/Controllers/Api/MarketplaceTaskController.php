@@ -10,6 +10,7 @@ use App\Http\Traits\ApiResponseTrait;
 use App\Models\MarketplaceTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MarketplaceTaskController extends Controller
 {
@@ -27,11 +28,12 @@ class MarketplaceTaskController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = MarketplaceTask::with('content');
+        $likeOperator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         // Search via content title
         if ($search = $request->query('search')) {
-            $query->whereHas('content', function ($q) use ($search) {
-                $q->where('title', 'ilike', "%{$search}%");
+            $query->whereHas('content', function ($q) use ($search, $likeOperator) {
+                $q->where('title', $likeOperator, "%{$search}%");
             });
         }
 

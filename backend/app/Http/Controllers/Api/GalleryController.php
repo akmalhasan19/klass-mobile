@@ -8,6 +8,7 @@ use App\Http\Traits\ApiResponseTrait;
 use App\Models\Content;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * GalleryController
@@ -30,10 +31,11 @@ class GalleryController extends Controller
         $query = Content::with('topic')
             ->whereNotNull('media_url')
             ->where('media_url', '!=', '');
+        $likeOperator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         // Search by title
         if ($search = $request->query('search')) {
-            $query->where('title', 'ilike', "%{$search}%");
+            $query->where('title', $likeOperator, "%{$search}%");
         }
 
         // Filter by type

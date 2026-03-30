@@ -11,6 +11,8 @@ import '../config/animations.dart';
 import '../services/home_service.dart';
 import '../utils/auth_guard.dart';
 
+import '../widgets/skeleton_loaders.dart';
+
 /// Home Screen — mereplikasi halaman utama Klass.
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
 /// project recommendations (bleed), top freelancers (bleed).
@@ -365,57 +367,35 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
 
                       // Project Suggestions
-                      _isLoading
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 40),
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          : _hasError
-                              ? Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 40),
-                                  child: Center(
-                                    child: Column(
-                                      children: [
-                                        const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.red),
-                                        const SizedBox(height: 16),
-                                        const Text(
-                                          'Gagal memuat projects',
-                                          style: TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        ElevatedButton(
-                                          onPressed: _fetchData,
-                                          child: const Text('Retry'),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              : projects.isEmpty
-                                  ? Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 40),
-                                      child: Center(
-                                        child: Column(
-                                          children: [
-                                            const Icon(Icons.folder_open_rounded, size: 48, color: AppColors.border),
-                                            const SizedBox(height: 16),
-                                            const Text(
-                                              'Belum ada project',
-                                              style: TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
-                                  : BleedingHorizontalList(
-                                      title: 'Project Suggestions',
-                                      height: 260,
-                                      children: projects.map((p) {
+                      BleedingHorizontalList(
+                        title: 'Project Recommendations', // Menggunakan nama sesuai permintaan user
+                        height: 260,
+                        children: _isLoading
+                            ? List.generate(3, (index) => ProjectSuggestionSkeleton(
+                                ratio: index == 1 ? 'infographic' : (index == 2 ? 'square' : 'ppt'),
+                              ))
+                            : _hasError
+                                ? [
+                                    _buildErrorPlaceholder('Gagal memuat projects', onRetry: _fetchData),
+                                  ]
+                                : projects.isEmpty
+                                    ? [
+                                        _buildEmptyPlaceholder('Belum ada project', icon: Icons.folder_open_rounded),
+                                      ]
+                                    : projects.map((p) {
+                                        final imageCandidate =
+                                            (p['media_url'] ?? p['imagePath'] ?? p['image'] ?? '')
+                                                .toString();
+                                        final isNetworkImage = imageCandidate.startsWith('http');
+
                                         return ProjectSuggestionCard(
                                           title: p['title'] ?? 'Untitled',
                                           author: p['author'] ?? p['author_name'] ?? 'By Unknown',
                                           ratio: p['ratio'] ?? 'ppt',
-                                          imagePath: p['imagePath'] ?? p['media_url'] ?? 'assets/images/ppt_design_3.jpg',
+                                          imageUrl: isNetworkImage ? imageCandidate : null,
+                                          imagePath: (!isNetworkImage && imageCandidate.isNotEmpty)
+                                              ? imageCandidate
+                                              : null,
                                           onTap: () {
                                             showModalBottomSheet(
                                               context: context,
@@ -435,60 +415,28 @@ class _HomeScreenState extends State<HomeScreen> {
                                           },
                                         );
                                       }).toList(),
-                                    ),
+                      ),
                       const SizedBox(height: 32),
 
                       // Top Freelancers
-                      _isLoading
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 40),
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          : _hasError
-                              ? Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 40),
-                                  child: Center(
-                                    child: Column(
-                                      children: [
-                                        const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.red),
-                                        const SizedBox(height: 16),
-                                        const Text(
-                                          'Gagal memuat freelancers',
-                                          style: TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        ElevatedButton(
-                                          onPressed: _fetchData,
-                                          child: const Text('Retry'),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              : freelancers.isEmpty
-                                  ? Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 40),
-                                      child: Center(
-                                        child: Column(
-                                          children: [
-                                            const Icon(Icons.group_off_rounded, size: 48, color: AppColors.border),
-                                            const SizedBox(height: 16),
-                                            const Text(
-                                              'Belum ada freelancer',
-                                              style: TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
-                                  : BleedingHorizontalList(
-                                      title: 'Top Freelancers',
-                                      height: 140,
-                                      itemSpacing: 25,
-                                      children: freelancers.map((f) {
+                      BleedingHorizontalList(
+                        title: 'Top Freelancers',
+                        height: 140,
+                        itemSpacing: 25,
+                        children: _isLoading
+                            ? List.generate(5, (_) => const FreelancerSkeleton())
+                            : _hasError
+                                ? [
+                                    _buildErrorPlaceholder('Gagal memuat freelancers', onRetry: _fetchData),
+                                  ]
+                                : freelancers.isEmpty
+                                    ? [
+                                        _buildEmptyPlaceholder('Belum ada freelancer', icon: Icons.group_off_rounded),
+                                      ]
+                                    : freelancers.map((f) {
                                         return _buildFreelancerCard(f);
                                       }).toList(),
-                                    ),
+                      ),
                       const SizedBox(height: 120), // Space for bottom nav
                     ],
                   ),
@@ -552,6 +500,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFreelancerCard(Map<String, dynamic> freelancer) {
+    final avatarSource =
+        (freelancer['avatar_url'] ?? freelancer['avatarPath'] ?? '').toString();
+    final isNetworkAvatar = avatarSource.startsWith('http');
+    final displayName =
+        (freelancer['name'] ?? freelancer['creator_id'] ?? 'User').toString();
+
     return GestureDetector(
       onTap: () {
         showModalBottomSheet(
@@ -580,33 +534,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          child: freelancer['avatarPath'] != null
+          child: avatarSource.isNotEmpty
               ? ClipOval(
                   child: Transform.scale(
                     scale: freelancer['scale'] ?? 1.0,
                     alignment: Alignment.center,
-                    child: Image.asset(
-                      freelancer['avatarPath'],
-                      fit: BoxFit.contain,
-                      alignment: Alignment.center,
-                    ),
+                    child: isNetworkAvatar
+                        ? Image.network(
+                            avatarSource,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => _buildAvatarInitial(displayName),
+                          )
+                        : Image.asset(
+                            avatarSource,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.center,
+                            errorBuilder: (context, error, stackTrace) => _buildAvatarInitial(displayName),
+                          ),
                   ),
                 )
-              : Center(
-                  child: Text(
-                    freelancer['name']![0],
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
+              : _buildAvatarInitial(displayName),
         ),
         const SizedBox(height: 12),
         Text(
-          freelancer['name']!,
+          displayName,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: 'Inter',
@@ -616,6 +567,67 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarInitial(String displayName) {
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+
+    return Center(
+      child: Text(
+        initial,
+        style: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 32,
+          fontWeight: FontWeight.w800,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorPlaceholder(String message, {VoidCallback? onRetry}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return Container(
+      width: screenWidth - 48, // Matches screen width minus ListView horizontal padding (24+24)
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded, size: 40, color: AppColors.red),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textMuted),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPlaceholder(String message, {required IconData icon}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return Container(
+      width: screenWidth - 48, // Matches screen width minus ListView horizontal padding (24+24)
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 40, color: AppColors.border),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textMuted),
+          ),
+        ],
       ),
     );
   }

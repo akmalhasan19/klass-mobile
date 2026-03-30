@@ -14,7 +14,8 @@ class AuthService {
       });
 
       if (response.statusCode == 200) {
-        final data = response.data;
+        final payload = response.data as Map<String, dynamic>;
+        final data = (payload['data'] as Map?)?.cast<String, dynamic>() ?? payload;
         final token = data['token'] ?? data['access_token'];
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
@@ -42,7 +43,8 @@ class AuthService {
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data;
+        final payload = response.data as Map<String, dynamic>;
+        final data = (payload['data'] as Map?)?.cast<String, dynamic>() ?? payload;
         final token = data['token'] ?? data['access_token'];
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
@@ -94,7 +96,8 @@ class AuthService {
   Future<String?> uploadAvatar(String filePath) async {
     try {
       final formData = FormData.fromMap({
-        'avatar': await MultipartFile.fromFile(filePath),
+        // Backend expects file field name "file"
+        'file': await MultipartFile.fromFile(filePath),
       });
 
       final response = await _apiService.dio.post(
@@ -103,8 +106,9 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        if (data != null && data['avatar_url'] != null) {
+        final payload = response.data as Map<String, dynamic>;
+        final data = (payload['data'] as Map?)?.cast<String, dynamic>() ?? payload;
+        if (data['avatar_url'] != null) {
           // Update cached user data
           final me = await getMe();
           if (me != null) {
