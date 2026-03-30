@@ -9,6 +9,7 @@ import '../widgets/layer2_white_clipper.dart';
 import '../widgets/project_details_bottom_sheet.dart';
 import '../widgets/freelancer_details_bottom_sheet.dart';
 import '../config/animations.dart';
+import '../services/home_service.dart';
 
 /// Home Screen — mereplikasi halaman utama Klass.
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
@@ -32,9 +33,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _promptController = TextEditingController();
   final FocusNode _promptFocusNode = FocusNode();
 
-  final List<Map<String, dynamic>> projects = MockData.projects;
-
-  final List<Map<String, dynamic>> freelancers = MockData.freelancers;
+  final _homeService = HomeService();
+  List<Map<String, dynamic>> projects = [];
+  List<Map<String, dynamic>> freelancers = [];
+  bool _isLoading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -43,6 +46,33 @@ class _HomeScreenState extends State<HomeScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _promptFocusNode.requestFocus();
       });
+    }
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final futures = await Future.wait([
+        _homeService.fetchProjects(),
+        _homeService.fetchFreelancers(),
+      ]);
+      
+      if (mounted) {
+        setState(() {
+          projects = futures[0].isNotEmpty ? futures[0] : MockData.projects;
+          freelancers = futures[1].isNotEmpty ? futures[1] : MockData.freelancers;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          projects = MockData.projects;
+          freelancers = MockData.freelancers;
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -333,44 +363,52 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
 
                       // Project Suggestions
-                      BleedingHorizontalList(
-                        title: 'Project Suggestions',
-                        height: 260,
-                        children: projects.map((p) {
-                          return ProjectSuggestionCard(
-                            title: p['title']!,
-                            author: p['author']!,
-                            ratio: p['ratio']!,
-                            imagePath: p['imagePath'],
-                            onTap: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (context) {
-                                  return ProjectDetailsBottomSheet(
-                                    project: p,
-                                    onRecreate: (description) {
-                                      _promptController.text = description;
-                                    },
-                                  );
-                                },
-                              );
-                            },
-                          );
-                        }).toList(),
-                      ),
+                      _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _hasError
+                              ? const Center(child: Text("Gagal memuat projects", style: TextStyle(color: AppColors.red)))
+                              : BleedingHorizontalList(
+                                  title: 'Project Suggestions',
+                                  height: 260,
+                                  children: projects.map((p) {
+                                    return ProjectSuggestionCard(
+                                      title: p['title'] ?? 'Untitled',
+                                      author: p['author'] ?? p['author_name'] ?? 'By Unknown',
+                                      ratio: p['ratio'] ?? 'ppt',
+                                      imagePath: p['imagePath'] ?? p['media_url'] ?? 'assets/images/ppt_design_3.jpg',
+                                      onTap: () {
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          backgroundColor: Colors.transparent,
+                                          builder: (context) {
+                                            return ProjectDetailsBottomSheet(
+                                              project: p,
+                                              onRecreate: (description) {
+                                                _promptController.text = description;
+                                              },
+                                            );
+                                          },
+                                        );
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
                       const SizedBox(height: 32),
 
                       // Top Freelancers
-                      BleedingHorizontalList(
-                        title: 'Top Freelancers',
-                        height: 140,
-                        itemSpacing: 25,
-                        children: freelancers.map((f) {
-                          return _buildFreelancerCard(f);
-                        }).toList(),
-                      ),
+                      _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _hasError
+                              ? const Center(child: Text("Gagal memuat freelancers", style: TextStyle(color: AppColors.red)))
+                              : BleedingHorizontalList(
+                                  title: 'Top Freelancers',
+                                  height: 140,
+                                  itemSpacing: 25,
+                                  children: freelancers.map((f) {
+                                    return _buildFreelancerCard(f);
+                                  }).toList(),
+                                ),
                       const SizedBox(height: 120), // Space for bottom nav
                     ],
                   ),

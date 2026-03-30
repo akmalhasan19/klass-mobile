@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../config/app_colors.dart';
 import '../widgets/filter_modal.dart';
+import '../services/gallery_service.dart';
 
 class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
@@ -12,6 +13,40 @@ class GalleryScreen extends StatefulWidget {
 
 class _GalleryScreenState extends State<GalleryScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final GalleryService _galleryService = GalleryService();
+  
+  bool _isLoading = true;
+  String? _error;
+  List<Map<String, dynamic>> _galleryItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGallery();
+  }
+
+  Future<void> _fetchGallery() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final items = await _galleryService.fetchGallery();
+      if (mounted) {
+        setState(() {
+          _galleryItems = items;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load gallery';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -29,22 +64,100 @@ class _GalleryScreenState extends State<GalleryScreen> {
           // Sticky Search Header
           _buildSearchHeader(),
 
-          // Category: RECENT
-          _buildCategoryHeader('Recent'),
-          _buildRecentGrid(),
-
-          // Category: MATH
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          _buildCategoryHeader('Math', itemCount: 12),
-          _buildMathGrid(),
-
-          // Category: HISTORY
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          _buildCategoryHeader('History', itemCount: 8),
-          _buildHistoryGrid(),
+          if (_isLoading)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      _error!,
+                      style: const TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _fetchGallery,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (_galleryItems.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.image_not_supported_rounded, color: AppColors.border, size: 64),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No materials in Gallery',
+                      style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ..._buildDynamicCategoryGrids(),
 
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
+      ),
+    );
+  }
+
+  List<Widget> _buildDynamicCategoryGrids() {
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (var item in _galleryItems) {
+      final cat = (item['category'] ?? 'Miscellaneous').toString();
+      grouped.putIfAbsent(cat, () => []).add(item);
+    }
+
+    final List<Widget> slivers = [];
+    for (var entry in grouped.entries) {
+      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 24)));
+      slivers.add(_buildCategoryHeader(entry.key, itemCount: entry.value.length));
+      slivers.add(_buildDynamicGrid(entry.value));
+    }
+    return slivers;
+  }
+
+  Widget _buildDynamicGrid(List<Map<String, dynamic>> items) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = items[index];
+            final type = (item['type'] ?? 'IMAGE').toString().toUpperCase();
+            final url = item['url'] ?? item['image_url'] ?? item['cover_image'] ?? '';
+            final title = item['title'] ?? 'Untitled';
+
+            if (type == 'ARTICLE') {
+              return _buildGradientItem(title, Icons.description_rounded, AppColors.primary, type);
+            } else {
+              if (url.isEmpty) {
+                return _buildGradientItem(title, Icons.broken_image_rounded, AppColors.textMuted, type);
+              }
+              return _buildImageItem(url, type);
+            }
+          },
+          childCount: items.length,
+        ),
       ),
     );
   }
@@ -121,99 +234,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
     );
   }
 
-  Widget _buildRecentGrid() {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1,
-        ),
-        delegate: SliverChildListDelegate([
-          _buildImageItem('assets/images/ppt_design_3.jpg', 'PDF'),
-          _buildImageItem(
-            'assets/images/infographic_preview_health_1773981088610.png',
-            'IMAGE',
-          ),
-          _buildGradientItem(
-            'Lesson Plan: Week 4',
-            Icons.description_rounded,
-            AppColors.primary,
-            'ARTICLE',
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildMathGrid() {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1,
-        ),
-        delegate: SliverChildListDelegate([
-          _buildImageItem(
-            'assets/images/square_preview_math_1773981103817.png',
-            'IMAGE',
-          ),
-          _buildImageItem(
-            'assets/images/ppt_design_3.jpg',
-            'PDF',
-          ), // Placeholder
-          _buildGradientBoxItem('∑', 'Calculus Basics', Colors.blue, 'ARTICLE'),
-          _buildImageItem(
-            'assets/images/infographic_preview_health_1773981088610.png',
-            'IMAGE',
-          ), // Placeholder
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildHistoryGrid() {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1,
-        ),
-        delegate: SliverChildListDelegate([
-          _buildImageItem(
-            'assets/images/ppt_design_3.jpg',
-            'IMAGE',
-          ), // Vintage map placeholder
-          _buildImageItem(
-            'assets/images/ppt_design_3.jpg',
-            'PDF',
-          ), // Document placeholder
-          _buildImageItem(
-            'assets/images/ppt_design_3.jpg',
-            'IMAGE',
-          ), // Rome placeholder
-          _buildGradientItem(
-            'WW2 Timeline',
-            Icons.menu_book_rounded,
-            Colors.amber,
-            'ARTICLE',
-          ),
-          _buildImageItem(
-            'assets/images/ppt_design_3.jpg',
-            'IMAGE',
-          ), // Hieroglyphs placeholder
-        ]),
-      ),
-    );
-  }
+  // Grids replaced dynamically
 
   Widget _buildImageItem(String imagePath, String type) {
     return Container(
@@ -233,12 +254,19 @@ class _GalleryScreenState extends State<GalleryScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            imagePath,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) =>
-                Container(color: AppColors.border),
-          ),
+          imagePath.startsWith('http')
+              ? Image.network(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: AppColors.border, child: const Icon(Icons.broken_image_rounded, color: Colors.grey)),
+                )
+              : Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: AppColors.border),
+                ),
           Positioned(bottom: 6, right: 6, child: _buildTypeIcon(type)),
         ],
       ),
@@ -281,52 +309,6 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   fontWeight: FontWeight.w700,
                   color: color.withValues(alpha: 0.9),
                   height: 1.1,
-                ),
-              ),
-            ],
-          ),
-          Positioned(bottom: 0, right: 0, child: _buildTypeIcon(type)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGradientBoxItem(
-    String symbol,
-    String title,
-    Color color,
-    String type,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                symbol,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color.withValues(alpha: 0.8),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: color.withValues(alpha: 0.9),
                 ),
               ),
             ],

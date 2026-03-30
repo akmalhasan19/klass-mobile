@@ -26,6 +26,10 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   void initState() {
     super.initState();
     _projectService.addListener(_onProjectServiceUpdate);
+    // Fetch projects from API on open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _projectService.fetchProjects();
+    });
   }
 
   @override
@@ -252,41 +256,93 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         ),
         const SizedBox(height: 20),
         
-        // Dynamic Added Projects from Service
-        ..._projectService.addedProjects.map((project) {
-          final String imagePath = project['imagePath'] ?? project['image'] ?? 'assets/images/ppt_design_3.jpg';
-          
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 20.0),
-            child: _buildMaterialCard(
-              imagePath: imagePath,
-              title: project['title'] ?? 'Untitled Project',
-              desc: project['description'] ?? 'No description provided.',
-              status: 'NEW',
-              isPublished: false,
-              dateText: 'Added just now',
+        // Dynamic loading, error, empty, or data showcase
+        if (_projectService.isLoading) ...[
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: CircularProgressIndicator(),
             ),
-          );
-        }),
-        
-        // Cards List (Hardcoded for now)
-        _buildMaterialCard(
-          imagePath: 'assets/images/ppt_design_3.jpg', 
-          title: 'Modern History of Indonesia',
-          desc: 'Exploring the post-colonial era and the formation of a unified archipelago nation.',
-          status: 'PUBLISHED',
-          isPublished: true,
-          dateText: 'Updated 2 days ago',
-        ),
-        const SizedBox(height: 20),
-        _buildMaterialCard(
-          imagePath: 'assets/images/infographic_preview_health_1773981088610.png',
-          title: 'Intro to Quantum Physics',
-          desc: 'A beginner\'s guide to wave-particle duality and the uncertainty principle.',
-          status: 'IN PROGRESS',
-          isPublished: false,
-          dateText: 'Draft saved today',
-        ),
+          )
+        ] else if (_projectService.error != null) ...[
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 48),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Failed to load materials',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => _projectService.fetchProjects(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          )
+        ] else if (_projectService.addedProjects.isEmpty) ...[
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  Icon(Icons.folder_open_rounded, color: AppColors.border, size: 64),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No materials found in Workspace',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Start by creating a new module to organize your curriculum.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMuted,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
+        ] else ...[
+          ..._projectService.addedProjects.map((project) {
+            // Backend maps `cover_image` or `image`
+            final String imagePath = project['cover_image'] ?? project['image'] ?? 'assets/images/ppt_design_3.jpg';
+            final String title = project['title'] ?? 'Untitled Project';
+            final String desc = project['description'] ?? 'No description provided.';
+            
+            // For now everything assumes backend response struct
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 20.0),
+              child: _buildMaterialCard(
+                imagePath: imagePath,
+                title: title,
+                desc: desc,
+                status: (project['status'] ?? 'draft').toString().toUpperCase(),
+                isPublished: project['status'] == 'PUBLISHED',
+                dateText: 'Updated recently',
+              ),
+            );
+          }),
+        ],
         const SizedBox(height: 20),
         
         // Create New Card
@@ -385,13 +441,21 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(color: AppColors.border);
-                  },
-                ),
+                imagePath.startsWith('http')
+                    ? Image.network(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(color: AppColors.border, child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)));
+                        },
+                      )
+                    : Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(color: AppColors.border);
+                        },
+                      ),
                 Positioned(
                   top: 16,
                   right: 16,

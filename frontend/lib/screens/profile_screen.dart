@@ -5,6 +5,10 @@ import '../data/mock_data.dart';
 import 'account_settings_screen.dart';
 import 'help_screen.dart';
 import '../widgets/feature_coming_soon.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import '../services/auth_service.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,12 +18,48 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _authService = AuthService();
+  Map<String, dynamic>? _user;
+  bool _isLoading = true;
   late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userStr = prefs.getString('user_data');
+    if (userStr != null) {
+      setState(() {
+        _user = jsonDecode(userStr);
+        _isLoading = false;
+      });
+    }
+    // Fetch latest from API
+    final me = await _authService.getMe();
+    if (me != null && mounted) {
+      setState(() {
+        _user = me;
+        _isLoading = false;
+      });
+    } else if (_user == null && mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleLogout() async {
+    await _authService.logout();
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -100,6 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 140,
                 height: 140,
                 decoration: BoxDecoration(
+                  color: AppColors.surfaceCard,
                   borderRadius: BorderRadius.circular(32),
                   border: Border.all(color: AppColors.surfaceCard, width: 4),
                   boxShadow: [
@@ -109,13 +150,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       offset: const Offset(0, 10),
                     ),
                   ],
-                  image: const DecorationImage(
-                    image: NetworkImage(
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuC5VnMYOq0N2jV1mbYtKbSs-WVMbZE_5DYxCzo5nNqe2cWB54X4kx5yyMfK29_rm80S-5kbXUZUHEW37y04uAAmBj5Rj-L5McanjlkZuXslPjFrEsb1-aaECyJUtn5xp2eZVTJeIl02mYJz2uyIsQVKocXclnxH1Ye1GMsontGxBYkjUYAkrRR71qg0lg3Zo9z1gWhSF4AI6b8L7vMBqyyD1pWKcZTYeQEixvO0KfeqHtXvQ7KlRItXuSoJmKhhzo836vjkNSNinkuU',
-                    ),
-                    fit: BoxFit.cover,
-                  ),
                 ),
+                clipBehavior: Clip.antiAlias,
+                child: _user != null && _user!['avatar_url'] != null
+                    ? Image.network(
+                        _user!['avatar_url'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.person_rounded, size: 64, color: AppColors.textMuted),
+                      )
+                    : const Icon(Icons.person_rounded, size: 64, color: AppColors.textMuted),
               ),
               Positioned(
                 bottom: -8,
@@ -163,23 +207,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        const Center(
-          child: Text(
-            'Dr. Sarah Jenkins',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
+        Center(
+          child: _isLoading 
+            ? const CircularProgressIndicator()
+            : Text(
+                _user?['name'] ?? 'Guest User',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
         ),
         const SizedBox(height: 8),
-        const Center(
+        Center(
           child: Text(
-            'Senior Mathematics Instructor & Head of STEM',
+            _user?['role'] ?? _user?['email'] ?? 'User / Student',
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 16,
@@ -746,6 +792,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 builder: (context) => const HelpScreen(),
               ),
             );
+          } else if (label == 'Logout') {
+            _handleLogout();
           }
         },
         borderRadius: BorderRadius.circular(16),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
 import '../data/mock_data.dart';
 import '../widgets/animated_search_bar.dart';
+import '../services/home_service.dart';
 
 /// Search/Discover Screen — mereplikasi halaman Search dari Klass Next.js.
 /// Fitur: Sticky header "Discover", category pills, teacher cards.
@@ -19,11 +20,39 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isSearching = false;
 
   final List<Map<String, dynamic>> categories = MockData.searchCategories;
-  final List<Map<String, dynamic>> teachers = MockData.searchTeachers;
+  
+  final _homeService = HomeService();
+  List<Map<String, dynamic>> teachers = [];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
+    _fetchTeachers();
+  }
+
+  Future<void> _fetchTeachers() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final res = await _homeService.fetchFreelancers();
+      if (mounted) {
+        setState(() {
+          teachers = res;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Network error. Please try again.';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -184,21 +213,86 @@ class _SearchScreenState extends State<SearchScreen> {
                     // Teacher cards
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            if (index < teachers.length) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _buildTeacherCard(teachers[index]),
-                              );
-                            }
-                            // Skeleton placeholder
-                            return _buildSkeletonCard();
-                          },
-                          childCount: teachers.length + 1,
-                        ),
-                      ),
+                      sliver: _isLoading 
+                        ? SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildSkeletonCard(),
+                                );
+                              },
+                              childCount: 3,
+                            ),
+                          )
+                        : _error != null
+                          ? SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 40),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.red),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        _error!,
+                                        style: const TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton(
+                                        onPressed: _fetchTeachers,
+                                        child: const Text('Retry'),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
+                          : teachers.isEmpty
+                            ? SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 60),
+                                  child: Center(
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.search_off_rounded, size: 64, color: AppColors.border),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'No results found',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'Try adjusting your search filters.',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            color: AppColors.textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    if (index < teachers.length) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 16),
+                                        child: _buildTeacherCard(teachers[index]),
+                                      );
+                                    }
+                                    return const SizedBox.shrink();
+                                  },
+                                  childCount: teachers.length,
+                                ),
+                              ),
                     ),
 
                     // Bottom spacing

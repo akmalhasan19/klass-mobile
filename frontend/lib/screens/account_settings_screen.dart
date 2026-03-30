@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_colors.dart';
 import '../widgets/feature_coming_soon.dart';
+import '../services/auth_service.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -11,12 +15,15 @@ class AccountSettingsScreen extends StatefulWidget {
 }
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
+  final _authService = AuthService();
+  Map<String, dynamic>? _user;
+  bool _isUploadingAvatar = false;
+  final ImagePicker _picker = ImagePicker();
+
   // State variables for form fields and toggles
-  final TextEditingController _nameController = TextEditingController(text: 'Sarah Jenkins');
-  final TextEditingController _emailController = TextEditingController(text: 's.jenkins@klass-edu.com');
-  final TextEditingController _bioController = TextEditingController(
-    text: 'Passionate about making complex mathematical concepts accessible to everyone. Specializing in visual geometry and interactive algebra for secondary education.',
-  );
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
 
   String _complexity = 'Beginner';
   final List<String> _styles = ['Visual'];
@@ -25,6 +32,57 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _emailNotifications = true;
   bool _pushNotifications = true;
   bool _weeklyReports = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userStr = prefs.getString('user_data');
+    if (userStr != null) {
+      final user = jsonDecode(userStr);
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _nameController.text = user['name'] ?? '';
+          _emailController.text = user['email'] ?? '';
+          _bioController.text = user['bio'] ?? 'No bio provided.';
+        });
+      }
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
+    setState(() => _isUploadingAvatar = true);
+
+    try {
+      final newUrl = await _authService.uploadAvatar(image.path);
+      if (newUrl != null && mounted) {
+        setState(() {
+          if (_user != null) {
+            _user!['avatar_url'] = newUrl;
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Avatar updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingAvatar = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -117,50 +175,59 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(13),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuB-sW4HS_WZv2jnCi0gC2adNaIapRq0dmq9iRGTjEJd3u3QUppcrFlWHfBtWXk4PE5yhBdGxtHsJarr-agX5xrXMLYC0WBjAwFSnB8GbiJnRPTpcUJyJsldf66dT3d0PQ-T3zzyH-_ghmRWW8K6o_Monyqo958aAYpLoNITLZ4kvvfeiAfGqIeAOSBREKaxDgVMOH6xhvO3gwN-wnrARhN2Qd7LU5k1QsPjIYXvBd9yut6M7S_5vxEOhHxEG-eP0Pa8oeJUFSrOinN8',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -4,
-                    right: -4,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
+              GestureDetector(
+                onTap: _pickAndUploadAvatar,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCard,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white, width: 4),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
+                            color: Colors.black.withAlpha(13),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                      clipBehavior: Clip.antiAlias,
+                      child: _isUploadingAvatar
+                          ? const Center(child: CircularProgressIndicator())
+                          : _user != null && _user!['avatar_url'] != null
+                              ? Image.network(
+                                  _user!['avatar_url'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.person_rounded, size: 40, color: AppColors.textMuted),
+                                )
+                              : const Icon(Icons.person_rounded, size: 40, color: AppColors.textMuted),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      bottom: -4,
+                      right: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -169,10 +236,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Flexible(
+                        Flexible(
                           child: Text(
-                            'Sarah Jenkins, M.Ed',
-                            style: TextStyle(
+                            _user?['name'] ?? 'Guest User',
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
@@ -217,9 +284,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Senior Mathematics Instructor • Klass Member since 2022',
-            style: TextStyle(
+          Text(
+            _user?['role'] ?? 'User / Student',
+            style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 13,
               fontWeight: FontWeight.w600,

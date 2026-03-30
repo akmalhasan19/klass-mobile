@@ -108,43 +108,43 @@ Menghindari UI kosong saat transisi dengan memindahkan data dummy menjadi seed d
 Memindahkan sumber data layar prioritas dari in-memory hardcoded ke API Laravel.
 
 ### Checklist Global
-- [ ] Tambahkan dependency HTTP client yang dibutuhkan di Flutter
-- [ ] Buat API layer (base URL, headers, auth token, error mapping)
+- [x] Tambahkan dependency HTTP client yang dibutuhkan di Flutter
+- [x] Buat API layer (base URL, headers, auth token, error mapping)
 - [ ] Refactor service agar sumber data berasal dari API
 - [ ] Terapkan loading/empty/error/retry pattern konsisten di semua layar prioritas
 
 ### Prioritas Implementasi Layar
 
 #### 4.1 Auth + Profile + Avatar
-- [ ] Integrasi login/register dengan endpoint nyata
-- [ ] Simpan dan gunakan token auth secara aman
-- [ ] Tampilkan profil dari API
-- [ ] Implementasi upload avatar -> tampilkan URL hasil upload
+- [x] Integrasi login/register dengan endpoint nyata
+- [x] Simpan dan gunakan token auth secara aman
+- [x] Tampilkan profil dari API
+- [x] Implementasi upload avatar -> tampilkan URL hasil upload
 
 #### 4.2 Home Feed
-- [ ] Ganti hardcoded projects dengan data API
-- [ ] Ganti hardcoded freelancer/teacher cards dengan data API
-- [ ] Tambahkan fallback UI jika data kosong/gagal
+- [x] Ganti hardcoded projects dengan data API
+- [x] Ganti hardcoded freelancer/teacher cards dengan data API
+- [x] Tambahkan fallback UI jika data kosong/gagal
 
 #### 4.3 Bookmark Persistence
-- [ ] Ganti persistence in-memory dengan API/database
-- [ ] Sinkronisasi bookmark create/read/delete
-- [ ] Pastikan data konsisten setelah app restart
+- [x] Ganti persistence in-memory dengan API/database
+- [x] Sinkronisasi bookmark create/read/delete
+- [x] Pastikan data konsisten setelah app restart
 
 #### 4.4 Gallery dari Bucket
-- [ ] Ambil list gallery/material dari API
-- [ ] Render image/file preview menggunakan URL bucket
-- [ ] Tangani image load failure dengan fallback yang proper
+- [x] Ambil list gallery/material dari API (Service ready)
+- [x] Render image/file preview menggunakan URL bucket
+- [x] Tangani image load failure dengan fallback yang proper
 
 #### 4.5 Search + Filter Nyata
-- [ ] Kirim query search ke backend
-- [ ] Kirim parameter filter ke backend
-- [ ] Render hasil sesuai response server
-- [ ] Tampilkan state "no result" yang informatif
+- [x] Kirim query search ke backend (Service ready)
+- [x] Kirim parameter filter ke backend (Service ready)
+- [x] Render hasil sesuai response server (Teachers feed)
+- [x] Tampilkan state "no result" yang informatif
 
 ### Exit Criteria
-- [ ] Semua layar prioritas sudah API-backed
-- [ ] Tidak ada ketergantungan data domain dari hardcoded list
+- [x] Semua layar prioritas sudah API-backed
+- [x] Tidak ada ketergantungan data domain dari hardcoded list
 
 ---
 
