@@ -89,16 +89,16 @@ Membuat kontrak API stabil agar Flutter bisa migrasi dari static source tanpa se
 Menghindari UI kosong saat transisi dengan memindahkan data dummy menjadi seed data nyata.
 
 ### Checklist
-- [ ] Mapping dummy data -> entitas domain database
-- [ ] Buat/rapikan seeder data awal (topics/contents/tasks/profiles sesuai kebutuhan UI)
-- [ ] Upload asset dummy relevan ke bucket public
-- [ ] Simpan URL bucket ke tabel terkait
-- [ ] Hapus ketergantungan data demo dari widget state hardcoded
-- [ ] Verifikasi data seed bisa dipakai di endpoint list/detail
+- [x] Mapping dummy data -> entitas domain database
+- [x] Buat/rapikan seeder data awal (topics/contents/tasks/profiles sesuai kebutuhan UI)
+- [x] Upload asset dummy relevan ke bucket public
+- [x] Simpan URL bucket ke tabel terkait
+- [x] Hapus ketergantungan data demo dari widget state hardcoded
+- [x] Verifikasi data seed bisa dipakai di endpoint list/detail
 
 ### Exit Criteria
-- [ ] Data awal tersedia dari API (bukan dari hardcoded list)
-- [ ] Image domain utama dimuat dari URL bucket
+- [x] Data awal tersedia dari API (bukan dari hardcoded list)
+- [x] Image domain utama dimuat dari URL bucket
 
 ---
 
@@ -203,7 +203,7 @@ Memastikan seluruh alur utama berjalan dari sisi user nyata.
 
 - [x] M1: Fondasi DB + Storage selesai
 - [x] M2: Kontrak API prioritas selesai
-- [ ] M3: Seed data + media tersedia
+- [x] M3: Seed data + media tersedia
 - [ ] M4: 5 layar prioritas sudah live data
 - [ ] M5: Hardening + E2E selesai
 - [ ] M6: Release Candidate

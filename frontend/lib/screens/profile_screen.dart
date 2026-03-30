@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
+import '../data/mock_data.dart';
 import 'account_settings_screen.dart';
 import 'help_screen.dart';
 import '../widgets/feature_coming_soon.dart';
@@ -524,88 +525,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         const SizedBox(height: 20),
-        _buildModuleCard(
-          title: 'Intro to Quantum Physics',
-          description:
-              'A comprehensive journey from classical mechanics to the mysteries of quantum entanglements.',
-          imageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuBTGKxSjUWwWvC2HvRdzg_RmvbCSLmCQH4UIU84ACn48uxwjyucMwK_wWVloZS99Ija6TT0Qr8yWPeti7JYBlEwelvNYlUTZ_rv5tQTZ7JqQ6H3oNIAjgCk0zGA_mjuh7FMYP92E5O8iA1zAiciFWoMTuFEqFxvhiNq5-i5tpKHdoI03HZphV9FcfsUUrzuu6vLitJfPtQVkvJ9Jxmcfzz8dyBwk2dJylV8Scjv6d22YZpLbpnRh1EQjmki4XCJ5iaz61XHKpHUxusQ',
-          status: 'Published',
-          isDraft: false,
-          stats: [
-            const Icon(
-              Icons.group_rounded,
-              size: 16,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(width: 4),
-            const Text('1.2k', style: _statStyle),
-            const SizedBox(width: 16),
-            const Icon(
-              Icons.schedule_rounded,
-              size: 16,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(width: 4),
-            const Text('14h', style: _statStyle),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildModuleCard(
-          title: 'Modern Art History',
-          description:
-              'Exploring the seismic shifts in artistic expression from the mid-19th century to today.',
-          imageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuAE7PoZ9LTIoG5uutNqz6Xt6gD2YUvbqq305GgIp-hfioQTmG3nGy3Oueh2HGA6A0lCtP1lUmn17dyLJ2gaphosdX3DwcPgBMk8-EhDHoMWq3WmL5pVaYXw_ohoMasfJV49PFhNeIJ1Tn7i1lyKuPxvoofnIF63eoOciRZ7wDUKCpxezigtDmQajbBiTf0jU1Xi1hIUeXxYJphhgn96vCQIJencrKhiN9HuG1j5gprRDmnP4ETdGnst1cXyPh1pVICDPNqoGZHywo7g',
-          status: 'Published',
-          isDraft: false,
-          stats: [
-            const Icon(
-              Icons.group_rounded,
-              size: 16,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(width: 4),
-            const Text('850', style: _statStyle),
-            const SizedBox(width: 16),
-            const Icon(
-              Icons.schedule_rounded,
-              size: 16,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(width: 4),
-            const Text('8h', style: _statStyle),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildModuleCard(
-          title: 'Advanced Thermodynamics',
-          description:
-              'In-depth analysis of entropy, enthalpy, and energy conversion systems.',
-          imageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuCR6hR6bvffsyKtu12OhoJs6jMLIN6XlZ7V_c10UhZ4NnbX-CVQzaD48EjnPlC_ZG76rC7T7d82o5F7bBRsNmeezOeU7-Rmtkn_BXIU88LmGYkaduQGJhsEZHbEYkvc0x_Jpll2b4-3oBvv0b0V711JUu--D242lHRWTM0pPN6dZVKx8kON4x5QfsP4d_kRrzv0gyf6WyyKFkKbkjcHPqQq3PUtcf3K1lrg-j-6jPoH3dZo_H62th4HDgoOU9K8Jzv-2LMxpn0Lcwnj',
-          status: 'Draft',
-          isDraft: true,
-          stats: [
-            const Icon(
-              Icons.history_edu_rounded,
-              size: 16,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(width: 4),
-            const Text('4/12 Modules', style: _statStyle),
-          ],
-        ),
+        ...MockData.profileModules.map((module) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildModuleCard(
+                title: module['title'] as String,
+                description: module['description'] as String,
+                imageUrl: module['imageUrl'] as String,
+                status: module['status'] as String,
+                isDraft: module['isDraft'] as bool,
+                stats: module['stats'] as List<Widget>,
+              ),
+            )),
       ],
     );
   }
 
-  static const _statStyle = TextStyle(
-    fontFamily: 'Inter',
-    fontSize: 12,
-    fontWeight: FontWeight.w800,
-    color: AppColors.textMuted,
-  );
 
   Widget _buildModuleCard({
     required String title,

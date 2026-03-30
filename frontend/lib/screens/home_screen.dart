@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
+import '../data/mock_data.dart';
 import '../widgets/prompt_input_widget.dart';
 import '../widgets/project_suggestion_card.dart';
 import '../widgets/bleeding_horizontal_list.dart';
@@ -31,106 +32,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _promptController = TextEditingController();
   final FocusNode _promptFocusNode = FocusNode();
 
-  // Dummy data — mereplikasi projects dari Next.js
-  final List<Map<String, dynamic>> projects = [
-    {
-      'title': 'Modern History of Indonesia',
-      'author': 'By Antigravity',
-      'ratio': 'ppt',
-      'imagePath': 'assets/images/ppt_design_3.jpg',
-      'description':
-          'Explore the journey of Indonesia from the colonial era to the modern age. This project covers key historical events, the struggle for independence, and the development of the nation. Perfect for students and history enthusiasts looking to understand the roots of contemporary Indonesia.',
-      'tags': ['History', 'Indonesia', 'Education'],
-      'type': 'PPT',
-      'modules': [
-        {'title': 'Masa Kolonial Belanda', 'detail': '2 Slides'},
-        {'title': 'Perjuangan Kemerdekaan', 'detail': '3 Slides'},
-        {'title': 'Era Orde Lama & Baru', 'detail': '2 Slides'},
-        {'title': 'Indonesia Modern', 'detail': '1 Slide'}
-      ],
-    },
-    {
-      'title': 'Benefits of Healthy Eating',
-      'author': 'By Antigravity',
-      'ratio': 'infographic',
-      'imagePath': 'assets/images/infographic_preview_health_1773981088610.png',
-      'description':
-          'Discover how nutrition impacts your daily life and long-term health. This infographic project breaks down complex dietary concepts into easy-to-understand visuals, covering vitamins, minerals, and the importance of a balanced diet. Great for health campaigns and personal awareness.',
-      'tags': ['Health', 'Nutrition', 'Design'],
-      'type': 'Infographic',
-      'modules': [
-        {'title': 'Pentingnya Makronutrien', 'detail': 'Karbo, Protein, Lemak'},
-        {'title': 'Mikronutrien Esensial', 'detail': 'Vitamin & Mineral'},
-        {'title': 'Dampak Jangka Panjang', 'detail': 'Pencegahan Penyakit'}
-      ],
-    },
-    {
-      'title': 'Mathematics Quiz',
-      'author': 'By Antigravity',
-      'ratio': 'square',
-      'imagePath': 'assets/images/square_preview_math_1773981103817.png',
-      'description':
-          'A fun and interactive way to test your mathematical skills. Covering algebra, geometry, and basic arithmetic, this project is designed to challenge students and make learning math enjoyable through gamification and clear visual feedback.',
-      'tags': ['Math', 'Quiz', 'Learning'],
-      'type': 'Quiz',
-      'modules': [
-        {'title': 'Aljabar Dasar', 'detail': '5 Pertanyaan'},
-        {'title': 'Geometri', 'detail': '4 Pertanyaan'},
-        {'title': 'Aritmatika Lanjut', 'detail': '6 Pertanyaan'}
-      ],
-    },
-  ];
+  final List<Map<String, dynamic>> projects = MockData.projects;
 
-  final List<Map<String, dynamic>> freelancers = [
-    {
-      'name': 'Agus S',
-      'avatarPath': 'assets/avatars/agus.png',
-      'role': 'Advanced Mathematics Tutor',
-      'rate': 45,
-      'skills': ['Calculus', 'SAT Prep', 'Algebra', 'Physics'],
-      'projects': 42,
-      'rating': 4.9,
-      'responseTime': '< 1h',
-      'verified': true,
-      'scale': 1.1,
-    },
-    {
-      'name': 'Ani A',
-      'avatarPath': 'assets/avatars/ani.png',
-      'role': 'Creative Graphic Designer',
-      'rate': 35,
-      'skills': ['UI/UX', 'Illustration', 'Branding', 'Figma'],
-      'projects': 28,
-      'rating': 4.8,
-      'responseTime': '< 2h',
-      'verified': true,
-      'scale': 1.1,
-    },
-    {
-      'name': 'Budi O',
-      'avatarPath': 'assets/avatars/budi.png',
-      'role': 'Fullstack Web Developer',
-      'rate': 55,
-      'skills': ['Next.js', 'TypeScript', 'Node.js', 'Tailwind'],
-      'projects': 56,
-      'rating': 5.0,
-      'responseTime': '< 30m',
-      'verified': true,
-      'scale': 1.3,
-    },
-    {
-      'name': 'Susi',
-      'avatarPath': 'assets/avatars/susi.png',
-      'role': 'English Language Specialist',
-      'rate': 30,
-      'skills': ['IELTS', 'TOEFL', 'Business English', 'Writing'],
-      'projects': 34,
-      'rating': 4.7,
-      'responseTime': '< 3h',
-      'verified': false,
-      'scale': 1.2,
-    },
-  ];
+  final List<Map<String, dynamic>> freelancers = MockData.freelancers;
 
   @override
   void initState() {
