@@ -114,7 +114,20 @@ class ApiService {
         }
         
         // Handle global unauthenticated errors here if needed
-        return handler.next(e);
+        final enrichedError = DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          type: e.type,
+          error: e.error,
+          stackTrace: e.stackTrace,
+          message: buildDebugInfo(
+            e,
+            operation: 'Network request failed',
+            endpoint: e.requestOptions.path,
+          ),
+        );
+
+        return handler.next(enrichedError);
       },
     ));
   }
@@ -125,6 +138,87 @@ class ApiService {
            e.type == DioExceptionType.sendTimeout ||
            e.type == DioExceptionType.connectionError ||
            (e.type == DioExceptionType.unknown && e.response == null);
+  }
+
+  static String buildDebugInfo(
+    Object error, {
+    required String operation,
+    required String endpoint,
+  }) {
+    if (error is DioException) {
+      final req = error.requestOptions;
+      final statusCode = error.response?.statusCode;
+      final responseData = error.response?.data;
+
+      String? backendMessage;
+      String? responseSnippet;
+
+      if (responseData is Map<String, dynamic>) {
+        final message = responseData['message'];
+        if (message is String && message.isNotEmpty) {
+          backendMessage = message;
+        }
+        responseSnippet = jsonEncode(responseData);
+      } else if (responseData != null) {
+        responseSnippet = responseData.toString();
+      }
+
+      if (responseSnippet != null && responseSnippet.length > 300) {
+        responseSnippet = '${responseSnippet.substring(0, 300)}...';
+      }
+
+      final technicalMessage = _extractTechnicalMessage(error.message);
+
+      final lines = <String>[
+        operation,
+        'Endpoint: $endpoint',
+        'Method: ${req.method}',
+        'URL: ${req.uri}',
+        'Status: ${statusCode ?? '-'}',
+        'Dio Type: ${error.type.name}',
+        'Error: $technicalMessage',
+      ];
+
+      if (backendMessage != null) {
+        lines.add('Backend Message: $backendMessage');
+      }
+
+      if (responseSnippet != null && responseSnippet.isNotEmpty) {
+        lines.add('Response: $responseSnippet');
+      }
+
+      return lines.join('\n');
+    }
+
+    return [
+      operation,
+      'Endpoint: $endpoint',
+      'Error: ${error.toString()}',
+    ].join('\n');
+  }
+
+  static String _extractTechnicalMessage(String? rawMessage) {
+    if (rawMessage == null || rawMessage.trim().isEmpty) {
+      return 'Unknown network error';
+    }
+
+    if (!rawMessage.contains('\n')) {
+      return rawMessage;
+    }
+
+    final lines = rawMessage
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    for (final line in lines.reversed) {
+      if (line.startsWith('Error: ')) {
+        return line.substring('Error: '.length);
+      }
+    }
+
+    return lines.last;
   }
 
   Dio get dio => _dio;

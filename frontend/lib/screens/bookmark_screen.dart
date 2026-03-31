@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import '../config/app_colors.dart';
 import '../widgets/feature_coming_soon.dart';
@@ -43,6 +44,14 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  Future<void> _copyDebugInfo(String message) async {
+    await Clipboard.setData(ClipboardData(text: message));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Debug info copied to clipboard')),
+    );
   }
 
   @override
@@ -281,14 +290,21 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                 children: [
                   const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 48),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Failed to load materials',
-                    style: TextStyle(
+                  Text(
+                    _projectService.error ?? 'Failed to load materials',
+                    style: const TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                       color: AppColors.textMuted,
                     ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => _copyDebugInfo(_projectService.error ?? ''),
+                    icon: const Icon(Icons.copy_rounded, size: 16),
+                    label: const Text('Copy Debug Info'),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -308,7 +324,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   Icon(Icons.folder_open_rounded, color: AppColors.border, size: 64),
                   const SizedBox(height: 16),
                   const Text(
-                    'No materials found in Workspace',
+                    'Belum ada material untuk ditampilkan',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,
@@ -318,7 +334,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Start by creating a new module to organize your curriculum.',
+                    'Buat project terlebih dahulu.\nMaterial akan muncul di bagian ini setelah project dibuat.',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -326,6 +342,16 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                       color: AppColors.textMuted,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (await requireAuth(context)) {
+                        widget.onCreateNewModule?.call();
+                      }
+                    },
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Buat Project Pertama'),
                   ),
                 ],
               ),

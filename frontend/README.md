@@ -1,17 +1,22 @@
 # klass_app
 
-A new Flutter project.
+## Running With Backend API
 
-## Getting Started
+API base URL can be overridden at runtime using `--dart-define`.
 
-This project is a starting point for a Flutter application.
+Example:
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000/api
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Default behavior without override:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Android emulator: `http://10.0.2.2:8000/api`
+- iOS simulator: `http://127.0.0.1:8000/api`
+- Other platforms: `http://127.0.0.1:8000/api`
+
+Notes:
+
+- Physical device cannot use `127.0.0.1` or `10.0.2.2` to reach your laptop backend.
+- Use your laptop LAN IP and ensure backend is started with host `0.0.0.0`.

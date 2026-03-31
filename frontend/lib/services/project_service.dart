@@ -25,15 +25,29 @@ class ProjectService extends ChangeNotifier {
     try {
       final response = await _apiService.dio.get('/topics');
       if (response.statusCode == 200) {
-        final data = response.data['data'] as List?;
-        if (data != null) {
+        final payload = response.data;
+        if (payload is Map<String, dynamic> && payload['data'] is List) {
+          final data = payload['data'] as List;
           _addedProjects = data.cast<Map<String, dynamic>>();
+        } else {
+          _error =
+              'Gagal memuat materials\n'
+              'Endpoint: /topics\n'
+              'Error: Invalid response format. Expected data as List.';
         }
       }
     } on DioException catch (e) {
-      _error = e.response?.data['message'] ?? 'Failed to load materials';
+      _error = ApiService.buildDebugInfo(
+        e,
+        operation: 'Gagal memuat materials',
+        endpoint: '/topics',
+      );
     } catch (e) {
-      _error = e.toString();
+      _error = ApiService.buildDebugInfo(
+        e,
+        operation: 'Gagal memuat materials',
+        endpoint: '/topics',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();

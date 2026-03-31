@@ -1,5 +1,6 @@
 import 'api_service.dart';
 import '../config/feature_flags.dart';
+import 'package:dio/dio.dart';
 
 class HomeService {
   final ApiService _apiService = ApiService();
@@ -12,14 +13,35 @@ class HomeService {
     try {
       final response = await _apiService.dio.get('/topics');
       if (response.statusCode == 200) {
-        final data = response.data['data'] as List?;
-        if (data != null) {
+        final payload = response.data;
+        if (payload is Map<String, dynamic> && payload['data'] is List) {
+          final data = payload['data'] as List;
           return data.cast<Map<String, dynamic>>();
         }
+
+        throw Exception(
+          'Gagal memuat projects\n'
+          'Endpoint: /topics\n'
+          'Error: Invalid response format. Expected data as List.',
+        );
       }
       return [];
+    } on DioException catch (e) {
+      throw Exception(
+        ApiService.buildDebugInfo(
+          e,
+          operation: 'Gagal memuat projects',
+          endpoint: '/topics',
+        ),
+      );
     } catch (e) {
-      throw Exception('Failed to load projects: $e');
+      throw Exception(
+        ApiService.buildDebugInfo(
+          e,
+          operation: 'Gagal memuat projects',
+          endpoint: '/topics',
+        ),
+      );
     }
   }
 
@@ -31,14 +53,35 @@ class HomeService {
     try {
       final response = await _apiService.dio.get('/marketplace-tasks');
       if (response.statusCode == 200) {
-        final data = response.data['data'] as List?;
-        if (data != null) {
+        final payload = response.data;
+        if (payload is Map<String, dynamic> && payload['data'] is List) {
+          final data = payload['data'] as List;
           return data.cast<Map<String, dynamic>>();
         }
+
+        throw Exception(
+          'Gagal memuat freelancers\n'
+          'Endpoint: /marketplace-tasks\n'
+          'Error: Invalid response format. Expected data as List.',
+        );
       }
       return [];
+    } on DioException catch (e) {
+      throw Exception(
+        ApiService.buildDebugInfo(
+          e,
+          operation: 'Gagal memuat freelancers',
+          endpoint: '/marketplace-tasks',
+        ),
+      );
     } catch (e) {
-      throw Exception('Failed to load freelancers: $e');
+      throw Exception(
+        ApiService.buildDebugInfo(
+          e,
+          operation: 'Gagal memuat freelancers',
+          endpoint: '/marketplace-tasks',
+        ),
+      );
     }
   }
 }

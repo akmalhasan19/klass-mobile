@@ -165,6 +165,26 @@ Evidence:
 
 Status: ☐ Pass / ☐ Fail
 
+### TC-08 Empty State My Teaching Materials
+
+Langkah:
+1. Gunakan akun baru yang belum pernah membuat project.
+2. Buka tab Workspace dan lihat section My Teaching Materials.
+3. Verifikasi tidak ada card material yang tampil.
+4. Verifikasi muncul prompt pembuatan project pertama.
+5. Tekan tombol Buat Project Pertama.
+
+Expected:
+- UI menampilkan pesan bahwa user harus membuat project terlebih dahulu sebelum material muncul.
+- Tombol CTA Buat Project Pertama muncul dan bisa ditekan.
+- Tidak ada crash atau state ambigu.
+
+Evidence:
+- Screenshot section My Teaching Materials saat kosong.
+- Screenshot CTA Buat Project Pertama.
+
+Status: ☐ Pass / ☐ Fail
+
 ## Ringkasan Hasil QA
 
 - Android: ☐ Pass / ☐ Fail

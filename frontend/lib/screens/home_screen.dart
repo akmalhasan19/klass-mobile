@@ -38,8 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final _homeService = HomeService();
   List<Map<String, dynamic>> projects = [];
   List<Map<String, dynamic>> freelancers = [];
-  bool _isLoading = true;
-  bool _hasError = false;
+  bool _isProjectsLoading = true;
+  bool _isFreelancersLoading = true;
+  String? _projectsError;
+  String? _freelancersError;
 
   @override
   void initState() {
@@ -53,29 +55,110 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchData() async {
-    try {
-      final futures = await Future.wait([
-        _homeService.fetchProjects(),
-        _homeService.fetchFreelancers(),
-      ]);
-      
-      if (mounted) {
-        setState(() {
-          projects = futures[0];
-          freelancers = futures[1];
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          projects = [];
-          freelancers = [];
-          _hasError = true;
-          _isLoading = false;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _isProjectsLoading = true;
+        _isFreelancersLoading = true;
+        _projectsError = null;
+        _freelancersError = null;
+      });
     }
+
+    List<Map<String, dynamic>> fetchedProjects = [];
+    List<Map<String, dynamic>> fetchedFreelancers = [];
+
+    String? projectsError;
+    String? freelancersError;
+
+    try {
+      fetchedProjects = await _homeService.fetchProjects();
+    } catch (e) {
+      projectsError = _normalizeErrorMessage(e);
+    }
+
+    try {
+      fetchedFreelancers = await _homeService.fetchFreelancers();
+    } catch (e) {
+      freelancersError = _normalizeErrorMessage(e);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      projects = fetchedProjects;
+      freelancers = fetchedFreelancers;
+      _projectsError = projectsError;
+      _freelancersError = freelancersError;
+      _isProjectsLoading = false;
+      _isFreelancersLoading = false;
+    });
+  }
+
+  Future<void> _retryProjects() async {
+    if (mounted) {
+      setState(() {
+        _isProjectsLoading = true;
+        _projectsError = null;
+      });
+    }
+
+    try {
+      final fetchedProjects = await _homeService.fetchProjects();
+      if (!mounted) return;
+      setState(() {
+        projects = fetchedProjects;
+        _projectsError = null;
+        _isProjectsLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _projectsError = _normalizeErrorMessage(e);
+        _isProjectsLoading = false;
+      });
+    }
+  }
+
+  Future<void> _retryFreelancers() async {
+    if (mounted) {
+      setState(() {
+        _isFreelancersLoading = true;
+        _freelancersError = null;
+      });
+    }
+
+    try {
+      final fetchedFreelancers = await _homeService.fetchFreelancers();
+      if (!mounted) return;
+      setState(() {
+        freelancers = fetchedFreelancers;
+        _freelancersError = null;
+        _isFreelancersLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _freelancersError = _normalizeErrorMessage(e);
+        _isFreelancersLoading = false;
+      });
+    }
+  }
+
+  String _normalizeErrorMessage(Object error) {
+    final raw = error.toString();
+    const exceptionPrefix = 'Exception: ';
+    if (raw.startsWith(exceptionPrefix)) {
+      return raw.substring(exceptionPrefix.length);
+    }
+    return raw;
+  }
+
+  Future<void> _copyDebugInfo(String message) async {
+    await Clipboard.setData(ClipboardData(text: message));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Debug info copied to clipboard')),
+    );
   }
 
   @override
@@ -370,13 +453,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       BleedingHorizontalList(
                         title: 'Project Recommendations', // Menggunakan nama sesuai permintaan user
                         height: 260,
-                        children: _isLoading
+                        children: _isProjectsLoading
                             ? List.generate(3, (index) => ProjectSuggestionSkeleton(
                                 ratio: index == 1 ? 'infographic' : (index == 2 ? 'square' : 'ppt'),
                               ))
-                            : _hasError
+                            : _projectsError != null
                                 ? [
-                                    _buildErrorPlaceholder('Gagal memuat projects', onRetry: _fetchData),
+                                    _buildErrorPlaceholder(_projectsError!, onRetry: _retryProjects),
                                   ]
                                 : projects.isEmpty
                                     ? [
@@ -423,11 +506,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         title: 'Top Freelancers',
                         height: 140,
                         itemSpacing: 25,
-                        children: _isLoading
+                        children: _isFreelancersLoading
                             ? List.generate(5, (_) => const FreelancerSkeleton())
-                            : _hasError
+                            : _freelancersError != null
                                 ? [
-                                    _buildErrorPlaceholder('Gagal memuat freelancers', onRetry: _fetchData),
+                                    _buildErrorPlaceholder(_freelancersError!, onRetry: _retryFreelancers),
                                   ]
                                 : freelancers.isEmpty
                                     ? [
@@ -597,9 +680,26 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Icon(Icons.error_outline_rounded, size: 40, color: AppColors.red),
           const SizedBox(height: 12),
-          Text(
-            message,
-            style: const TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textMuted),
+          SizedBox(
+            height: 120,
+            child: SingleChildScrollView(
+              child: SelectableText(
+                message,
+                textAlign: TextAlign.left,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => _copyDebugInfo(message),
+            icon: const Icon(Icons.copy_rounded, size: 16),
+            label: const Text('Copy Debug Info'),
           ),
           if (onRetry != null) ...[
             const SizedBox(height: 8),

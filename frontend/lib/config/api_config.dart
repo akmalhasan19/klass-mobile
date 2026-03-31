@@ -1,13 +1,37 @@
+import 'package:flutter/foundation.dart';
+
 /// API Configuration — centralized timeout, retry, and base URL settings.
 ///
 /// All network configuration constants live here so they can be
 /// adjusted in one place for production vs development environments.
 class ApiConfig {
+  /// Optional override from build runtime args.
+  ///
+  /// Example:
+  /// flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000/api
+  static const String _overrideBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: '',
+  );
+
   /// Base URL for the backend API.
   /// - Android emulator: 'http://10.0.2.2:8000/api'
   /// - iOS simulator:    'http://127.0.0.1:8000/api'
   /// - Physical device:  use 'http://YOUR_IP:8000/api'
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static String get baseUrl {
+    if (_overrideBaseUrl.isNotEmpty) {
+      return _overrideBaseUrl;
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'http://10.0.2.2:8000/api';
+      case TargetPlatform.iOS:
+        return 'http://127.0.0.1:8000/api';
+      default:
+        return 'http://127.0.0.1:8000/api';
+    }
+  }
 
   // ─── Timeout Configuration (milliseconds) ─────────────────
 

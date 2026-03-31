@@ -15,7 +15,9 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Determine image source
-    final String imageSource = project['imagePath'] ?? project['image'] ?? '';
+    final String imageSource =
+      (project['imagePath'] ?? project['image'] ?? project['media_url'] ?? '')
+        .toString();
     final bool isNetworkImage = imageSource.startsWith('http');
 
     return Container(
