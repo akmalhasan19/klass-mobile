@@ -63,11 +63,25 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
+FROM node:22-alpine AS frontend
+
+WORKDIR /var/www/html
+
+COPY package.json ./
+
+RUN npm install --no-fund --no-audit
+
+COPY resources ./resources
+COPY vite.config.js ./vite.config.js
+
+RUN npm run build
+
 FROM base AS build
 
 COPY --from=composer:2.8 /usr/bin/composer /usr/local/bin/composer
 COPY . .
 COPY --from=vendor /var/www/html/vendor ./vendor
+COPY --from=frontend /var/www/html/public/build ./public/build
 
 RUN set -eux; \
     cp .env.example .env; \

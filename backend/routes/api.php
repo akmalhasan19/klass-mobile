@@ -36,6 +36,8 @@ Route::get('/', function () {
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/get-security-question', [AuthController::class, 'getSecurityQuestion']);
+    Route::post('/verify-and-reset-password', [AuthController::class, 'verifyAndResetPassword']);
 
     // Protected auth routes
     Route::middleware('auth:sanctum')->group(function () {

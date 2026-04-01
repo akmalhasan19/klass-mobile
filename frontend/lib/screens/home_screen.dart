@@ -292,6 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     // Kita gunakan topPadding agar hijau Layer 1 meliputi area status bar,
     // plus tambahan sedikit agar garis luarnya terlihat jelas

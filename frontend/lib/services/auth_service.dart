@@ -61,6 +61,38 @@ class AuthService {
     }
   }
 
+  Future<String?> getSecurityQuestion(String email) async {
+    try {
+      final response = await _apiService.dio.post('/auth/get-security-question', data: {
+        'email': email,
+      });
+      if (response.statusCode == 200) {
+        final payload = response.data as Map<String, dynamic>;
+        final data = payload['data'] ?? payload;
+        return data['security_question'];
+      }
+      return null;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to get security question');
+    }
+  }
+
+  Future<bool> verifyAndResetPassword(String email, String securityAnswer, String newPassword) async {
+    try {
+      final response = await _apiService.dio.post('/auth/verify-and-reset-password', data: {
+        'email': email,
+        'security_answer': securityAnswer,
+        'new_password': newPassword,
+      });
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to reset password');
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _apiService.dio.post('/auth/logout');

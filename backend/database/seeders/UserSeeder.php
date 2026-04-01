@@ -28,6 +28,8 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'avatar_url' => null,
                 'role' => User::ROLE_ADMIN,
+                'security_question' => 'Siapa nama hewan peliharaan pertama Anda?',
+                'security_answer' => Hash::make('kucing'),
             ],
 
             // Demo teacher — profil utama yang ditampilkan di profile_screen.dart

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 import '../services/auth_service.dart';
 import '../main.dart'; // To access MainShell
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -154,7 +155,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 icon: Icons.lock_outline,
                 obscureText: true,
               ),
-              const SizedBox(height: 24),
+
+              if (_isLogin)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                      );
+                    },
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(height: 24),
+
+              if (_isLogin) const SizedBox(height: 8),
 
               ElevatedButton(
                 onPressed: _isLoading ? null : _submit,

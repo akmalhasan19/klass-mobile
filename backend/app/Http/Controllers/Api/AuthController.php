@@ -86,4 +86,42 @@ class AuthController extends Controller
             'Data user berhasil diambil.',
         );
     }
+
+    public function getSecurityQuestion(Request $request): JsonResponse
+    {
+        $request->validate(['email' => 'required|email']);
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !$user->security_question) {
+            return $this->error('User tidak ditemukan atau belum mengatur pertanyaan keamanan.', 404);
+        }
+
+        return $this->success([
+            'security_question' => $user->security_question,
+        ], 'Pertanyaan keamanan berhasil diambil.');
+    }
+
+    public function verifyAndResetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'security_answer' => 'required|string',
+            'new_password' => 'required|string|min:6',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !$user->security_answer) {
+            return $this->error('User tidak ditemukan atau belum mengatur pertanyaan keamanan.', 404);
+        }
+
+        if (!Hash::check($request->security_answer, $user->security_answer)) {
+            return $this->error('Jawaban keamanan salah.', 403);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return $this->success(null, 'Password berhasil diubah.');
+    }
 }

@@ -22,7 +22,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::view('/', 'welcome');
+Route::get('/', function () {
+    return redirect()->route('admin.login');
+});
 
 // --------------------------------------------------------------------------
 // Admin — Route publik (login, tidak perlu autentikasi)
