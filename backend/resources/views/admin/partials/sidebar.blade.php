@@ -32,28 +32,35 @@
         </div>
 
         <x-admin.nav-item
-            :href="'#'"
+            :href="route('admin.users.index')"
             :active="request()->routeIs('admin.users.*')"
             label="Pengguna"
             icon="users"
         />
 
         <x-admin.nav-item
-            :href="'#'"
-            :active="request()->routeIs('admin.content.*')"
-            label="Konten"
+            :href="route('admin.topics.index')"
+            :active="request()->routeIs('admin.topics.*')"
+            label="Topik Materi"
             icon="content"
         />
 
         <x-admin.nav-item
-            :href="'#'"
+            :href="route('admin.contents.index')"
+            :active="request()->routeIs('admin.contents.*')"
+            label="Konten Modul"
+            icon="content"
+        />
+
+        <x-admin.nav-item
+            :href="route('admin.tasks.index')"
             :active="request()->routeIs('admin.tasks.*')"
             label="Marketplace Tasks"
             icon="tasks"
         />
 
         <x-admin.nav-item
-            :href="'#'"
+            :href="route('admin.media.index')"
             :active="request()->routeIs('admin.media.*')"
             label="Media"
             icon="media"

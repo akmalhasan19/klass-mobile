@@ -43,8 +43,8 @@ Tanggal penyusunan: 1 April 2026.
 - [x] Phase 1 selesai
 - [x] Phase 2 selesai
 - [x] Phase 3 selesai
-- [ ] Phase 4 selesai
-- [ ] Phase 5 selesai
+- [x] Phase 4 selesai
+- [x] Phase 5 selesai
 - [ ] Phase 6 selesai
 - [ ] Phase 7 selesai
 - [ ] Go-live readiness tercapai
@@ -258,19 +258,19 @@ Menambahkan tabel, field, dan struktur data yang dibutuhkan agar monitoring dan 
 Menyediakan tampilan monitoring utama agar admin dapat melihat gambaran kondisi aplikasi dan aktivitas penting secara cepat.
 
 ### Checklist
-- [ ] Tampilkan summary cards untuk users, topics, contents, tasks, media, dan recent activity
-- [ ] Tampilkan recent user registrations
-- [ ] Tampilkan recent content changes
-- [ ] Tampilkan recent marketplace task changes
-- [ ] Tampilkan recent uploads / media events
-- [ ] Tampilkan recent admin actions dari audit log
-- [ ] Tambahkan filter waktu / recent window bila diperlukan
-- [ ] Tangani loading, empty, error, dan retry state dengan baik
+- [x] Tampilkan summary cards untuk users, topics, contents, tasks, media, dan recent activity
+- [x] Tampilkan recent user registrations
+- [x] Tampilkan recent content changes
+- [x] Tampilkan recent marketplace task changes
+- [x] Tampilkan recent uploads / media events
+- [x] Tampilkan recent admin actions dari audit log
+- [x] Tambahkan filter waktu / recent window bila diperlukan
+- [x] Tangani loading, empty, error, dan retry state dengan baik
 
 ### Exit Criteria
-- [ ] Dashboard menampilkan data monitoring utama yang relevan
-- [ ] Audit log recent activity muncul dengan benar
-- [ ] Dashboard usable untuk daily admin monitoring
+- [x] Dashboard menampilkan data monitoring utama yang relevan
+- [x] Audit log recent activity muncul dengan benar
+- [x] Dashboard usable untuk daily admin monitoring
 
 ---
 
@@ -280,42 +280,42 @@ Menyediakan tampilan monitoring utama agar admin dapat melihat gambaran kondisi 
 Menyediakan fitur kontrol operasional agar admin dapat mengelola entitas penting dalam aplikasi.
 
 ### Checklist Global
-- [ ] Terapkan pattern list, search, filter, detail, edit, delete/moderate secara konsisten
-- [ ] Tambahkan konfirmasi untuk aksi destruktif
-- [ ] Pastikan setiap aksi admin penting masuk ke audit log
+- [x] Terapkan pattern list, search, filter, detail, edit, delete/moderate secara konsisten
+- [x] Tambahkan konfirmasi untuk aksi destruktif
+- [x] Pastikan setiap aksi admin penting masuk ke audit log
 
 ### 5.1 User Management
-- [ ] List users dengan search dan filter dasar
-- [ ] Lihat detail user
-- [ ] Ubah role user bila diperlukan
-- [ ] Aktifkan / nonaktifkan user jika fitur suspend masuk scope
+- [x] List users dengan search dan filter dasar
+- [x] Lihat detail user
+- [x] Ubah role user bila diperlukan
+- [x] Aktifkan / nonaktifkan user jika fitur suspend masuk scope
 
 ### 5.2 Topics and Content Management
-- [ ] List topics dan contents
-- [ ] Rename topics
-- [ ] Rename contents
-- [ ] Reorder topics / contents sesuai kebutuhan domain
-- [ ] Ubah publish / visibility state
-- [ ] Edit metadata utama yang relevan
+- [x] List topics dan contents
+- [x] Rename topics
+- [x] Rename contents
+- [x] Reorder topics / contents sesuai kebutuhan domain
+- [x] Ubah publish / visibility state
+- [x] Edit metadata utama yang relevan
 
 ### 5.3 Marketplace Task Management
-- [ ] List marketplace tasks
-- [ ] Filter task berdasarkan status / content
-- [ ] Lihat detail task
-- [ ] Ubah status task
-- [ ] Hapus / moderasi task yang tidak valid
+- [x] List marketplace tasks
+- [x] Filter task berdasarkan status / content
+- [x] Lihat detail task
+- [x] Ubah status task
+- [x] Hapus / moderasi task yang tidak valid
 
 ### 5.4 File / Media Management
-- [ ] List file berdasarkan kategori upload
-- [ ] Preview metadata / reference file
-- [ ] Hapus file secara aman melalui service storage yang ada
-- [ ] Pastikan file yang dihapus tidak memutus referensi penting tanpa peringatan
+- [x] List file berdasarkan kategori upload
+- [x] Preview metadata / reference file
+- [x] Hapus file secara aman melalui service storage yang ada
+- [x] Pastikan file yang dihapus tidak memutus referensi penting tanpa peringatan
 
 ### Exit Criteria
-- [ ] Modul users usable
-- [ ] Modul content usable
-- [ ] Modul marketplace tasks usable
-- [ ] Modul media usable
+- [x] Modul users usable
+- [x] Modul content usable
+- [x] Modul marketplace tasks usable
+- [x] Modul media usable
 
 ---
 
@@ -392,8 +392,8 @@ Memastikan seluruh flow admin panel stabil, aman, dan siap dipakai untuk operasi
 - [x] M1: Role + admin access foundation selesai
 - [x] M2: Admin auth + shell selesai
 - [x] M3: Data model admin + activity log foundation selesai
-- [ ] M4: Dashboard monitoring selesai
-- [ ] M5: Management modules selesai
+- [x] M4: Dashboard monitoring selesai
+- [x] M5: Management modules selesai
 - [ ] M6: Section config + mobile integration selesai
 - [ ] M7: Verification dan go-live readiness selesai
 
