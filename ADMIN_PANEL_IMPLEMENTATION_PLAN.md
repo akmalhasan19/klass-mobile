@@ -45,7 +45,7 @@ Tanggal penyusunan: 1 April 2026.
 - [x] Phase 3 selesai
 - [x] Phase 4 selesai
 - [x] Phase 5 selesai
-- [ ] Phase 6 selesai
+- [x] Phase 6 selesai
 - [ ] Phase 7 selesai
 - [ ] Go-live readiness tercapai
 
@@ -325,21 +325,21 @@ Menyediakan fitur kontrol operasional agar admin dapat mengelola entitas penting
 Menjadikan admin panel benar-benar berguna untuk supervisi dan pengendalian aplikasi, termasuk konfigurasi section yang mempengaruhi mobile app.
 
 ### Checklist
-- [ ] Integrasikan pencatatan admin actions ke database activity log
-- [ ] Integrasikan pencatatan event penting aplikasi ke activity log
-- [ ] Tentukan daftar minimum event yang wajib tercatat: auth, content mutation, task mutation, upload, settings changes
-- [ ] Simpan metadata before/after untuk perubahan penting bila feasible
-- [ ] Buat halaman activity log dengan filter actor, action, entity, dan waktu
-- [ ] Buat UI settings untuk rename homepage sections
-- [ ] Buat UI settings untuk reorder homepage sections
-- [ ] Buat endpoint read-only untuk mobile app mengambil konfigurasi section
-- [ ] Refactor mobile home agar label dan urutan section berasal dari backend config
-- [ ] Pastikan fallback mobile tetap aman bila config gagal dimuat
+- [x] Integrasikan pencatatan admin actions ke database activity log
+- [x] Integrasikan pencatatan event penting aplikasi ke activity log
+- [x] Tentukan daftar minimum event yang wajib tercatat: auth, content mutation, task mutation, upload, settings changes
+- [x] Simpan metadata before/after untuk perubahan penting bila feasible
+- [x] Buat halaman activity log dengan filter actor, action, entity, dan waktu
+- [x] Buat UI settings untuk rename homepage sections
+- [x] Buat UI settings untuk reorder homepage sections
+- [x] Buat endpoint read-only untuk mobile app mengambil konfigurasi section
+- [x] Refactor mobile home agar label dan urutan section berasal dari backend config
+- [x] Pastikan fallback mobile tetap aman bila config gagal dimuat
 
 ### Exit Criteria
-- [ ] Audit trail cukup informatif untuk investigasi operasional
-- [ ] Admin dapat rename dan reorder homepage sections dari panel
-- [ ] Perubahan section tercermin di mobile app sesuai desain V1
+- [x] Audit trail cukup informatif untuk investigasi operasional
+- [x] Admin dapat rename dan reorder homepage sections dari panel
+- [x] Perubahan section tercermin di mobile app sesuai desain V1
 
 ---
 
@@ -349,22 +349,27 @@ Menjadikan admin panel benar-benar berguna untuk supervisi dan pengendalian apli
 Memastikan seluruh flow admin panel stabil, aman, dan siap dipakai untuk operasional nyata.
 
 ### Checklist
-- [ ] Tambahkan feature test untuk admin login / logout
+- [x] Tambahkan feature test untuk admin login / logout
 - [x] Tambahkan feature test untuk admin-only access restriction
-- [ ] Tambahkan feature test untuk dashboard query utama
-- [ ] Tambahkan feature test untuk user management actions
-- [ ] Tambahkan feature test untuk content rename / reorder / visibility update
-- [ ] Tambahkan feature test untuk task moderation
-- [ ] Tambahkan feature test untuk settings section config
-- [ ] Tambahkan feature test untuk activity log creation
-- [ ] Tambahkan test Flutter untuk homepage section config rendering
+- [x] Tambahkan feature test untuk dashboard query utama
+- [x] Tambahkan feature test untuk user management actions
+- [x] Tambahkan feature test untuk content rename / reorder / visibility update
+- [x] Tambahkan feature test untuk task moderation
+- [x] Tambahkan feature test untuk settings section config
+- [x] Tambahkan feature test untuk activity log creation
+- [x] Tambahkan test Flutter untuk homepage section config rendering
 - [ ] Lakukan manual QA untuk dashboard, users, content, tasks, media, activity, settings
-- [ ] Lakukan regression test untuk flow mobile yang existing
-- [ ] Validasi non-admin tetap tidak dapat mengakses fitur admin
+- [x] Lakukan regression test untuk flow mobile yang existing
+- [x] Validasi non-admin tetap tidak dapat mengakses fitur admin
+
+### Verifikasi Otomatis Phase 7
+
+- `php artisan test --testdox` lulus dengan 32 test dan 204 assertions pada backend Laravel
+- `flutter test -r expanded` lulus dengan 8 test pada frontend Flutter
 
 ### Exit Criteria
-- [ ] Alur kritikal admin panel lulus test
-- [ ] Integrasi config section ke mobile tervalidasi
+- [x] Alur kritikal admin panel lulus test
+- [x] Integrasi config section ke mobile tervalidasi
 - [ ] Admin panel siap masuk release candidate / internal rollout
 
 ---
@@ -394,7 +399,7 @@ Memastikan seluruh flow admin panel stabil, aman, dan siap dipakai untuk operasi
 - [x] M3: Data model admin + activity log foundation selesai
 - [x] M4: Dashboard monitoring selesai
 - [x] M5: Management modules selesai
-- [ ] M6: Section config + mobile integration selesai
+- [x] M6: Section config + mobile integration selesai
 - [ ] M7: Verification dan go-live readiness selesai
 
 ## Catatan Eksekusi

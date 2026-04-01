@@ -72,16 +72,16 @@
         </div>
 
         <x-admin.nav-item
-            :href="'#'"
-            :active="request()->routeIs('admin.activity.*')"
+            :href="route('admin.activity-logs.index')"
+            :active="request()->routeIs('admin.activity-logs.*')"
             label="Activity Log"
             icon="activity"
         />
 
         <x-admin.nav-item
-            :href="'#'"
-            :active="request()->routeIs('admin.settings.*')"
-            label="Pengaturan"
+            :href="route('admin.homepage-sections.index')"
+            :active="request()->routeIs('admin.homepage-sections.*')"
+            label="Homepage Config"
             icon="settings"
         />
     </nav>

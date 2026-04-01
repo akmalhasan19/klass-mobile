@@ -45,6 +45,26 @@ class HomeService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchHomepageSections() async {
+    if (!FeatureFlags.useApiData) {
+      return []; // Fallback
+    }
+
+    try {
+      final response = await _apiService.dio.get('/homepage-sections');
+      if (response.statusCode == 200) {
+        final payload = response.data;
+        if (payload is Map<String, dynamic> && payload['data'] is List) {
+          final data = payload['data'] as List;
+          return data.cast<Map<String, dynamic>>();
+        }
+      }
+      return [];
+    } catch (e) {
+      return []; // Silently fallback to static defaults if config fetch fails
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchFreelancers() async {
     if (!FeatureFlags.useApiData) {
       return []; // Fallback: return empty when API is disabled

@@ -94,6 +94,19 @@ class AdminContentController extends Controller
         if ($swap) {
             $content->update(['order' => $swap->order]);
             $swap->update(['order' => $currentOrder]);
+
+            ActivityLog::create([
+                'actor_id'     => auth()->id(),
+                'action'       => 'reorder_content',
+                'subject_type' => Content::class,
+                'subject_id'   => $content->id,
+                'metadata'     => [
+                    'direction'  => $direction,
+                    'old_order'  => $currentOrder,
+                    'new_order'  => $content->order,
+                    'swap_id'    => $swap->id,
+                ],
+            ]);
         }
 
         return back()->with('success', 'Urutan konten diperbarui.');

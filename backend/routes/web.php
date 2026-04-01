@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\AdminTopicController;
 use App\Http\Controllers\Admin\AdminContentController;
 use App\Http\Controllers\Admin\AdminTaskController;
 use App\Http\Controllers\Admin\AdminMediaController;
+use App\Http\Controllers\Admin\AdminActivityLogController;
+use App\Http\Controllers\Admin\AdminHomepageSectionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -72,5 +74,12 @@ Route::prefix('admin')
         // Media Management
         Route::get('/media', [AdminMediaController::class, 'index'])->name('media.index');
         Route::delete('/media/{media}', [AdminMediaController::class, 'destroy'])->name('media.destroy');
+
+        // Activity Logs
+        Route::get('/activity-logs', [AdminActivityLogController::class, 'index'])->name('activity-logs.index');
+
+        // Homepage Sections
+        Route::get('/homepage-sections', [AdminHomepageSectionController::class, 'index'])->name('homepage-sections.index');
+        Route::patch('/homepage-sections', [AdminHomepageSectionController::class, 'update'])->name('homepage-sections.update');
 
     });

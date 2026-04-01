@@ -38,8 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final _homeService = HomeService();
   List<Map<String, dynamic>> projects = [];
   List<Map<String, dynamic>> freelancers = [];
+  List<Map<String, dynamic>> _sections = [];
   bool _isProjectsLoading = true;
   bool _isFreelancersLoading = true;
+  bool _isSectionsLoading = true;
   String? _projectsError;
   String? _freelancersError;
 
@@ -59,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _isProjectsLoading = true;
         _isFreelancersLoading = true;
+        _isSectionsLoading = true;
         _projectsError = null;
         _freelancersError = null;
       });
@@ -66,9 +69,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
     List<Map<String, dynamic>> fetchedProjects = [];
     List<Map<String, dynamic>> fetchedFreelancers = [];
+    List<Map<String, dynamic>> fetchedSections = [];
 
     String? projectsError;
     String? freelancersError;
+
+    try {
+      fetchedSections = await _homeService.fetchHomepageSections();
+      // Sort by position
+      fetchedSections.sort((a, b) => (a['position'] ?? 0).compareTo(b['position'] ?? 0));
+    } catch (e) {
+      debugPrint('Error fetching homepage sections: $e');
+    }
 
     try {
       fetchedProjects = await _homeService.fetchProjects();
@@ -87,10 +99,12 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       projects = fetchedProjects;
       freelancers = fetchedFreelancers;
+      _sections = fetchedSections;
       _projectsError = projectsError;
       _freelancersError = freelancersError;
       _isProjectsLoading = false;
       _isFreelancersLoading = false;
+      _isSectionsLoading = false;
     });
   }
 
@@ -169,7 +183,115 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  @override
+  List<Widget> _buildDynamicSections() {
+    // If sections from API are empty or still loading, show default order with skeletons if needed
+    if (_sections.isEmpty) {
+      if (_isSectionsLoading) {
+        // Just show skeletons for defaults
+        return [
+          _buildProjectsSection('...'),
+          const SizedBox(height: 32),
+          _buildFreelancersSection('...'),
+        ];
+      }
+      // Fallback if API fails
+      return [
+        _buildProjectsSection('Project Recommendations'),
+        const SizedBox(height: 32),
+        _buildFreelancersSection('Top Freelancers'),
+      ];
+    }
+
+    List<Widget> widgets = [];
+    for (var section in _sections) {
+      if (section['is_enabled'] == false) continue;
+
+      final key = section['key'];
+      final label = section['label'] ?? 'Untitled';
+
+      if (key == 'project_recommendations' || key == 'projects') {
+        widgets.add(_buildProjectsSection(label));
+        widgets.add(const SizedBox(height: 32));
+      } else if (key == 'top_freelancers' || key == 'freelancers') {
+        widgets.add(_buildFreelancersSection(label));
+        widgets.add(const SizedBox(height: 32));
+      }
+    }
+    return widgets;
+  }
+
+  Widget _buildProjectsSection(String title) {
+    return BleedingHorizontalList(
+      title: title,
+      height: 260,
+      children: _isProjectsLoading
+          ? List.generate(
+              3,
+              (index) => ProjectSuggestionSkeleton(
+                ratio: index == 1 ? 'infographic' : (index == 2 ? 'square' : 'ppt'),
+              ),
+            )
+          : _projectsError != null
+              ? [
+                  _buildErrorPlaceholder(_projectsError!, onRetry: _retryProjects),
+                ]
+              : projects.isEmpty
+                  ? [
+                      _buildEmptyPlaceholder('Belum ada project', icon: Icons.folder_open_rounded),
+                    ]
+                  : projects.map((p) {
+                      final imageCandidate = (p['media_url'] ?? p['imagePath'] ?? p['image'] ?? '').toString();
+                      final isNetworkImage = imageCandidate.startsWith('http');
+
+                      return ProjectSuggestionCard(
+                        title: p['title'] ?? 'Untitled',
+                        author: p['author'] ?? p['author_name'] ?? 'By Unknown',
+                        ratio: p['ratio'] ?? 'ppt',
+                        imageUrl: isNetworkImage ? imageCandidate : null,
+                        imagePath: (!isNetworkImage && imageCandidate.isNotEmpty) ? imageCandidate : null,
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) {
+                              return ProjectDetailsBottomSheet(
+                                project: p,
+                                onRecreate: (description) async {
+                                  if (await requireAuth(context)) {
+                                    _promptController.text = description;
+                                  }
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    }).toList(),
+    );
+  }
+
+  Widget _buildFreelancersSection(String title) {
+    return BleedingHorizontalList(
+      title: title,
+      height: 140,
+      itemSpacing: 25,
+      children: _isFreelancersLoading
+          ? List.generate(5, (_) => const FreelancerSkeleton())
+          : _freelancersError != null
+              ? [
+                  _buildErrorPlaceholder(_freelancersError!, onRetry: _retryFreelancers),
+                ]
+              : freelancers.isEmpty
+                  ? [
+                      _buildEmptyPlaceholder('Belum ada freelancer', icon: Icons.group_off_rounded),
+                    ]
+                  : freelancers.map((f) {
+                      return _buildFreelancerCard(f);
+                    }).toList(),
+    );
+  }
+
   Widget build(BuildContext context) {
     // Kita gunakan topPadding agar hijau Layer 1 meliputi area status bar,
     // plus tambahan sedikit agar garis luarnya terlihat jelas
@@ -449,77 +571,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
 
-                      // Project Suggestions
-                      BleedingHorizontalList(
-                        title: 'Project Recommendations', // Menggunakan nama sesuai permintaan user
-                        height: 260,
-                        children: _isProjectsLoading
-                            ? List.generate(3, (index) => ProjectSuggestionSkeleton(
-                                ratio: index == 1 ? 'infographic' : (index == 2 ? 'square' : 'ppt'),
-                              ))
-                            : _projectsError != null
-                                ? [
-                                    _buildErrorPlaceholder(_projectsError!, onRetry: _retryProjects),
-                                  ]
-                                : projects.isEmpty
-                                    ? [
-                                        _buildEmptyPlaceholder('Belum ada project', icon: Icons.folder_open_rounded),
-                                      ]
-                                    : projects.map((p) {
-                                        final imageCandidate =
-                                            (p['media_url'] ?? p['imagePath'] ?? p['image'] ?? '')
-                                                .toString();
-                                        final isNetworkImage = imageCandidate.startsWith('http');
+                      // Dynamic Sections
+                      ..._buildDynamicSections(),
 
-                                        return ProjectSuggestionCard(
-                                          title: p['title'] ?? 'Untitled',
-                                          author: p['author'] ?? p['author_name'] ?? 'By Unknown',
-                                          ratio: p['ratio'] ?? 'ppt',
-                                          imageUrl: isNetworkImage ? imageCandidate : null,
-                                          imagePath: (!isNetworkImage && imageCandidate.isNotEmpty)
-                                              ? imageCandidate
-                                              : null,
-                                          onTap: () {
-                                            showModalBottomSheet(
-                                              context: context,
-                                              isScrollControlled: true,
-                                              backgroundColor: Colors.transparent,
-                                              builder: (context) {
-                                                return ProjectDetailsBottomSheet(
-                                                  project: p,
-                                                  onRecreate: (description) async {
-                                                    if (await requireAuth(context)) {
-                                                      _promptController.text = description;
-                                                    }
-                                                  },
-                                                );
-                                              },
-                                            );
-                                          },
-                                        );
-                                      }).toList(),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Top Freelancers
-                      BleedingHorizontalList(
-                        title: 'Top Freelancers',
-                        height: 140,
-                        itemSpacing: 25,
-                        children: _isFreelancersLoading
-                            ? List.generate(5, (_) => const FreelancerSkeleton())
-                            : _freelancersError != null
-                                ? [
-                                    _buildErrorPlaceholder(_freelancersError!, onRetry: _retryFreelancers),
-                                  ]
-                                : freelancers.isEmpty
-                                    ? [
-                                        _buildEmptyPlaceholder('Belum ada freelancer', icon: Icons.group_off_rounded),
-                                      ]
-                                    : freelancers.map((f) {
-                                        return _buildFreelancerCard(f);
-                                      }).toList(),
-                      ),
                       const SizedBox(height: 120), // Space for bottom nav
                     ],
                   ),

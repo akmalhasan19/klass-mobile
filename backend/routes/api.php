@@ -57,6 +57,13 @@ Route::get('/student-progress', [StudentProgressController::class, 'index']);
 Route::get('/student-progress/{studentProgress}', [StudentProgressController::class, 'show']);
 
 // =========================================================================
+// App Config API (Public)
+// =========================================================================
+use App\Http\Controllers\Api\HomepageSectionController;
+
+Route::get('/homepage-sections', [HomepageSectionController::class, 'index']);
+
+// =========================================================================
 // Gallery (Public — read-only list of media-rich content)
 // =========================================================================
 Route::get('/gallery', [GalleryController::class, 'index']);

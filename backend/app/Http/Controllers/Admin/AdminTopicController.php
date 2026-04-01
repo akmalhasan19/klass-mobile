@@ -83,6 +83,19 @@ class AdminTopicController extends Controller
         if ($swap) {
             $topic->update(['order' => $swap->order]);
             $swap->update(['order' => $currentOrder]);
+
+            ActivityLog::create([
+                'actor_id'     => auth()->id(),
+                'action'       => 'reorder_topic',
+                'subject_type' => Topic::class,
+                'subject_id'   => $topic->id,
+                'metadata'     => [
+                    'direction'  => $direction,
+                    'old_order'  => $currentOrder,
+                    'new_order'  => $topic->order,
+                    'swap_id'    => $swap->id,
+                ],
+            ]);
         }
 
         return back()->with('success', 'Urutan topic diperbarui.');
