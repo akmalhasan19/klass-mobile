@@ -36,15 +36,16 @@ class AdminAccessFoundationTest extends TestCase
 
     public function test_admin_web_area_is_restricted_to_admin_users(): void
     {
-        $this->get('/admin')->assertForbidden();
+        // Tanpa autentikasi → redirect ke halaman login admin
+        $this->get('/admin')->assertRedirect(route('admin.login'));
 
+        // User biasa (login tapi bukan admin) → 403
         $user = User::factory()->create();
         $this->actingAs($user)->get('/admin')->assertForbidden();
 
+        // Admin → melihat dashboard
         $admin = User::factory()->admin()->create();
-        $this->actingAs($admin)->get('/admin')
-            ->assertOk()
-            ->assertSeeText('Admin access foundation ready.');
+        $this->actingAs($admin)->get('/admin')->assertOk();
     }
 
     public function test_write_routes_are_not_public_and_admin_boundaries_are_enforced(): void

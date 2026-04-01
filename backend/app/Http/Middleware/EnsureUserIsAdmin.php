@@ -17,6 +17,7 @@ class EnsureUserIsAdmin
             return $next($request);
         }
 
+        // API / JSON requests tetap mendapat respons JSON
         if ($request->is('api/*') || $request->expectsJson()) {
             return new JsonResponse([
                 'success' => false,
@@ -24,6 +25,13 @@ class EnsureUserIsAdmin
             ], $user ? 403 : 401);
         }
 
+        // Web request: redirect ke halaman login admin
+        if (! $user) {
+            return redirect()->route('admin.login')
+                ->with('error', 'Silakan login terlebih dahulu untuk mengakses panel admin.');
+        }
+
+        // Sudah login tapi bukan admin
         abort(403, 'Akses admin diperlukan.');
     }
 }

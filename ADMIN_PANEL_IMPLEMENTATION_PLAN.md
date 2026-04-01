@@ -41,7 +41,7 @@ Tanggal penyusunan: 1 April 2026.
 
 - [x] Phase 0 selesai
 - [x] Phase 1 selesai
-- [ ] Phase 2 selesai
+- [x] Phase 2 selesai
 - [ ] Phase 3 selesai
 - [ ] Phase 4 selesai
 - [ ] Phase 5 selesai
@@ -216,17 +216,17 @@ Membangun entry point admin panel berbasis web beserta layout utama yang akan di
 
 ### Checklist
 - [x] Tambahkan route group admin pada web routes
-- [ ] Implementasi halaman login admin berbasis session
-- [ ] Implementasi logout admin
-- [ ] Buat layout dasar admin panel
-- [ ] Buat navigasi utama untuk Dashboard, Users, Content, Tasks, Media, Activity, Settings
-- [ ] Tambahkan shared component untuk table, filter, badge status, empty state, error state, dan flash message
-- [ ] Rapikan styling admin menggunakan pipeline Vite + Tailwind yang sudah ada
+- [x] Implementasi halaman login admin berbasis session
+- [x] Implementasi logout admin
+- [x] Buat layout dasar admin panel
+- [x] Buat navigasi utama untuk Dashboard, Users, Content, Tasks, Media, Activity, Settings
+- [x] Tambahkan shared component untuk table, filter, badge status, empty state, error state, dan flash message
+- [x] Rapikan styling admin menggunakan pipeline Vite + Tailwind yang sudah ada
 
 ### Exit Criteria
-- [ ] Admin dapat login dan logout melalui web
-- [ ] Admin shell siap dipakai modul lain
-- [ ] Navigasi utama stabil dan usable
+- [x] Admin dapat login dan logout melalui web
+- [x] Admin shell siap dipakai modul lain
+- [x] Navigasi utama stabil dan usable
 
 ---
 
@@ -390,7 +390,7 @@ Memastikan seluruh flow admin panel stabil, aman, dan siap dipakai untuk operasi
 
 - [x] M0: Scope dan guardrail final
 - [x] M1: Role + admin access foundation selesai
-- [ ] M2: Admin auth + shell selesai
+- [x] M2: Admin auth + shell selesai
 - [ ] M3: Data model admin + activity log foundation selesai
 - [ ] M4: Dashboard monitoring selesai
 - [ ] M5: Management modules selesai
