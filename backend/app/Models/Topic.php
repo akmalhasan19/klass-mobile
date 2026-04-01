@@ -15,6 +15,8 @@ class Topic extends Model
         'title',
         'teacher_id',
         'thumbnail_url',
+        'is_published',
+        'order',
     ];
 
     /**

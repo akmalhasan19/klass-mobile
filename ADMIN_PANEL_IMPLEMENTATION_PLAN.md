@@ -42,7 +42,7 @@ Tanggal penyusunan: 1 April 2026.
 - [x] Phase 0 selesai
 - [x] Phase 1 selesai
 - [x] Phase 2 selesai
-- [ ] Phase 3 selesai
+- [x] Phase 3 selesai
 - [ ] Phase 4 selesai
 - [ ] Phase 5 selesai
 - [ ] Phase 6 selesai
@@ -236,19 +236,19 @@ Membangun entry point admin panel berbasis web beserta layout utama yang akan di
 Menambahkan tabel, field, dan struktur data yang dibutuhkan agar monitoring dan management dapat berjalan secara queryable dan maintainable.
 
 ### Checklist
-- [ ] Tambahkan tabel activity logs untuk menyimpan event yang bisa ditampilkan di admin panel
-- [ ] Definisikan struktur activity log: actor, action, subject_type, subject_id, metadata, timestamp
-- [ ] Tambahkan field ordering / position pada entitas yang perlu di-reorder
-- [ ] Tambahkan field visibility / publish state pada entitas content yang perlu dikontrol
-- [ ] Tambahkan konfigurasi settings untuk homepage/app-feed sections
-- [ ] Definisikan schema settings section: key, label, position, enabled, data_source
-- [ ] Tambahkan persistence/index untuk media agar file dapat dikelola dari admin panel
-- [ ] Tentukan strategi backfill bila ada file lama yang belum terindeks
+- [x] Tambahkan tabel activity logs untuk menyimpan event yang bisa ditampilkan di admin panel
+- [x] Definisikan struktur activity log: actor, action, subject_type, subject_id, metadata, timestamp
+- [x] Tambahkan field ordering / position pada entitas yang perlu di-reorder
+- [x] Tambahkan field visibility / publish state pada entitas content yang perlu dikontrol
+- [x] Tambahkan konfigurasi settings untuk homepage/app-feed sections
+- [x] Definisikan schema settings section: key, label, position, enabled, data_source
+- [x] Tambahkan persistence/index untuk media agar file dapat dikelola dari admin panel
+- [x] Tentukan strategi backfill bila ada file lama yang belum terindeks
 
 ### Exit Criteria
-- [ ] Data model admin V1 lengkap
-- [ ] Activity log bisa di-query dari database
-- [ ] Section config bisa disimpan dan diambil dari backend
+- [x] Data model admin V1 lengkap
+- [x] Activity log bisa di-query dari database
+- [x] Section config bisa disimpan dan diambil dari backend
 
 ---
 
@@ -391,7 +391,7 @@ Memastikan seluruh flow admin panel stabil, aman, dan siap dipakai untuk operasi
 - [x] M0: Scope dan guardrail final
 - [x] M1: Role + admin access foundation selesai
 - [x] M2: Admin auth + shell selesai
-- [ ] M3: Data model admin + activity log foundation selesai
+- [x] M3: Data model admin + activity log foundation selesai
 - [ ] M4: Dashboard monitoring selesai
 - [ ] M5: Management modules selesai
 - [ ] M6: Section config + mobile integration selesai

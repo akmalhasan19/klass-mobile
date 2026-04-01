@@ -18,6 +18,8 @@ class Content extends Model
         'title',
         'data',
         'media_url',
+        'is_published',
+        'order',
     ];
 
     protected function casts(): array
