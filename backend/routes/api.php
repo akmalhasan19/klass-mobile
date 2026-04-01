@@ -10,6 +10,14 @@ use App\Http\Controllers\Api\StudentProgressController;
 use App\Http\Controllers\Api\TopicController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Klass Mobile API is up and running!',
+        'version' => '1.0.0'
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Klass API Routes
@@ -37,12 +45,16 @@ Route::prefix('auth')->group(function () {
 });
 
 // =========================================================================
-// Public API Resources (accessible without auth for now)
+// Public Read-Only API Resources
 // =========================================================================
-Route::apiResource('topics', TopicController::class);
-Route::apiResource('contents', ContentController::class);
-Route::apiResource('marketplace-tasks', MarketplaceTaskController::class);
-Route::apiResource('student-progress', StudentProgressController::class);
+Route::get('/topics', [TopicController::class, 'index']);
+Route::get('/topics/{topic}', [TopicController::class, 'show']);
+Route::get('/contents', [ContentController::class, 'index']);
+Route::get('/contents/{content}', [ContentController::class, 'show']);
+Route::get('/marketplace-tasks', [MarketplaceTaskController::class, 'index']);
+Route::get('/marketplace-tasks/{marketplaceTask}', [MarketplaceTaskController::class, 'show']);
+Route::get('/student-progress', [StudentProgressController::class, 'index']);
+Route::get('/student-progress/{studentProgress}', [StudentProgressController::class, 'show']);
 
 // =========================================================================
 // Gallery (Public — read-only list of media-rich content)
@@ -55,13 +67,33 @@ Route::get('/gallery', [GalleryController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     // Avatar Upload
     Route::post('/user/avatar', [AvatarController::class, 'store']);
+
+    // Authenticated user project creation flow used by the mobile app.
+    Route::post('/topics', [TopicController::class, 'store']);
 });
 
 // =========================================================================
-// File Upload Routes
+// Admin-Protected Write Routes
 // =========================================================================
-Route::post('/upload/{category}', [FileUploadController::class, 'upload'])
-    ->where('category', 'avatars|gallery|materials|attachments');
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::match(['put', 'patch'], '/topics/{topic}', [TopicController::class, 'update']);
+    Route::delete('/topics/{topic}', [TopicController::class, 'destroy']);
 
-Route::delete('/upload/{category}', [FileUploadController::class, 'destroy'])
-    ->where('category', 'avatars|gallery|materials|attachments');
+    Route::post('/contents', [ContentController::class, 'store']);
+    Route::match(['put', 'patch'], '/contents/{content}', [ContentController::class, 'update']);
+    Route::delete('/contents/{content}', [ContentController::class, 'destroy']);
+
+    Route::post('/marketplace-tasks', [MarketplaceTaskController::class, 'store']);
+    Route::match(['put', 'patch'], '/marketplace-tasks/{marketplaceTask}', [MarketplaceTaskController::class, 'update']);
+    Route::delete('/marketplace-tasks/{marketplaceTask}', [MarketplaceTaskController::class, 'destroy']);
+
+    Route::post('/student-progress', [StudentProgressController::class, 'store']);
+    Route::match(['put', 'patch'], '/student-progress/{studentProgress}', [StudentProgressController::class, 'update']);
+    Route::delete('/student-progress/{studentProgress}', [StudentProgressController::class, 'destroy']);
+
+    Route::post('/upload/{category}', [FileUploadController::class, 'upload'])
+        ->where('category', 'avatars|gallery|materials|attachments');
+
+    Route::delete('/upload/{category}', [FileUploadController::class, 'destroy'])
+        ->where('category', 'avatars|gallery|materials|attachments');
+});

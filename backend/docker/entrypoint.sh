@@ -2,7 +2,7 @@
 set -eu
 
 APP_DIR=/var/www/html
-PORT_VALUE="${PORT:-80}"
+PORT_VALUE="${PORT:-7860}"
 
 cd "$APP_DIR"
 

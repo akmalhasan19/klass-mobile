@@ -94,7 +94,7 @@ ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
     LOG_STACK=single \
-    PORT=80
+    PORT=7860
 
 COPY . .
 COPY --from=build /var/www/html/vendor ./vendor
@@ -110,10 +110,7 @@ RUN set -eux; \
     rm -f bootstrap/cache/config.php; \
     chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /run/nginx /var/lib/nginx
 
-# Render Free Plan uses ephemeral local storage.
-# Do not rely on local uploads in storage/app or public/ for persistent user files.
-# Use S3, Cloudinary, or another external object store for permanent file storage.
-
-EXPOSE 80 10000
+# Hugging Face Spaces uses port 7860 by default.
+EXPOSE 7860
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

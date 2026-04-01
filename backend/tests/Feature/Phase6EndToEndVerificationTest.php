@@ -89,6 +89,9 @@ class Phase6EndToEndVerificationTest extends TestCase
 
     public function test_bookmark_create_read_update_delete_flow_succeeds(): void
     {
+        $admin = User::factory()->admin()->create();
+        Sanctum::actingAs($admin);
+
         $topic = Topic::create([
             'title' => 'Bookmarks Topic',
             'teacher_id' => 'teacher-02',
