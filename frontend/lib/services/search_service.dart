@@ -11,6 +11,7 @@ class SearchService {
 
     try {
        final queryParams = <String, dynamic>{};
+       queryParams['include_contents'] = false;
        if (q != null && q.isNotEmpty) queryParams['search'] = q;
        if (category != null && category.isNotEmpty && category != 'All') queryParams['category'] = category;
 
@@ -18,7 +19,7 @@ class SearchService {
        if (response.statusCode == 200) {
          final data = response.data['data'] as List?;
          if (data != null) {
-           return data.cast<Map<String, dynamic>>();
+           return ApiService.normalizeTopicCollection(data);
          }
        }
        return [];

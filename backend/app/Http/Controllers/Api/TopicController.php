@@ -25,7 +25,42 @@ class TopicController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Topic::with('contents');
+        $includeContents = $request->boolean('include_contents');
+
+        $query = Topic::query()
+            ->select([
+                'id',
+                'title',
+                'teacher_id',
+                'thumbnail_url',
+                'is_published',
+                'order',
+                'created_at',
+                'updated_at',
+            ]);
+
+        if ($includeContents) {
+            $query->with([
+                'contents' => fn ($contentsQuery) => $contentsQuery
+                    ->select([
+                        'id',
+                        'topic_id',
+                        'type',
+                        'title',
+                        'data',
+                        'media_url',
+                        'is_published',
+                        'order',
+                        'created_at',
+                        'updated_at',
+                    ])
+                    ->orderBy('order')
+                    ->orderBy('created_at'),
+            ]);
+        } else {
+            $query->withCount('contents');
+        }
+
         $likeOperator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         // Search by title
@@ -39,7 +74,10 @@ class TopicController extends Controller
         }
 
         $perPage = min((int) $request->query('per_page', 15), 50);
-        $paginator = $query->latest()->paginate($perPage);
+        $paginator = $query
+            ->orderBy('order')
+            ->latest()
+            ->paginate($perPage);
 
         return $this->paginated($paginator, TopicResource::class);
     }

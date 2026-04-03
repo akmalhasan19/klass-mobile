@@ -193,6 +193,16 @@ class Phase6EndToEndVerificationTest extends TestCase
         $topicSearch
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
-            ->assertJsonPath('data.0.title', 'Visual Design');
+            ->assertJsonPath('data.0.title', 'Visual Design')
+            ->assertJsonPath('data.0.contents_count', 3)
+            ->assertJsonMissingPath('data.0.contents.0.title');
+
+        $topicSearchWithContents = $this->getJson('/api/topics?search=visual&teacher_id=teacher-03&include_contents=1');
+
+        $topicSearchWithContents
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.contents.0.title', 'Poster Composition')
+            ->assertJsonMissingPath('data.0.contents_count');
     }
 }

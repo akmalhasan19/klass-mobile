@@ -15,9 +15,9 @@ class ApiConfig {
   );
 
   /// Base URL for the backend API.
-  /// - Android emulator: 'http://10.0.2.2:8000/api'
-  /// - iOS simulator:    'http://127.0.0.1:8000/api'
-  /// - Physical device:  use 'http://YOUR_IP:8000/api'
+  /// - Dev Server: 'http://192.168.200.158:8000/api'
+  /// - Android emulator/iOS simulator defaults replaced with local dev IP.
+  /// - Physical device:  use 'http://YOUR_IP:8000/api' atau IP di atas.
   static String get baseUrl {
     if (_overrideBaseUrl.isNotEmpty) {
       return _overrideBaseUrl;
@@ -25,24 +25,27 @@ class ApiConfig {
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'http://10.0.2.2:8000/api';
       case TargetPlatform.iOS:
-        return 'http://127.0.0.1:8000/api';
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+      case TargetPlatform.fuchsia:
+        return 'http://192.168.200.158:8000/api';
       default:
-        return 'http://127.0.0.1:8000/api';
+        return 'http://192.168.200.158:8000/api';
     }
   }
 
   // ─── Timeout Configuration (milliseconds) ─────────────────
 
   /// Time to wait for TCP connection to be established.
-  static const int connectTimeout = 15000;
+  static const int connectTimeout = 30000;
 
   /// Time to wait for the server to send data after connection is open.
-  static const int receiveTimeout = 15000;
+  static const int receiveTimeout = 30000;
 
   /// Time to wait for the client to send data to the server.
-  static const int sendTimeout = 15000;
+  static const int sendTimeout = 30000;
 
   // ─── Retry Policy ─────────────────────────────────────────
 

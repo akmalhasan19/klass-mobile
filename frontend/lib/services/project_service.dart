@@ -23,12 +23,18 @@ class ProjectService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _apiService.dio.get('/topics');
+      final response = await _apiService.dio.get(
+        '/topics',
+        queryParameters: const {
+          'include_contents': false,
+          'per_page': 50,
+        },
+      );
       if (response.statusCode == 200) {
         final payload = response.data;
         if (payload is Map<String, dynamic> && payload['data'] is List) {
           final data = payload['data'] as List;
-          _addedProjects = data.cast<Map<String, dynamic>>();
+          _addedProjects = ApiService.normalizeTopicCollection(data);
         } else {
           _error =
               'Gagal memuat materials\n'

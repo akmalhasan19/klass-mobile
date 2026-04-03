@@ -197,6 +197,29 @@ class ApiService {
     ].join('\n');
   }
 
+  static List<Map<String, dynamic>> normalizeTopicCollection(List data) {
+    return data
+        .whereType<Map>()
+        .map((item) => normalizeTopicItem(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  static Map<String, dynamic> normalizeTopicItem(Map<String, dynamic> topic) {
+    final normalized = Map<String, dynamic>.from(topic);
+    final thumbnailUrl = normalized['thumbnail_url'];
+    final mediaUrl = normalized['media_url'];
+
+    if ((mediaUrl == null || mediaUrl.toString().isEmpty) &&
+        thumbnailUrl is String &&
+        thumbnailUrl.isNotEmpty) {
+      normalized['media_url'] = thumbnailUrl;
+      normalized['image'] = thumbnailUrl;
+      normalized['imagePath'] = thumbnailUrl;
+    }
+
+    return normalized;
+  }
+
   static String _extractTechnicalMessage(String? rawMessage) {
     if (rawMessage == null || rawMessage.trim().isEmpty) {
       return 'Unknown network error';

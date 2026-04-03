@@ -735,17 +735,19 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Icon(Icons.error_outline_rounded, size: 40, color: AppColors.red),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 120,
-            child: SingleChildScrollView(
-              child: SelectableText(
-                message,
-                textAlign: TextAlign.left,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 12,
-                  color: AppColors.textMuted,
-                  height: 1.35,
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 100),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  message,
+                  textAlign: TextAlign.left,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                    height: 1.35,
+                  ),
                 ),
               ),
             ),

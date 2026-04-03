@@ -11,12 +11,18 @@ class HomeService {
     }
 
     try {
-      final response = await _apiService.dio.get('/topics');
+      final response = await _apiService.dio.get(
+        '/topics',
+        queryParameters: const {
+          'include_contents': false,
+          'per_page': 10,
+        },
+      );
       if (response.statusCode == 200) {
         final payload = response.data;
         if (payload is Map<String, dynamic> && payload['data'] is List) {
           final data = payload['data'] as List;
-          return data.cast<Map<String, dynamic>>();
+          return ApiService.normalizeTopicCollection(data);
         }
 
         throw Exception(
