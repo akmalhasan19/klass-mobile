@@ -5,64 +5,76 @@
 @section('page-description', 'Ubah detail dan relasi materi pelajaran.')
 
 @section('content')
-<div class="space-y-6">
+<div class="h-full p-8 overflow-y-auto">
+    <div class="max-w-[1200px] mx-auto space-y-8 pb-10">
 
-    <div class="flex items-center justify-between">
-        <a href="{{ route('admin.contents.index') }}" class="inline-flex items-center text-sm font-medium text-slate-400 hover:text-white transition">
-            <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            Kembali ke Daftar Konten
-        </a>
-    </div>
-
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden max-w-2xl">
-        <div class="px-6 py-4 border-b border-slate-800">
-            <h3 class="text-base font-semibold text-slate-200">Informasi Konten</h3>
+        <div class="flex items-center justify-between">
+            <a href="{{ route('admin.contents.index') }}" class="inline-flex items-center gap-2 font-bold text-black border-b-2 border-black hover:bg-gray-100 transition-colors px-1 text-[13px] uppercase tracking-wider">
+                <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+                Kembali ke Daftar Konten
+            </a>
         </div>
-        
-        <form action="{{ route('admin.contents.update', $content->id) }}" method="POST" class="p-6 space-y-6">
-            @csrf
-            @method('PATCH')
+
+        <div class="bg-surface border-2 border-black shadow-drag max-w-2xl">
+            <div class="px-6 py-4 border-b-2 border-black bg-gray-50">
+                <h3 class="text-[13px] font-bold uppercase tracking-wider text-text-main flex items-center gap-2">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">edit_document</span>
+                    Informasi Konten
+                </h3>
+            </div>
             
-            <div>
-                <label for="title" class="block text-sm font-medium text-slate-400 mb-2">Judul Konten</label>
-                <input type="text" id="title" name="title" value="{{ old('title', $content->title) }}" class="bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
-                @error('title')
-                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                @enderror
-            </div>
+            <form action="{{ route('admin.contents.update', $content->id) }}" method="POST" class="p-8 space-y-6">
+                @csrf
+                @method('PATCH')
+                
+                <div>
+                    <label for="title" class="block text-[11px] mono-text font-bold text-text-muted uppercase tracking-wider mb-2">Judul Konten</label>
+                    <input type="text" id="title" name="title" value="{{ old('title', $content->title) }}" class="bg-white border-2 border-black text-text-main text-[14px] font-medium focus:ring-primary focus:border-primary block w-full p-3" required>
+                    @error('title')
+                        <p class="mt-2 text-xs font-bold text-red-600 uppercase tracking-tight">{{ $message }}</p>
+                    @enderror
+                </div>
 
-            <div>
-                <label for="topic_id" class="block text-sm font-medium text-slate-400 mb-2">Pilih Induk Topik</label>
-                <select id="topic_id" name="topic_id" class="bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
-                    @foreach($topics as $topic)
-                        <option value="{{ $topic->id }}" {{ old('topic_id', $content->topic_id) == $topic->id ? 'selected' : '' }}>
-                            {{ $topic->title }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('topic_id')
-                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                @enderror
-            </div>
+                <div class="relative">
+                    <label for="topic_id" class="block text-[11px] mono-text font-bold text-text-muted uppercase tracking-wider mb-2">Pilih Induk Topik</label>
+                    <div class="relative">
+                        <select id="topic_id" name="topic_id" class="bg-white border-2 border-black text-text-main text-[14px] font-bold focus:ring-primary focus:border-primary block w-full p-3 pr-10 appearance-none" required>
+                            @foreach($topics as $topic)
+                                <option value="{{ $topic->id }}" {{ old('topic_id', $content->topic_id) == $topic->id ? 'selected' : '' }}>
+                                    {{ $topic->title }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <span class="material-symbols-outlined">expand_more</span>
+                        </div>
+                    </div>
+                    @error('topic_id')
+                        <p class="mt-2 text-xs font-bold text-red-600 uppercase tracking-tight">{{ $message }}</p>
+                    @enderror
+                </div>
 
-            <div>
-                <label for="is_published" class="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" id="is_published" name="is_published" value="1" class="w-5 h-5 text-indigo-600 bg-slate-950 border-slate-700 rounded focus:ring-indigo-500 focus:ring-opacity-25" {{ old('is_published', $content->is_published) ? 'checked' : '' }}>
-                    <span class="text-sm font-medium text-slate-300">Publish (Konten dapat dibaca oleh student)</span>
-                </label>
-            </div>
+                <div>
+                    <label for="is_published" class="flex items-center gap-3 cursor-pointer group">
+                        <div class="relative">
+                            <input type="checkbox" id="is_published" name="is_published" value="1" class="peer appearance-none w-6 h-6 border-2 border-black bg-white checked:bg-primary transition shadow-[2px_2px_0px_rgba(0,0,0,1)]" {{ old('is_published', $content->is_published) ? 'checked' : '' }}>
+                            <span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-black opacity-0 peer-checked:opacity-100 pointer-events-none" style="font-size: 18px;">check</span>
+                        </div>
+                        <span class="text-[13px] font-bold text-text-main uppercase tracking-tight group-hover:text-black transition-colors">Publish (Konten dapat dibaca oleh student)</span>
+                    </label>
+                </div>
 
-            <div class="pt-4 flex justify-end gap-3 border-t border-slate-800">
-                <a href="{{ route('admin.contents.index') }}" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-lg text-sm px-5 py-2.5 transition">
-                    Batal
-                </a>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition">
-                    Simpan Perubahan
-                </button>
-            </div>
-        </form>
+                <div class="pt-6 flex justify-end gap-4 border-t-2 border-black/10">
+                    <a href="{{ route('admin.contents.index') }}" class="inline-flex items-center justify-center bg-white border-2 border-black px-6 py-3 font-bold text-[13px] uppercase tracking-wider hover:bg-gray-50 transition">
+                        BATAL
+                    </a>
+                    <button type="submit" class="inline-flex items-center justify-center bg-black hover:bg-gray-800 text-white font-bold px-8 py-3 transition shadow-drag active:translate-x-[2px] active:translate-y-[2px] active:shadow-none uppercase tracking-wider text-[13px]">
+                        SIMPAN PERUBAHAN
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endsection
+
