@@ -15,7 +15,7 @@ class ApiConfig {
   );
 
   /// Base URL for the backend API.
-  /// - Dev Server: 'http://192.168.200.158:8000/api'
+  /// - Dev Server: 'http://192.168.18.6:8000/api'
   /// - Android emulator/iOS simulator defaults replaced with local dev IP.
   /// - Physical device:  use 'http://YOUR_IP:8000/api' atau IP di atas.
   static String get baseUrl {
@@ -30,7 +30,7 @@ class ApiConfig {
       case TargetPlatform.windows:
       case TargetPlatform.linux:
       case TargetPlatform.fuchsia:
-        return 'http://192.168.200.158:8000/api';
+        return 'http://192.168.18.6:8000/api';
     }
   }
 
