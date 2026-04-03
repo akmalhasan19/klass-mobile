@@ -27,4 +27,26 @@ class MediaFile extends Model
     {
         return $this->belongsTo(User::class, 'uploader_id');
     }
+    /**
+     * Get the public URL of the media file.
+     */
+    public function getUrlAttribute(): string
+    {
+        $supabaseProjectUrl = env('SUPABASE_URL');
+        $bucket = config('filesystems.disks.supabase.bucket', 'klass-storage');
+
+        if ($supabaseProjectUrl) {
+            $supabaseProjectUrl = rtrim($supabaseProjectUrl, '/');
+            return "{$supabaseProjectUrl}/storage/v1/object/public/{$bucket}/{$this->file_path}";
+        }
+
+        // Fallback for non-Supabase storage (e.g. local public disk)
+        if ($this->disk === 'public') {
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->file_path);
+        }
+
+        // Final fallback for dev or other disks
+        $endpoint = rtrim(config("filesystems.disks.{$this->disk}.endpoint", ''), '/');
+        return "{$endpoint}/{$bucket}/{$this->file_path}";
+    }
 }

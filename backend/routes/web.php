@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminTaskController;
 use App\Http\Controllers\Admin\AdminMediaController;
 use App\Http\Controllers\Admin\AdminActivityLogController;
 use App\Http\Controllers\Admin\AdminHomepageSectionController;
+use App\Http\Controllers\Admin\AdminSystemSettingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -75,6 +76,8 @@ Route::prefix('admin')
 
         // Media Management
         Route::get('/media', [AdminMediaController::class, 'index'])->name('media.index');
+        Route::post('/media', [AdminMediaController::class, 'store'])->name('media.store');
+        Route::delete('/media/bulk', [AdminMediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
         Route::delete('/media/{media}', [AdminMediaController::class, 'destroy'])->name('media.destroy');
 
         // Activity Logs
@@ -83,5 +86,9 @@ Route::prefix('admin')
         // Homepage Sections
         Route::get('/homepage-sections', [AdminHomepageSectionController::class, 'index'])->name('homepage-sections.index');
         Route::patch('/homepage-sections', [AdminHomepageSectionController::class, 'update'])->name('homepage-sections.update');
+
+        // System Settings
+        Route::get('/settings', [AdminSystemSettingController::class, 'index'])->name('settings.index');
+        Route::patch('/settings', [AdminSystemSettingController::class, 'update'])->name('settings.update');
 
     });

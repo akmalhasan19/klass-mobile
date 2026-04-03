@@ -19,6 +19,7 @@ class AdminActivityLogController extends Controller
         $entityType = $request->query('subject_type');
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
+        $search = $request->query('search');
 
         $logs = ActivityLog::query()
             ->with(['actor'])
@@ -27,8 +28,17 @@ class AdminActivityLogController extends Controller
             ->when($entityType, fn($q) => $q->where('subject_type', $entityType))
             ->when($dateFrom, fn($q) => $q->whereDate('created_at', '>=', $dateFrom))
             ->when($dateTo, fn($q) => $q->whereDate('created_at', '<=', $dateTo))
+            ->when($search, function($q) use ($search) {
+                return $q->where(function($qq) use ($search) {
+                    $qq->whereHas('actor', function($sq) use ($search) {
+                        $sq->where('name', 'like', "%{$search}%")
+                           ->orWhere('email', 'like', "%{$search}%");
+                    })->orWhere('subject_id', 'like', "%{$search}%")
+                      ->orWhere('action', 'like', "%{$search}%");
+                });
+            })
             ->latest()
-            ->paginate(15)
+            ->paginate(20)
             ->withQueryString();
 
         // Data for filters
@@ -39,7 +49,7 @@ class AdminActivityLogController extends Controller
         })->filter();
 
         return view('admin.activity-logs.index', compact(
-            'logs', 'action', 'actorId', 'entityType', 'dateFrom', 'dateTo', 'actions', 'entityTypes', 'actors'
+            'logs', 'action', 'actorId', 'entityType', 'dateFrom', 'dateTo', 'actions', 'entityTypes', 'actors', 'search'
         ));
     }
 }

@@ -31,8 +31,6 @@ class ApiConfig {
       case TargetPlatform.linux:
       case TargetPlatform.fuchsia:
         return 'http://192.168.200.158:8000/api';
-      default:
-        return 'http://192.168.200.158:8000/api';
     }
   }
 

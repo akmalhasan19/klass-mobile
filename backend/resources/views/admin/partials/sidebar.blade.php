@@ -43,22 +43,22 @@
                             />
 
                             <x-admin.nav-item
-                                href="#"
-                                :active="false"
+                                href="{{ route('admin.media.index') }}"
+                                :active="request()->routeIs('admin.media.*')"
                                 label="Media Library"
                                 icon="photo_library"
                             />
 
                             <x-admin.nav-item
-                                href="#"
-                                :active="false"
+                                :href="route('admin.activity-logs.index')"
+                                :active="request()->routeIs('admin.activity-logs.*')"
                                 label="Activity Logs"
                                 icon="monitoring"
                             />
 
                             <x-admin.nav-item
-                                href="#"
-                                :active="false"
+                                :href="route('admin.settings.index')"
+                                :active="request()->routeIs('admin.settings.*')"
                                 label="System Settings"
                                 icon="settings"
                                 class="mt-4"
