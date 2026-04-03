@@ -93,11 +93,15 @@ class _SearchScreenState extends State<SearchScreen> {
             Positioned.fill(
               child: Hero(
                 tag: 'content_fade',
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    // Sticky Header "Discover"
+                child: RefreshIndicator(
+                  onRefresh: _fetchTeachers,
+                  color: AppColors.primary,
+                  backgroundColor: Colors.white,
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                    slivers: [
+                      // Sticky Header "Discover"
                     AnimatedBuilder(
                       animation: _scrollController,
                       builder: (context, child) {
@@ -307,6 +311,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       child: SizedBox(height: 120),
                     ),
                   ],
+                ),
                 ),
               ),
             ),

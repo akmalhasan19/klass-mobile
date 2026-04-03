@@ -36,8 +36,8 @@ class AdminUserManagementTest extends TestCase
             ->get(route('admin.users.show', $targetUser))
             ->assertOk()
             ->assertSeeText('Target Student')
-            ->assertSeeText('Current Role')
-            ->assertSeeText('USER');
+            ->assertSeeText('Kontrol Hak Akses')
+            ->assertSeeText(User::ROLE_USER);
     }
 
     public function test_admin_can_update_user_role_and_log_the_change(): void

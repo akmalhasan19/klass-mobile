@@ -426,10 +426,14 @@ class _HomeScreenState extends State<HomeScreen> {
               flightShuttleBuilder: buildStaggeredFlightShuttle,
               child: Stack(
                 children: [
-                  CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
+                  RefreshIndicator(
+                    onRefresh: _fetchData,
+                    color: AppColors.primary,
+                    backgroundColor: Colors.white,
+                    child: CustomScrollView(
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                      slivers: [
                 // Sediakan sedikit spasi atas agar konten tidak
                 // menabrak batas atas (cutOffY) langsung
                 SliverPadding(padding: EdgeInsets.only(top: topCutOffY)),
@@ -581,6 +585,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+                  ),
             
                   // -----------------------------------------------------------------
                   // Layer 3 (Front): Settings Gear Icon (ikut scroll dengan offset)

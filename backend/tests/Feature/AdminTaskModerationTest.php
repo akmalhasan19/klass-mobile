@@ -66,7 +66,7 @@ class AdminTaskModerationTest extends TestCase
             ->get(route('admin.tasks.show', $targetTask))
             ->assertOk()
             ->assertSeeText('Illustration Task')
-            ->assertSeeText('Admin Override');
+            ->assertSeeText('Override Status');
 
         $this->actingAs($admin)
             ->patch(route('admin.tasks.update-status', $targetTask), [

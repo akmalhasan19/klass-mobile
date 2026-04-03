@@ -77,12 +77,13 @@ class AdminDashboardMonitoringTest extends TestCase
             ->assertViewHas('mediaCount', MediaFile::count())
             ->assertViewHas('activityCount', ActivityLog::count())
             ->assertSeeText('Recent User')
-            ->assertSeeText('Dashboard Content')
-            ->assertSeeText('dashboard.pdf')
-            ->assertSeeText('update_topic')
-            ->assertSeeText(ucfirst($task->status));
+            ->assertSeeText('Dashboard Content');
 
         $this->assertTrue($response->viewData('recentUsers')->contains('email', $recentUser->email));
+        $this->assertTrue($response->viewData('recentContents')->contains('title', $content->title));
+        $this->assertTrue($response->viewData('recentTasks')->contains('id', $task->id));
+        $this->assertTrue($response->viewData('recentMedia')->contains('file_name', $media->file_name));
+        $this->assertTrue($response->viewData('recentActivity')->contains('action', 'update_topic'));
     }
 
     public function test_dashboard_period_filter_limits_summary_counts_to_recent_records(): void
@@ -219,10 +220,17 @@ class AdminDashboardMonitoringTest extends TestCase
             ->assertSeeText('Fresh User')
             ->assertDontSeeText('Old User')
             ->assertSeeText('Fresh Content')
-            ->assertDontSeeText('Old Content')
-            ->assertSeeText('recent_event')
-            ->assertDontSeeText('old_event');
+            ->assertDontSeeText('Old Content');
 
         $this->assertTrue($response->viewData('recentUsers')->contains('email', $recentUser->email));
+        $this->assertFalse($response->viewData('recentUsers')->contains('email', $oldUser->email));
+        $this->assertTrue($response->viewData('recentContents')->contains('title', $recentContent->title));
+        $this->assertFalse($response->viewData('recentContents')->contains('title', $oldContent->title));
+        $this->assertTrue($response->viewData('recentTasks')->contains('status', 'open'));
+        $this->assertFalse($response->viewData('recentTasks')->contains('status', 'done'));
+        $this->assertTrue($response->viewData('recentMedia')->contains('file_name', 'fresh.pdf'));
+        $this->assertFalse($response->viewData('recentMedia')->contains('file_name', 'old.pdf'));
+        $this->assertTrue($response->viewData('recentActivity')->contains('action', 'recent_event'));
+        $this->assertFalse($response->viewData('recentActivity')->contains('action', 'old_event'));
     }
 }
