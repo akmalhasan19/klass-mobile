@@ -197,6 +197,55 @@ class ApiService {
     ].join('\n');
   }
 
+  static List<Map<String, dynamic>> normalizeRecommendationCollection(List data) {
+    return data
+        .whereType<Map>()
+        .map((item) => normalizeRecommendationItem(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  static Map<String, dynamic> normalizeRecommendationItem(Map<String, dynamic> recommendation) {
+    final normalized = Map<String, dynamic>.from(recommendation);
+    final thumbnailUrl = normalized['thumbnail_url'];
+    
+    if (thumbnailUrl is String && thumbnailUrl.isNotEmpty) {
+      normalized['media_url'] = thumbnailUrl;
+      normalized['image'] = thumbnailUrl;
+      normalized['imagePath'] = thumbnailUrl;
+    }
+
+    // Set author/author_name based on source_type or fallback
+    if (normalized['source_type'] == 'admin_upload') {
+      normalized['author_name'] = 'Klass Curated';
+    } else if (normalized['source_type'] == 'system_topic') {
+      normalized['author_name'] = 'System Recommendation';
+    } else {
+      normalized['author_name'] = 'Klass App';
+    }
+
+    // Fallback module and tags
+    if (normalized['modules'] == null) {
+      normalized['modules'] = [];
+    } else {
+      // Normalize array of strings into objects for the UI
+      final rawModules = normalized['modules'] as List;
+      normalized['modules'] = rawModules.map((mod) {
+        if (mod is String) {
+          return {'title': mod, 'detail': 'Included module'};
+        } else if (mod is Map) {
+          return mod;
+        }
+        return {'title': 'Unknown', 'detail': ''};
+      }).toList();
+    }
+    
+    if (normalized['tags'] == null) {
+      normalized['tags'] = [];
+    }
+
+    return normalized;
+  }
+
   static List<Map<String, dynamic>> normalizeTopicCollection(List data) {
     return data
         .whereType<Map>()

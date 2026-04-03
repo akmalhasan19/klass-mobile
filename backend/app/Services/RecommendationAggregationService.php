@@ -7,6 +7,7 @@ use App\Models\Topic;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
+use Throwable;
 
 class RecommendationAggregationService
 {
@@ -15,16 +16,68 @@ class RecommendationAggregationService
      */
     public function buildFeed(?CarbonInterface $moment = null): Collection
     {
+        return $this->buildFeedSnapshot($moment)['items'];
+    }
+
+    /**
+     * @return array{items: Collection<int, array<string, mixed>>, source_status: array<string, array<string, mixed>>}
+     */
+    public function buildFeedSnapshot(?CarbonInterface $moment = null): array
+    {
         $moment = $moment ? CarbonImmutable::instance($moment) : CarbonImmutable::now();
 
         $curatedItems = $this->getVisibleCuratedItems($moment);
         $suppressedSourceKeys = $this->getSuppressedNonAdminSourceKeys();
-        $topicItems = $this->getNormalizedTopicItems($suppressedSourceKeys);
+        $topicResult = $this->getNormalizedTopicItemsSafely($suppressedSourceKeys);
+        $topicItems = $topicResult['items'];
 
-        return $curatedItems
+        $items = $curatedItems
             ->concat($topicItems)
             ->sort(fn (array $left, array $right) => $this->compareItems($left, $right))
             ->values();
+
+        return [
+            'items' => $items,
+            'source_status' => [
+                RecommendedProject::SOURCE_ADMIN_UPLOAD => [
+                    'state' => $this->resolveStateFromCount(
+                        $curatedItems->where('source_type', RecommendedProject::SOURCE_ADMIN_UPLOAD)->count()
+                    ),
+                ],
+                RecommendedProject::SOURCE_SYSTEM_TOPIC => [
+                    'state' => $topicResult['state'],
+                    'suppressed_count' => count($suppressedSourceKeys),
+                ],
+                RecommendedProject::SOURCE_AI_GENERATED => [
+                    'state' => $this->resolveStateFromCount(
+                        $curatedItems->where('source_type', RecommendedProject::SOURCE_AI_GENERATED)->count()
+                    ),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $suppressedSourceKeys
+     * @return array{items: Collection<int, array<string, mixed>>, state: string}
+     */
+    protected function getNormalizedTopicItemsSafely(array $suppressedSourceKeys): array
+    {
+        try {
+            $items = $this->getNormalizedTopicItems($suppressedSourceKeys);
+
+            return [
+                'items' => $items,
+                'state' => $this->resolveStateFromCount($items->count()),
+            ];
+        } catch (Throwable $throwable) {
+            report($throwable);
+
+            return [
+                'items' => collect(),
+                'state' => 'failed',
+            ];
+        }
     }
 
     /**
@@ -209,5 +262,10 @@ class RecommendationAggregationService
         }
 
         return 0;
+    }
+
+    protected function resolveStateFromCount(int $count): string
+    {
+        return $count > 0 ? 'ok' : 'empty';
     }
 }

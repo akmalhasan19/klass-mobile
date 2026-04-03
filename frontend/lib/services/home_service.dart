@@ -12,22 +12,21 @@ class HomeService {
 
     try {
       final response = await _apiService.dio.get(
-        '/topics',
+        '/homepage-recommendations',
         queryParameters: const {
-          'include_contents': false,
-          'per_page': 10,
+          'limit': 10,
         },
       );
       if (response.statusCode == 200) {
         final payload = response.data;
         if (payload is Map<String, dynamic> && payload['data'] is List) {
           final data = payload['data'] as List;
-          return ApiService.normalizeTopicCollection(data);
+          return ApiService.normalizeRecommendationCollection(data);
         }
 
         throw Exception(
           'Gagal memuat projects\n'
-          'Endpoint: /topics\n'
+          'Endpoint: /homepage-recommendations\n'
           'Error: Invalid response format. Expected data as List.',
         );
       }
@@ -37,7 +36,7 @@ class HomeService {
         ApiService.buildDebugInfo(
           e,
           operation: 'Gagal memuat projects',
-          endpoint: '/topics',
+          endpoint: '/homepage-recommendations',
         ),
       );
     } catch (e) {
@@ -45,7 +44,7 @@ class HomeService {
         ApiService.buildDebugInfo(
           e,
           operation: 'Gagal memuat projects',
-          endpoint: '/topics',
+          endpoint: '/homepage-recommendations',
         ),
       );
     }

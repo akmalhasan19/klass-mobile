@@ -249,6 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ratio: p['ratio'] ?? 'ppt',
                         imageUrl: isNetworkImage ? imageCandidate : null,
                         imagePath: (!isNetworkImage && imageCandidate.isNotEmpty) ? imageCandidate : null,
+                        sourceBadge: p['source_type'] == 'admin_upload' ? '★ Curated' : null,
                         onTap: () {
                           showModalBottomSheet(
                             context: context,

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AvatarController;
 use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\FileUploadController;
 use App\Http\Controllers\Api\GalleryController;
+use App\Http\Controllers\Api\HomepageRecommendationController;
 use App\Http\Controllers\Api\MarketplaceTaskController;
 use App\Http\Controllers\Api\StudentProgressController;
 use App\Http\Controllers\Api\TopicController;
@@ -57,6 +58,7 @@ Route::get('/marketplace-tasks', [MarketplaceTaskController::class, 'index']);
 Route::get('/marketplace-tasks/{marketplaceTask}', [MarketplaceTaskController::class, 'show']);
 Route::get('/student-progress', [StudentProgressController::class, 'index']);
 Route::get('/student-progress/{studentProgress}', [StudentProgressController::class, 'show']);
+Route::get('/homepage-recommendations', [HomepageRecommendationController::class, 'index']);
 
 // =========================================================================
 // App Config API (Public)

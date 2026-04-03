@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminTaskController;
 use App\Http\Controllers\Admin\AdminMediaController;
 use App\Http\Controllers\Admin\AdminActivityLogController;
 use App\Http\Controllers\Admin\AdminHomepageSectionController;
+use App\Http\Controllers\Admin\AdminRecommendedProjectController;
 use App\Http\Controllers\Admin\AdminSystemSettingController;
 use Illuminate\Support\Facades\Route;
 
@@ -86,6 +87,10 @@ Route::prefix('admin')
         // Homepage Sections
         Route::get('/homepage-sections', [AdminHomepageSectionController::class, 'index'])->name('homepage-sections.index');
         Route::patch('/homepage-sections', [AdminHomepageSectionController::class, 'update'])->name('homepage-sections.update');
+        Route::post('/homepage-sections/recommended-projects', [AdminRecommendedProjectController::class, 'store'])->name('recommended-projects.store');
+        Route::put('/homepage-sections/recommended-projects/{recommendedProject}', [AdminRecommendedProjectController::class, 'update'])->name('recommended-projects.update');
+        Route::delete('/homepage-sections/recommended-projects/{recommendedProject}', [AdminRecommendedProjectController::class, 'destroy'])->name('recommended-projects.destroy');
+        Route::patch('/homepage-sections/recommended-projects/{recommendedProject}/toggle-active', [AdminRecommendedProjectController::class, 'toggleActive'])->name('recommended-projects.toggle-active');
 
         // System Settings
         Route::get('/settings', [AdminSystemSettingController::class, 'index'])->name('settings.index');

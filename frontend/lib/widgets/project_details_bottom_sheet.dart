@@ -123,7 +123,7 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: (project['tags'] as List<String>).map((tag) {
+                      children: (project['tags'] as List).map((tag) {
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
@@ -132,7 +132,7 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                             border: Border.all(color: AppColors.border),
                           ),
                           child: Text(
-                            tag,
+                            tag.toString(),
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 13,

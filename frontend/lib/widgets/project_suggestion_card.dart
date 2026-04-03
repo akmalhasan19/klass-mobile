@@ -11,6 +11,7 @@ class ProjectSuggestionCard extends StatelessWidget {
   final String ratio; // 'ppt', 'infographic', 'square'
   final String? imageUrl;
   final String? imagePath;
+  final String? sourceBadge;
   final VoidCallback? onTap;
 
   const ProjectSuggestionCard({
@@ -20,6 +21,7 @@ class ProjectSuggestionCard extends StatelessWidget {
     required this.ratio,
     this.imageUrl,
     this.imagePath,
+    this.sourceBadge,
     this.onTap,
   });
 
@@ -66,19 +68,47 @@ class ProjectSuggestionCard extends StatelessWidget {
                     ],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: imagePath != null
-                      ? Image.asset(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (imagePath != null)
+                        Image.asset(
                           imagePath!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) => _placeholderIcon(),
                         )
-                      : imageUrl != null
-                          ? Image.network(
-                              imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => _placeholderIcon(),
-                            )
-                          : _placeholderIcon(),
+                      else if (imageUrl != null)
+                        Image.network(
+                          imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _placeholderIcon(),
+                        )
+                      else
+                        _placeholderIcon(),
+                        
+                      if (sourceBadge != null && sourceBadge!.isNotEmpty)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              sourceBadge!,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

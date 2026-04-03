@@ -37,8 +37,8 @@ Status dokumen: active tracker
 - [x] Phase 0 - Scope dan keputusan produk dikunci
 - [x] Phase 1 - Domain model dan API contract finalized
 - [x] Phase 2 - Backend persistence dan aggregation service selesai
-- [ ] Phase 3 - Admin Homepage Configurator usable
-- [ ] Phase 4 - Public API homepage recommendation siap dipakai mobile
+- [x] Phase 3 - Admin Homepage Configurator usable
+- [x] Phase 4 - Public API homepage recommendation siap dipakai mobile
 - [ ] Phase 5 - Flutter home integration selesai
 - [ ] Phase 6 - Testing, QA, dan documentation sync selesai
 
@@ -131,33 +131,33 @@ Mengganti placeholder Coming Soon dengan halaman kerja nyata untuk operasional a
 
 ### Checklist
 
-- [ ] Ganti halaman placeholder di Homepage Configurator dengan UI fungsional.
-- [ ] Pertahankan menu dan route admin yang sudah ada agar navigasi tidak berubah.
-- [ ] Tambahkan daftar Recommended Projects yang sudah dibuat admin.
-- [ ] Tambahkan status badge untuk active, inactive, scheduled, dan expired.
-- [ ] Tambahkan filter berdasarkan `source_type` dan status tampil.
-- [ ] Tambahkan form create Recommended Project.
-- [ ] Tambahkan form edit Recommended Project.
-- [ ] Tambahkan aksi activate atau deactivate item.
-- [ ] Tambahkan aksi hapus item dengan guardrail konfirmasi.
-- [ ] Tambahkan aksi atur priority atau ordering curated items.
-- [ ] Tambahkan upload thumbnail atau media project dari halaman ini.
-- [ ] Reuse media upload flow yang sudah ada agar tidak menduplikasi logic storage.
-- [ ] Tambahkan monitoring table untuk feed yang sedang eligible tampil di app.
-- [ ] Tampilkan asal item pada monitoring table: admin upload, system/app, atau AI.
-- [ ] Catat semua aksi penting ke Activity Log.
+- [x] Ganti halaman placeholder di Homepage Configurator dengan UI fungsional.
+- [x] Pertahankan menu dan route admin yang sudah ada agar navigasi tidak berubah.
+- [x] Tambahkan daftar Recommended Projects yang sudah dibuat admin.
+- [x] Tambahkan status badge untuk active, inactive, scheduled, dan expired.
+- [x] Tambahkan filter berdasarkan `source_type` dan status tampil.
+- [x] Tambahkan form create Recommended Project.
+- [x] Tambahkan form edit Recommended Project.
+- [x] Tambahkan aksi activate atau deactivate item.
+- [x] Tambahkan aksi hapus item dengan guardrail konfirmasi.
+- [x] Tambahkan aksi atur priority atau ordering curated items.
+- [x] Tambahkan upload thumbnail atau media project dari halaman ini.
+- [x] Reuse media upload flow yang sudah ada agar tidak menduplikasi logic storage.
+- [x] Tambahkan monitoring table untuk feed yang sedang eligible tampil di app.
+- [x] Tampilkan asal item pada monitoring table: admin upload, system/app, atau AI.
+- [x] Catat semua aksi penting ke Activity Log.
 
 ### Deliverables
 
-- [ ] View Homepage Configurator baru.
-- [ ] Controller actions untuk create, update, delete, activate, dan reorder.
-- [ ] Integrasi upload asset dari admin panel.
-- [ ] Monitoring panel untuk recommendation feed.
+- [x] View Homepage Configurator baru.
+- [x] Controller actions untuk create, update, delete, activate, dan reorder.
+- [x] Integrasi upload asset dari admin panel.
+- [x] Monitoring panel untuk recommendation feed.
 
 ### Exit Criteria
 
-- [ ] Admin bisa mengelola curated recommendation item end-to-end tanpa placeholder.
-- [ ] Semua perubahan penting tercatat ke audit log.
+- [x] Admin bisa mengelola curated recommendation item end-to-end tanpa placeholder.
+- [x] Semua perubahan penting tercatat ke audit log.
 
 ---
 
@@ -168,25 +168,25 @@ Menyediakan endpoint publik yang menjadi satu sumber kebenaran untuk recommendat
 
 ### Checklist
 
-- [ ] Tambahkan endpoint API khusus untuk homepage recommendation feed.
-- [ ] Pastikan endpoint memanggil aggregation service, bukan query manual terpisah di controller.
-- [ ] Pastikan response sudah dalam shape final yang siap dipakai Flutter.
-- [ ] Pastikan project admin upload dan recommendation non-admin dikembalikan dalam satu list yang sama.
-- [ ] Pastikan section Project Recommendation tetap mengikuti visibility dari `homepage_sections`.
-- [ ] Pastikan endpoint aman bila source non-admin belum tersedia atau gagal dinormalisasi.
-- [ ] Tambahkan dukungan pagination atau limiting bila memang diperlukan untuk home feed.
-- [ ] Tambahkan metadata source yang cukup untuk monitoring tanpa membebani UI mobile.
+- [x] Tambahkan endpoint API khusus untuk homepage recommendation feed.
+- [x] Pastikan endpoint memanggil aggregation service, bukan query manual terpisah di controller.
+- [x] Pastikan response sudah dalam shape final yang siap dipakai Flutter.
+- [x] Pastikan project admin upload dan recommendation non-admin dikembalikan dalam satu list yang sama.
+- [x] Pastikan section Project Recommendation tetap mengikuti visibility dari `homepage_sections`.
+- [x] Pastikan endpoint aman bila source non-admin belum tersedia atau gagal dinormalisasi.
+- [x] Tambahkan dukungan pagination atau limiting bila memang diperlukan untuk home feed.
+- [x] Tambahkan metadata source yang cukup untuk monitoring tanpa membebani UI mobile.
 
 ### Deliverables
 
-- [ ] Route API baru.
-- [ ] Controller atau action untuk recommendation feed.
-- [ ] JSON contract final untuk mobile.
+- [x] Route API baru.
+- [x] Controller atau action untuk recommendation feed.
+- [x] JSON contract final untuk mobile.
 
 ### Exit Criteria
 
-- [ ] Mobile bisa mengambil recommendation feed campuran dari satu endpoint.
-- [ ] Perilaku merge dan sort konsisten antara admin monitoring dan mobile app.
+- [x] Mobile bisa mengambil recommendation feed campuran dari satu endpoint.
+- [x] Perilaku merge dan sort konsisten antara admin monitoring dan mobile app.
 
 ---
 
@@ -197,27 +197,27 @@ Mengarahkan home screen Klass App agar memakai feed rekomendasi campuran dari ba
 
 ### Checklist
 
-- [ ] Update HomeService agar fetch Project Recommendation memakai endpoint recommendation baru.
-- [ ] Tambahkan normalizer payload recommendation pada lapisan service API Flutter.
-- [ ] Pertahankan fallback aman bila config homepage sections gagal dimuat.
-- [ ] Update HomeScreen agar section `project_recommendations` memakai feed campuran baru.
-- [ ] Pastikan tidak dibuat section baru terpisah untuk admin upload.
-- [ ] Pastikan card project tetap aman untuk source item yang berbeda-beda.
-- [ ] Update detail bottom sheet agar aman bila tags, modules, atau image source tidak lengkap.
-- [ ] Tambahkan badge atau penanda source bila memang diputuskan perlu di UI.
-- [ ] Pastikan empty state tetap benar jika tidak ada recommendation sama sekali.
-- [ ] Pastikan error state tidak membuat home screen blank total.
+- [x] Update HomeService agar fetch Project Recommendation memakai endpoint recommendation baru.
+- [x] Tambahkan normalizer payload recommendation pada lapisan service API Flutter.
+- [x] Pertahankan fallback aman bila config homepage sections gagal dimuat.
+- [x] Update HomeScreen agar section `project_recommendations` memakai feed campuran baru.
+- [x] Pastikan tidak dibuat section baru terpisah untuk admin upload.
+- [x] Pastikan card project tetap aman untuk source item yang berbeda-beda.
+- [x] Update detail bottom sheet agar aman bila tags, modules, atau image source tidak lengkap.
+- [x] Tambahkan badge atau penanda source bila memang diputuskan perlu di UI.
+- [x] Pastikan empty state tetap benar jika tidak ada recommendation sama sekali.
+- [x] Pastikan error state tidak membuat home screen blank total.
 
 ### Deliverables
 
-- [ ] Update service layer Flutter.
-- [ ] Update home screen recommendation flow.
-- [ ] Update card/detail components sesuai kontrak baru.
+- [x] Update service layer Flutter.
+- [x] Update home screen recommendation flow.
+- [x] Update card/detail components sesuai kontrak baru.
 
 ### Exit Criteria
 
-- [ ] Section Project Recommendation di mobile memakai feed campuran final.
-- [ ] UI mobile tetap stabil untuk semua state utama.
+- [x] Section Project Recommendation di mobile memakai feed campuran final.
+- [x] UI mobile tetap stabil untuk semua state utama.
 
 ---
 

@@ -43,8 +43,9 @@ class AdminHomepageSectionConfigurationTest extends TestCase
             ->get(route('admin.homepage-sections.index'))
             ->assertOk()
             ->assertSeeText('Homepage Configurator')
-            ->assertSeeText('Curate the mobile experience.')
-            ->assertSeeText('Coming Soon');
+            ->assertSeeText('Curate the mobile experience: manage sections and recommended projects.')
+            ->assertSeeText('Recommended Projects')
+            ->assertSeeText('Section Ordering');
 
         $this->actingAs($admin)
             ->patch(route('admin.homepage-sections.update'), [
