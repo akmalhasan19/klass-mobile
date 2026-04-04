@@ -1,0 +1,17 @@
+.git
+.gitignore
+frontend
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/node_modules
+backend/vendor
+backend/storage/logs
+backend/storage/framework/cache/data
+backend/storage/framework/sessions
+backend/storage/framework/testing
+backend/storage/framework/views
+backend/bootstrap/cache/*.php
+backend/tests
+npm-debug.log
+yarn-error.log

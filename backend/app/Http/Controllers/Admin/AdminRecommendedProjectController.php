@@ -5,19 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\RecommendedProject;
-use App\Services\DocumentPreviewService;
 use App\Services\FileUploadService;
 use Illuminate\Http\Request;
 
 class AdminRecommendedProjectController extends Controller
 {
     protected FileUploadService $fileUploadService;
-    protected DocumentPreviewService $previewService;
 
-    public function __construct(FileUploadService $fileUploadService, DocumentPreviewService $previewService)
+    public function __construct(FileUploadService $fileUploadService)
     {
         $this->fileUploadService = $fileUploadService;
-        $this->previewService = $previewService;
     }
 
     public function store(Request $request)
@@ -47,16 +44,6 @@ class AdminRecommendedProjectController extends Controller
         if ($request->hasFile('project_file')) {
             $upload = $this->fileUploadService->upload($request->file('project_file'), 'materials');
             $projectFileUrl = $upload['url'];
-
-            // Fallback: Generate thumbnail preview from document if thumbnail is not provided
-            if (!$thumbnailUrl) {
-                $previewFile = $this->previewService->generatePreview($request->file('project_file'));
-                if ($previewFile) {
-                    $previewUpload = $this->fileUploadService->upload($previewFile, 'gallery');
-                    $thumbnailUrl = $previewUpload['url'];
-                    @unlink($previewFile->getRealPath()); // Clean up temp file
-                }
-            }
         }
 
         $project = RecommendedProject::create([
@@ -115,16 +102,6 @@ class AdminRecommendedProjectController extends Controller
         if ($request->hasFile('project_file')) {
             $upload = $this->fileUploadService->upload($request->file('project_file'), 'materials');
             $projectFileUrl = $upload['url'];
-
-            // Fallback: Generate thumbnail preview from document if thumbnail is missing entirely
-            if (!$thumbnailUrl) {
-                $previewFile = $this->previewService->generatePreview($request->file('project_file'));
-                if ($previewFile) {
-                    $previewUpload = $this->fileUploadService->upload($previewFile, 'gallery');
-                    $thumbnailUrl = $previewUpload['url'];
-                    @unlink($previewFile->getRealPath()); // Clean up temp file
-                }
-            }
         }
 
         $recommendedProject->update([

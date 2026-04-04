@@ -54,7 +54,7 @@ FROM composer:2.8 AS vendor
 
 WORKDIR /var/www/html
 
-COPY composer.json composer.lock ./
+COPY backend/composer.json backend/composer.lock ./
 
 RUN composer install \
     --no-dev \
@@ -67,12 +67,12 @@ FROM node:22-alpine AS frontend
 
 WORKDIR /var/www/html
 
-COPY package.json ./
+COPY backend/package.json ./
 
 RUN npm install --no-fund --no-audit
 
-COPY resources ./resources
-COPY vite.config.js ./vite.config.js
+COPY backend/resources ./resources
+COPY backend/vite.config.js ./vite.config.js
 
 RUN npm run build
 
@@ -84,12 +84,12 @@ ENV APP_ENV=production \
     LOG_STACK=single \
     PORT=7860
 
-COPY . .
+COPY backend/. .
 COPY --from=vendor /var/www/html/vendor ./vendor
 COPY --from=frontend /var/www/html/public/build ./public/build
-COPY docker/nginx.conf /etc/nginx/nginx.conf.template
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY backend/docker/nginx.conf /etc/nginx/nginx.conf.template
+COPY backend/docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY backend/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN set -eux; \
     chmod +x /usr/local/bin/entrypoint.sh; \
@@ -97,7 +97,6 @@ RUN set -eux; \
     rm -f bootstrap/cache/config.php; \
     chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /run/nginx /var/lib/nginx
 
-# Hugging Face Spaces uses port 7860 by default.
 EXPOSE 7860
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
