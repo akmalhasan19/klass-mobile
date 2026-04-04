@@ -90,6 +90,7 @@ Route::prefix('admin')
         Route::put('/homepage-sections/recommended-projects/{recommendedProject}', [AdminRecommendedProjectController::class, 'update'])->name('recommended-projects.update');
         Route::delete('/homepage-sections/recommended-projects/{recommendedProject}', [AdminRecommendedProjectController::class, 'destroy'])->name('recommended-projects.destroy');
         Route::patch('/homepage-sections/recommended-projects/{recommendedProject}/toggle-active', [AdminRecommendedProjectController::class, 'toggleActive'])->name('recommended-projects.toggle-active');
+        Route::patch('/homepage-sections/recommended-projects/{recommendedProject}/show-now', [AdminRecommendedProjectController::class, 'showNow'])->name('recommended-projects.show-now');
 
         // System Settings
         Route::get('/settings', [AdminSystemSettingController::class, 'index'])->name('settings.index');

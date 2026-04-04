@@ -14,18 +14,18 @@ class HomepageSectionSeeder extends Seeder
     {
         $sections = [
             [
-                'key' => 'recommended_projects',
-                'label' => 'Project Rekomendasi',
+                'key' => 'project_recommendations',
+                'label' => 'Project Recommendations',
                 'position' => 1,
                 'is_enabled' => true,
-                'data_source' => 'api/tasks/recommended'
+                'data_source' => 'api/homepage-recommendations'
             ],
             [
-                'key' => 'freelancer_feed',
-                'label' => 'Freelancer & Guru Tersedia',
+                'key' => 'top_freelancers',
+                'label' => 'Top Freelancers',
                 'position' => 2,
                 'is_enabled' => true,
-                'data_source' => 'api/users/freelancers'
+                'data_source' => 'api/marketplace-tasks'
             ],
         ];
 

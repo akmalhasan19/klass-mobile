@@ -83,6 +83,13 @@
                                 </button>
                             </form>
                             
+                            <!-- Show Now Form -->
+                            <form action="{{ route('admin.recommended-projects.show-now', $project) }}" method="POST" class="inline-block" onsubmit="return confirm('Apakah Anda yakin ingin mempercepat kemunculan project ini?');">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="text-blue-600 hover:text-blue-900 mr-2 font-medium" title="Tampilkan Sekarang">Tampilkan Sekarang</button>
+                            </form>
+                            
                             <!-- Delete Form -->
                             <form action="{{ route('admin.recommended-projects.destroy', $project) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this project?');">
                                 @csrf

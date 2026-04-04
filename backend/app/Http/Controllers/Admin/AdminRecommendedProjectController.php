@@ -34,45 +34,49 @@ class AdminRecommendedProjectController extends Controller
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
         ]);
 
-        $thumbnailUrl = null;
-        if ($request->hasFile('thumbnail')) {
-            $upload = $this->fileUploadService->upload($request->file('thumbnail'), 'gallery');
-            $thumbnailUrl = $upload['url'];
+        try {
+            $thumbnailUrl = null;
+            if ($request->hasFile('thumbnail')) {
+                $upload = $this->fileUploadService->upload($request->file('thumbnail'), 'gallery');
+                $thumbnailUrl = $upload['url'];
+            }
+
+            $projectFileUrl = null;
+            if ($request->hasFile('project_file')) {
+                $upload = $this->fileUploadService->upload($request->file('project_file'), 'materials');
+                $projectFileUrl = $upload['url'];
+            }
+
+            $project = RecommendedProject::create([
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'ratio' => $validated['ratio'] ?? '16:9',
+                'project_type' => $validated['project_type'] ?? null,
+                'tags' => !empty($validated['tags']) ? array_map('trim', explode(',', $validated['tags'])) : null,
+                'modules' => !empty($validated['modules']) ? array_map('trim', explode(',', $validated['modules'])) : null,
+                'thumbnail_url' => $thumbnailUrl,
+                'project_file_url' => $projectFileUrl,
+                'source_type' => RecommendedProject::SOURCE_ADMIN_UPLOAD,
+                'display_priority' => $validated['display_priority'] ?? 0,
+                'is_active' => $request->has('is_active'),
+                'starts_at' => $validated['starts_at'] ?? null,
+                'ends_at' => $validated['ends_at'] ?? null,
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+            ]);
+
+            ActivityLog::create([
+                'actor_id' => auth()->id(),
+                'action' => 'create_recommended_project',
+                'subject_type' => RecommendedProject::class,
+                'subject_id' => $project->id,
+                'metadata' => ['title' => $project->title],
+            ]);
+
+            return back()->with('success', 'Recommended Project created successfully.');
+        } catch (\Exception $e) {
+            return back()->withInput()->withErrors(['error' => 'Gagal mengupload file atau menyimpan data: ' . $e->getMessage()]);
         }
-
-        $projectFileUrl = null;
-        if ($request->hasFile('project_file')) {
-            $upload = $this->fileUploadService->upload($request->file('project_file'), 'materials');
-            $projectFileUrl = $upload['url'];
-        }
-
-        $project = RecommendedProject::create([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'ratio' => $validated['ratio'] ?? '16:9',
-            'project_type' => $validated['project_type'] ?? null,
-            'tags' => !empty($validated['tags']) ? array_map('trim', explode(',', $validated['tags'])) : null,
-            'modules' => !empty($validated['modules']) ? array_map('trim', explode(',', $validated['modules'])) : null,
-            'thumbnail_url' => $thumbnailUrl,
-            'project_file_url' => $projectFileUrl,
-            'source_type' => RecommendedProject::SOURCE_ADMIN_UPLOAD,
-            'display_priority' => $validated['display_priority'] ?? 0,
-            'is_active' => $request->has('is_active'),
-            'starts_at' => $validated['starts_at'] ?? null,
-            'ends_at' => $validated['ends_at'] ?? null,
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
-        ]);
-
-        ActivityLog::create([
-            'actor_id' => auth()->id(),
-            'action' => 'create_recommended_project',
-            'subject_type' => RecommendedProject::class,
-            'subject_id' => $project->id,
-            'metadata' => ['title' => $project->title],
-        ]);
-
-        return back()->with('success', 'Recommended Project created successfully.');
     }
 
     public function update(Request $request, RecommendedProject $recommendedProject)
@@ -92,43 +96,47 @@ class AdminRecommendedProjectController extends Controller
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
         ]);
 
-        $thumbnailUrl = $recommendedProject->thumbnail_url;
-        if ($request->hasFile('thumbnail')) {
-            $upload = $this->fileUploadService->upload($request->file('thumbnail'), 'gallery');
-            $thumbnailUrl = $upload['url'];
+        try {
+            $thumbnailUrl = $recommendedProject->thumbnail_url;
+            if ($request->hasFile('thumbnail')) {
+                $upload = $this->fileUploadService->upload($request->file('thumbnail'), 'gallery');
+                $thumbnailUrl = $upload['url'];
+            }
+
+            $projectFileUrl = $recommendedProject->project_file_url;
+            if ($request->hasFile('project_file')) {
+                $upload = $this->fileUploadService->upload($request->file('project_file'), 'materials');
+                $projectFileUrl = $upload['url'];
+            }
+
+            $recommendedProject->update([
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'ratio' => $validated['ratio'],
+                'project_type' => $validated['project_type'] ?? null,
+                'tags' => !empty($validated['tags']) ? array_map('trim', explode(',', $validated['tags'])) : null,
+                'modules' => !empty($validated['modules']) ? array_map('trim', explode(',', $validated['modules'])) : null,
+                'thumbnail_url' => $thumbnailUrl,
+                'project_file_url' => $projectFileUrl,
+                'display_priority' => $validated['display_priority'] ?? 0,
+                'is_active' => $request->has('is_active'),
+                'starts_at' => $validated['starts_at'] ?? null,
+                'ends_at' => $validated['ends_at'] ?? null,
+                'updated_by' => auth()->id(),
+            ]);
+
+            ActivityLog::create([
+                'actor_id' => auth()->id(),
+                'action' => 'update_recommended_project',
+                'subject_type' => RecommendedProject::class,
+                'subject_id' => $recommendedProject->id,
+                'metadata' => ['title' => $recommendedProject->title],
+            ]);
+
+            return back()->with('success', 'Recommended Project updated successfully.');
+        } catch (\Exception $e) {
+            return back()->withInput()->withErrors(['error' => 'Gagal mengupload file atau menyimpan data: ' . $e->getMessage()]);
         }
-
-        $projectFileUrl = $recommendedProject->project_file_url;
-        if ($request->hasFile('project_file')) {
-            $upload = $this->fileUploadService->upload($request->file('project_file'), 'materials');
-            $projectFileUrl = $upload['url'];
-        }
-
-        $recommendedProject->update([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'ratio' => $validated['ratio'],
-            'project_type' => $validated['project_type'] ?? null,
-            'tags' => !empty($validated['tags']) ? array_map('trim', explode(',', $validated['tags'])) : null,
-            'modules' => !empty($validated['modules']) ? array_map('trim', explode(',', $validated['modules'])) : null,
-            'thumbnail_url' => $thumbnailUrl,
-            'project_file_url' => $projectFileUrl,
-            'display_priority' => $validated['display_priority'] ?? 0,
-            'is_active' => $request->has('is_active'),
-            'starts_at' => $validated['starts_at'] ?? null,
-            'ends_at' => $validated['ends_at'] ?? null,
-            'updated_by' => auth()->id(),
-        ]);
-
-        ActivityLog::create([
-            'actor_id' => auth()->id(),
-            'action' => 'update_recommended_project',
-            'subject_type' => RecommendedProject::class,
-            'subject_id' => $recommendedProject->id,
-            'metadata' => ['title' => $recommendedProject->title],
-        ]);
-
-        return back()->with('success', 'Recommended Project updated successfully.');
     }
 
     public function destroy(RecommendedProject $recommendedProject)
@@ -160,5 +168,23 @@ class AdminRecommendedProjectController extends Controller
         ]);
 
         return back()->with('success', 'Project status toggled successfully.');
+    }
+
+    public function showNow(RecommendedProject $recommendedProject)
+    {
+        $recommendedProject->update([
+            'is_active' => true,
+            'starts_at' => null,
+        ]);
+
+        ActivityLog::create([
+            'actor_id' => auth()->id(),
+            'action' => 'show_now_recommended_project',
+            'subject_type' => RecommendedProject::class,
+            'subject_id' => $recommendedProject->id,
+            'metadata' => ['title' => $recommendedProject->title],
+        ]);
+
+        return back()->with('success', 'Project is successfully set to show now.');
     }
 }
