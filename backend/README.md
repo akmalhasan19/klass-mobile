@@ -7,6 +7,23 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Klass Backend Notes
+
+### Homepage Configurator / Recommended Projects
+
+- Admin workspace lives at `/admin/homepage-sections` and now manages both section ordering and curated recommended projects.
+- Recommended project CRUD routes are under `/admin/homepage-sections/recommended-projects/*` and every create, update, toggle, and delete action writes an `activity_logs` row.
+- Thumbnail uploads from Homepage Configurator reuse `FileUploadService` with the `gallery` upload category on the `supabase` disk.
+- Public mobile feed for mixed recommendations is served by `GET /api/homepage-recommendations` and stays gated by the `homepage_sections` visibility config for `project_recommendations`.
+
+### Relevant Test Commands
+
+```bash
+php artisan test --testdox
+php artisan test --filter=AdminRecommendedProjectManagementTest
+php artisan test --filter=HomepageRecommendationApiTest
+```
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

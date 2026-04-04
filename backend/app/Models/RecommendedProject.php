@@ -21,6 +21,7 @@ class RecommendedProject extends Model
         'title',
         'description',
         'thumbnail_url',
+        'project_file_url',
         'ratio',
         'project_type',
         'tags',

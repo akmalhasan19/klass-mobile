@@ -86,7 +86,6 @@ Route::prefix('admin')
 
         // Homepage Sections
         Route::get('/homepage-sections', [AdminHomepageSectionController::class, 'index'])->name('homepage-sections.index');
-        Route::patch('/homepage-sections', [AdminHomepageSectionController::class, 'update'])->name('homepage-sections.update');
         Route::post('/homepage-sections/recommended-projects', [AdminRecommendedProjectController::class, 'store'])->name('recommended-projects.store');
         Route::put('/homepage-sections/recommended-projects/{recommendedProject}', [AdminRecommendedProjectController::class, 'update'])->name('recommended-projects.update');
         Route::delete('/homepage-sections/recommended-projects/{recommendedProject}', [AdminRecommendedProjectController::class, 'destroy'])->name('recommended-projects.destroy');

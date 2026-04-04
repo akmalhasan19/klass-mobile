@@ -6,6 +6,7 @@ use App\Models\Content;
 use App\Models\HomepageSection;
 use App\Models\MarketplaceTask;
 use App\Models\MediaFile;
+use App\Models\RecommendedProject;
 use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,6 +55,10 @@ class AdminFeatureAccessRegressionTest extends TestCase
             'is_enabled' => true,
             'data_source' => 'restricted',
         ]);
+        $recommendedProject = RecommendedProject::factory()->create([
+            'title' => 'Locked Recommendation',
+            'is_active' => true,
+        ]);
 
         $this->actingAs($user)->get(route('admin.users.index'))->assertForbidden();
         $this->actingAs($user)->get(route('admin.users.show', $managedUser))->assertForbidden();
@@ -99,5 +104,38 @@ class AdminFeatureAccessRegressionTest extends TestCase
                 ]],
             ])
             ->assertForbidden();
+
+        $this->actingAs($user)
+            ->post(route('admin.recommended-projects.store'), [
+                'title' => 'Forbidden Project',
+                'description' => 'Should never be created.',
+                'ratio' => '16:9',
+                'display_priority' => 5,
+                'is_active' => '1',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->put(route('admin.recommended-projects.update', $recommendedProject), [
+                'title' => 'Should Fail Update',
+                'description' => 'Still forbidden.',
+                'ratio' => '16:9',
+                'display_priority' => 50,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->patch(route('admin.recommended-projects.toggle-active', $recommendedProject))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->delete(route('admin.recommended-projects.destroy', $recommendedProject))
+            ->assertForbidden();
+
+        $recommendedProject->refresh();
+
+        $this->assertSame('Locked Recommendation', $recommendedProject->title);
+        $this->assertTrue($recommendedProject->is_active);
+        $this->assertDatabaseCount('recommended_projects', 1);
     }
 }

@@ -12,11 +12,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _HomeScreenAdapter implements HttpClientAdapter {
   _HomeScreenAdapter({
     required this.sections,
+    this.projects = const [],
+    this.freelancers = const [],
     this.failSections = false,
-  });
+    this.failProjectsCount = 0,
+  }) : remainingProjectFailures = failProjectsCount;
 
   final List<Map<String, dynamic>> sections;
+  final List<Map<String, dynamic>> projects;
+  final List<Map<String, dynamic>> freelancers;
   final bool failSections;
+  final int failProjectsCount;
+  int remainingProjectFailures;
 
   @override
   Future<ResponseBody> fetch(
@@ -36,10 +43,39 @@ class _HomeScreenAdapter implements HttpClientAdapter {
       });
     }
 
-    if (options.path.contains('/topics') || options.path.contains('/marketplace-tasks')) {
+    if (options.path.contains('/homepage-recommendations')) {
+      if (remainingProjectFailures > 0) {
+        remainingProjectFailures -= 1;
+
+        throw DioException(
+          requestOptions: options,
+          response: Response(
+            requestOptions: options,
+            statusCode: 500,
+            data: {
+              'message': 'Simulated recommendation feed failure',
+            },
+          ),
+          type: DioExceptionType.badResponse,
+          message: 'Simulated recommendation feed failure',
+        );
+      }
+
+      return _jsonResponse({
+        'data': projects,
+        'meta': {
+          'total': projects.length,
+        },
+      });
+    }
+
+    if (options.path.contains('/marketplace-tasks')) {
       return _jsonResponse({
         'success': true,
-        'data': [],
+        'data': freelancers,
+        'meta': {
+          'total': freelancers.length,
+        },
       });
     }
 
@@ -62,14 +98,50 @@ class _HomeScreenAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Map<String, dynamic> _projectRecommendation({
+  required String id,
+  required String title,
+  String sourceType = 'admin_upload',
+}) {
+  return {
+    'id': id,
+    'title': title,
+    'description': 'Recommendation for $title',
+    'thumbnail_url': null,
+    'ratio': '16:9',
+    'project_type': 'mobile',
+    'tags': ['Flutter'],
+    'modules': ['Auth'],
+    'source_type': sourceType,
+    'display_priority': 100,
+  };
+}
+
+Future<void> _pumpHomeScreen(WidgetTester tester, _HomeScreenAdapter adapter) async {
+  final api = ApiService();
+  api.dio.httpClientAdapter = adapter;
+
+  await tester.pumpWidget(
+    const MaterialApp(
+      home: Scaffold(
+        body: HomeScreen(),
+      ),
+    ),
+  );
+
+  await tester.pump(const Duration(milliseconds: 300));
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
 
   testWidgets('HomeScreen renders backend-configured section labels in configured order', (tester) async {
-    final api = ApiService();
-    api.dio.httpClientAdapter = _HomeScreenAdapter(
+    await _pumpHomeScreen(
+      tester,
+      _HomeScreenAdapter(
       sections: [
         {
           'id': 'section-2',
@@ -96,18 +168,17 @@ void main() {
           'data_source': 'topics',
         },
       ],
-    );
-
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: HomeScreen(),
-        ),
+      projects: [
+        _projectRecommendation(id: 'project-1', title: 'Admin Showcase'),
+      ],
+      freelancers: [
+        {
+          'id': 'freelancer-1',
+          'name': 'Mentor QA',
+        },
+      ],
       ),
     );
-
-    await tester.pump(const Duration(milliseconds: 250));
-    await tester.pump(const Duration(milliseconds: 250));
 
     final freelancerSection = find.text('Mentor Pilihan');
     final projectSection = find.text('Belajar Minggu Ini');
@@ -115,6 +186,9 @@ void main() {
     expect(freelancerSection, findsOneWidget);
     expect(projectSection, findsOneWidget);
     expect(find.text('Hidden Section'), findsNothing);
+    expect(find.text('Admin Showcase'), findsOneWidget);
+    expect(find.text('Klass Curated'), findsOneWidget);
+    expect(find.text('★ Curated'), findsOneWidget);
 
     final freelancerOffset = tester.getTopLeft(freelancerSection);
     final projectOffset = tester.getTopLeft(projectSection);
@@ -123,24 +197,68 @@ void main() {
   });
 
   testWidgets('HomeScreen falls back to default labels when section config fetch fails', (tester) async {
-    final api = ApiService();
-    api.dio.httpClientAdapter = _HomeScreenAdapter(
-      sections: const [],
-      failSections: true,
-    );
-
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: HomeScreen(),
-        ),
+    await _pumpHomeScreen(
+      tester,
+      _HomeScreenAdapter(
+        sections: const [],
+        failSections: true,
       ),
     );
 
-    await tester.pump(const Duration(milliseconds: 250));
-    await tester.pump(const Duration(milliseconds: 250));
-
     expect(find.text('Project Recommendations'), findsOneWidget);
     expect(find.text('Top Freelancers'), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen shows empty state when the recommendation feed is empty', (tester) async {
+    await _pumpHomeScreen(
+      tester,
+      _HomeScreenAdapter(
+        sections: [
+          {
+            'id': 'section-1',
+            'key': 'project_recommendations',
+            'label': 'Project Recommendations',
+            'position': 1,
+            'is_enabled': true,
+            'data_source': 'recommended_projects',
+          },
+        ],
+      ),
+    );
+
+    expect(find.text('Project Recommendations'), findsOneWidget);
+    expect(find.text('Belum ada project'), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen shows recommendation error state and can retry successfully', (tester) async {
+    final adapter = _HomeScreenAdapter(
+      sections: [
+        {
+          'id': 'section-1',
+          'key': 'project_recommendations',
+          'label': 'Project Recommendations',
+          'position': 1,
+          'is_enabled': true,
+          'data_source': 'recommended_projects',
+        },
+      ],
+      projects: [
+        _projectRecommendation(id: 'project-2', title: 'Recovered Recommendation'),
+      ],
+      failProjectsCount: 1,
+    );
+
+    await _pumpHomeScreen(tester, adapter);
+
+    expect(find.text('Copy Debug Info'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.textContaining('/homepage-recommendations'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Recovered Recommendation'), findsOneWidget);
+    expect(find.text('Copy Debug Info'), findsNothing);
   });
 }

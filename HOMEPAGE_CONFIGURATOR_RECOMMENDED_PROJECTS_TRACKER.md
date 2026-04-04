@@ -24,13 +24,13 @@ Status dokumen: active tracker
 
 ## Success Criteria
 
-- [ ] Admin bisa membuka Homepage Configurator tanpa halaman placeholder Coming Soon.
+- [x] Admin bisa membuka Homepage Configurator tanpa halaman placeholder Coming Soon.
 - [ ] Admin bisa membuat, mengedit, mengaktifkan, menonaktifkan, dan menghapus Recommended Project.
-- [ ] Admin bisa meng-upload thumbnail atau asset project dari Homepage Configurator.
-- [ ] Feed recommendation di mobile menampilkan project admin upload dan recommendation non-admin dalam satu section yang sama.
-- [ ] UI mobile tetap aman saat salah satu source kosong atau gagal dimuat.
-- [ ] Semua aksi penting admin tercatat ke activity logs.
-- [ ] Dokumentasi dan automated tests sinkron dengan perilaku akhir fitur.
+- [x] Admin bisa meng-upload thumbnail atau asset project dari Homepage Configurator.
+- [x] Feed recommendation di mobile menampilkan project admin upload dan recommendation non-admin dalam satu section yang sama.
+- [x] UI mobile tetap aman saat salah satu source kosong atau gagal dimuat.
+- [x] Semua aksi penting admin tercatat ke activity logs.
+- [x] Dokumentasi dan automated tests sinkron dengan perilaku akhir fitur.
 
 ## Milestone Summary
 
@@ -39,7 +39,7 @@ Status dokumen: active tracker
 - [x] Phase 2 - Backend persistence dan aggregation service selesai
 - [x] Phase 3 - Admin Homepage Configurator usable
 - [x] Phase 4 - Public API homepage recommendation siap dipakai mobile
-- [ ] Phase 5 - Flutter home integration selesai
+- [x] Phase 5 - Flutter home integration selesai
 - [ ] Phase 6 - Testing, QA, dan documentation sync selesai
 
 ---
@@ -228,29 +228,29 @@ Memastikan implementasi siap dioperasikan dan dokumentasi sesuai dengan perilaku
 
 ### Checklist
 
-- [ ] Tambahkan backend feature test untuk CRUD Recommended Project.
-- [ ] Tambahkan backend feature test untuk upload thumbnail atau media project.
+- [x] Tambahkan backend feature test untuk CRUD Recommended Project.
+- [x] Tambahkan backend feature test untuk upload thumbnail atau media project.
 - [x] Tambahkan backend feature test untuk aggregation feed campuran.
 - [x] Tambahkan backend feature test untuk filtering active, inactive, scheduled, dan expired.
-- [ ] Tambahkan backend regression test untuk non-admin access restriction.
-- [ ] Tambahkan Flutter test untuk render section Project Recommendation dari endpoint baru.
-- [ ] Tambahkan Flutter test untuk empty state dan error state recommendation feed.
+- [x] Tambahkan backend regression test untuk non-admin access restriction.
+- [x] Tambahkan Flutter test untuk render section Project Recommendation dari endpoint baru.
+- [x] Tambahkan Flutter test untuk empty state dan error state recommendation feed.
 - [ ] Lakukan manual QA pada admin flow: create, edit, upload, activate, deactivate, delete, reorder, dan monitoring.
 - [ ] Lakukan manual QA pada Android flow: project admin upload muncul bersama recommendation lain dan detail project tetap aman dibuka.
-- [ ] Sinkronkan dokumentasi implementasi admin panel dengan perilaku terbaru Homepage Configurator.
-- [ ] Sinkronkan test lama yang masih mengasumsikan Homepage Configurator lama atau placeholder.
+- [x] Sinkronkan dokumentasi implementasi admin panel dengan perilaku terbaru Homepage Configurator.
+- [x] Sinkronkan test lama yang masih mengasumsikan Homepage Configurator lama atau placeholder.
 
 ### Deliverables
 
-- [ ] Test coverage backend yang relevan.
-- [ ] Test coverage Flutter yang relevan.
-- [ ] Dokumentasi implementasi yang sudah diperbarui.
+- [x] Test coverage backend yang relevan.
+- [x] Test coverage Flutter yang relevan.
+- [x] Dokumentasi implementasi yang sudah diperbarui.
 
 ### Exit Criteria
 
-- [ ] Seluruh alur kritikal lulus test.
+- [x] Seluruh alur kritikal lulus test.
 - [ ] Manual QA utama selesai tanpa blocker release.
-- [ ] Dokumentasi dan kode tidak lagi saling bertentangan.
+- [x] Dokumentasi dan kode tidak lagi saling bertentangan.
 
 ---
 

@@ -9,9 +9,15 @@ RUN set -eux; \
         su-exec \
         libpq \
         postgresql-dev \
+        imagemagick \
+        imagemagick-dev \
+        ghostscript \
+        libreoffice \
         $PHPIZE_DEPS; \
+    pecl install imagick; \
+    docker-php-ext-enable imagick; \
     docker-php-ext-install -j"$(nproc)" pdo_pgsql opcache; \
-    apk del --no-network postgresql-dev $PHPIZE_DEPS; \
+    apk del --no-network postgresql-dev imagemagick-dev $PHPIZE_DEPS; \
     rm -rf /var/cache/apk/*; \
     mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"; \
     { \
@@ -84,23 +90,11 @@ COPY --from=vendor /var/www/html/vendor ./vendor
 COPY --from=frontend /var/www/html/public/build ./public/build
 
 RUN set -eux; \
-    cp .env.example .env; \
-    mkdir -p resources/views storage/framework/views; \
-    sed -i 's/^APP_ENV=.*/APP_ENV=production/' .env; \
-    sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env; \
-    sed -i 's#^APP_URL=.*#APP_URL=http://localhost#' .env; \
-    sed -i 's/^APP_KEY=.*/APP_KEY=base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=/' .env; \
-    sed -i 's/^LOG_CHANNEL=.*/LOG_CHANNEL=stderr/' .env; \
-    sed -i 's/^LOG_STACK=.*/LOG_STACK=single/' .env; \
     composer install \
         --no-dev \
         --no-interaction \
         --prefer-dist \
-        --optimize-autoloader; \
-    php artisan config:cache; \
-    php artisan route:cache; \
-    php artisan view:cache; \
-    rm -f .env
+        --optimize-autoloader
 
 FROM base AS runtime
 

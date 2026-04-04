@@ -5,26 +5,9 @@
 @section('page-description', 'Curate the mobile experience: manage sections and recommended projects.')
 
 @section('content')
-<div x-data="{ activeTab: 'projects' }" class="w-full p-6 space-y-6">
+<div class="w-full p-6 space-y-6">
 
-    <!-- Tabs Header -->
-    <div class="border-b border-gray-200">
-        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-            <button @click="activeTab = 'projects'"
-                :class="activeTab === 'projects' ? 'border-[#529F60] text-[#529F60]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Recommended Projects
-            </button>
-            <button @click="activeTab = 'sections'"
-                :class="activeTab === 'sections' ? 'border-[#529F60] text-[#529F60]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Section Ordering
-            </button>
-        </nav>
-    </div>
-
-    <!-- Tab Content: Recommended Projects -->
-    <div x-show="activeTab === 'projects'" class="space-y-6" style="display: none;">
+    <div class="space-y-6 block">
         <div class="flex justify-between items-center">
             <h2 class="text-lg font-bold text-gray-900">Recommended Projects (Admin Curated)</h2>
             <button onclick="document.getElementById('createProjectModal').classList.remove('hidden')" class="bg-[#529F60] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-[#43834F]">
@@ -118,131 +101,149 @@
                 </tbody>
             </table>
         </div>
-    </div>
-
-    <!-- Tab Content: Section Ordering -->
-    <div x-show="activeTab === 'sections'" class="space-y-6" style="display: none;">
-        <div class="bg-white shadow rounded-lg border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4">Homepage Sections Visibility & Ordering</h2>
-            <form action="{{ route('admin.homepage-sections.update') }}" method="POST">
-                @csrf
-                @method('PATCH')
-                
-                <div class="space-y-4">
-                    @foreach($sections as $index => $section)
-                    <div class="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <input type="hidden" name="sections[{{ $index }}][id]" value="{{ $section->id }}">
-                        
-                        <div class="flex-1">
-                            <label class="block text-xs font-medium text-gray-500 uppercase">Label / Title</label>
-                            <input type="text" name="sections[{{ $index }}][label]" value="{{ $section->label }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                        </div>
-                        
-                        <div class="w-24">
-                            <label class="block text-xs font-medium text-gray-500 uppercase">Position</label>
-                            <input type="number" name="sections[{{ $index }}][position]" value="{{ $section->position }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                        </div>
-                        
-                        <div class="pt-6">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" name="sections[{{ $index }}][is_enabled]" value="1" {{ $section->is_enabled ? 'checked' : '' }} class="rounded border-gray-300 text-[#529F60] shadow-sm focus:border-[#529F60] focus:ring focus:ring-[#529F60] focus:ring-opacity-50">
-                                <span class="ml-2 text-sm text-gray-600">Enabled</span>
-                            </label>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-                
-                <div class="mt-6 flex justify-end">
-                    <button type="submit" class="bg-[#529F60] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-[#43834F]">
-                        Save Configuration
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
 <!-- Create Project Modal -->
-<div id="createProjectModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <!-- Background overlay -->
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="document.getElementById('createProjectModal').classList.add('hidden')"></div>
+<div id="createProjectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <!-- Background overlay -->
+    <div class="absolute inset-0" aria-hidden="true" onclick="document.getElementById('createProjectModal').classList.add('hidden')"></div>
 
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+    <div class="relative bg-white border border-slate-950 w-full max-w-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col max-h-[90vh]">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 bg-slate-50 shrink-0">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800" id="modal-title">Add Recommended Project</h2>
+            <button type="button" class="text-slate-400 hover:text-slate-900 transition-colors" onclick="document.getElementById('createProjectModal').classList.add('hidden')">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
 
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <form action="{{ route('admin.recommended-projects.store') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">
-                        Add Recommended Project
-                    </h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Title</label>
-                            <input type="text" name="title" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Description</label>
-                            <textarea name="description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm"></textarea>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Project Type</label>
-                                <input type="text" name="project_type" placeholder="e.g. mobile, web" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Ratio</label>
-                                <select name="ratio" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                                    <option value="16:9">16:9</option>
-                                    <option value="1:1">1:1</option>
-                                    <option value="4:3">4:3</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Tags (comma separated)</label>
-                            <input type="text" name="tags" placeholder="e.g. Flutter, Laravel, API" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Thumbnail Image</label>
-                            <input type="file" name="thumbnail" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#529F60] file:text-white hover:file:bg-[#43834F]">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Display Priority</label>
-                                <input type="number" name="display_priority" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                            </div>
-                            <div class="pt-6">
-                                <label class="inline-flex items-center">
-                                    <input type="checkbox" name="is_active" value="1" checked class="rounded border-gray-300 text-[#529F60] shadow-sm focus:border-[#529F60] focus:ring focus:ring-[#529F60] focus:ring-opacity-50">
-                                    <span class="ml-2 text-sm text-gray-600">Active</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Starts At (optional)</label>
-                                <input type="datetime-local" name="starts_at" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Ends At (optional)</label>
-                                <input type="datetime-local" name="ends_at" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#529F60] focus:ring-[#529F60] sm:text-sm">
-                            </div>
-                        </div>
+        <!-- Modal Content (High Density Form) -->
+        <form action="{{ route('admin.recommended-projects.store') }}" method="POST" enctype="multipart/form-data" class="flex flex-col overflow-hidden h-full" id="addProjectForm" onsubmit="handleProjectSubmit(event)">
+            @csrf
+            <div class="p-4 grid grid-cols-12 gap-y-4 gap-x-6 overflow-y-auto">
+                <!-- Project Title -->
+                <div class="col-span-12">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Project Title</label>
+                    <input type="text" name="title" required class="w-full border border-slate-300 px-3 py-1.5 text-sm focus:ring-0 focus:border-slate-900 rounded-none" placeholder="Enter high-level project name"/>
+                </div>
+
+                <!-- Description -->
+                <div class="col-span-12">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Description</label>
+                    <textarea name="description" class="w-full border border-slate-300 px-3 py-1.5 text-sm focus:ring-0 focus:border-slate-900 rounded-none h-20 resize-none" placeholder="Brief technical summary..."></textarea>
+                </div>
+
+                <!-- Project Type & Ratio -->
+                <div class="col-span-6">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Project Type</label>
+                    <input type="text" name="project_type" class="w-full border border-slate-300 px-3 py-1.5 text-sm focus:ring-0 focus:border-slate-900 rounded-none" placeholder="e.g. mobile, web"/>
+                </div>
+                <div class="col-span-6">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ratio</label>
+                    <select name="ratio" class="w-full border border-slate-300 px-3 py-1.5 text-sm focus:ring-0 focus:border-slate-900 rounded-none appearance-none bg-white">
+                        <option value="16:9">16:9</option>
+                        <option value="1:1">1:1</option>
+                        <option value="4:3">4:3</option>
+                    </select>
+                </div>
+
+                <!-- Tags -->
+                <div class="col-span-12">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Tags (Comma Separated)</label>
+                    <input type="text" name="tags" class="w-full border border-slate-300 px-3 py-1.5 text-sm focus:ring-0 focus:border-slate-900 rounded-none" placeholder="cloud, automation, security"/>
+                </div>
+
+                <!-- Thumbnail & Document -->
+                <div class="col-span-6">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Thumbnail Image</label>
+                    <div class="relative border border-slate-300 p-2 flex items-center bg-slate-50 overflow-hidden h-[46px] group hover:bg-slate-100 transition-colors">
+                        <input type="file" name="thumbnail" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="updateFileLabel(this, 'thumb-label', 'thumb-icon', 'thumb-btn')">
+                        <span class="material-symbols-outlined text-slate-400 mr-2 group-hover:text-slate-600 transition-colors" id="thumb-icon">image</span>
+                        <span class="text-xs text-slate-600 truncate font-mono flex-1" id="thumb-label">Select image...</span>
+                        <button class="ml-auto text-[10px] border border-slate-900 px-2 py-0.5 hover:bg-slate-200 uppercase font-bold relative z-0 shrink-0" type="button" id="thumb-btn">BROWSE</button>
                     </div>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#529F60] text-base font-medium text-white hover:bg-[#43834F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#529F60] sm:ml-3 sm:w-auto sm:text-sm">
-                        Save
-                    </button>
-                    <button type="button" onclick="document.getElementById('createProjectModal').classList.add('hidden')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#529F60] sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                        Cancel
-                    </button>
+                <div class="col-span-6">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Project Document</label>
+                    <div class="relative border border-slate-300 p-2 flex items-center bg-slate-50 overflow-hidden h-[46px] group hover:bg-slate-100 transition-colors">
+                        <input type="file" name="project_file" accept=".pdf,.ppt,.pptx,.doc,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="updateFileLabel(this, 'doc-label', 'doc-icon', 'doc-btn')">
+                        <span class="material-symbols-outlined text-slate-400 mr-2 group-hover:text-slate-600 transition-colors" id="doc-icon">description</span>
+                        <span class="text-xs text-slate-600 truncate font-mono flex-1" id="doc-label">Upload PDF, PPT, DOC</span>
+                        <button class="ml-auto text-[10px] border border-slate-900 px-2 py-0.5 hover:bg-slate-200 uppercase font-bold relative z-0 shrink-0" type="button" id="doc-btn">UPLOAD</button>
+                    </div>
                 </div>
-            </form>
-        </div>
+
+                <!-- Display Priority & Active Status -->
+                <div class="col-span-6">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Display Priority</label>
+                    <input type="number" name="display_priority" value="0" class="w-full border border-slate-300 px-3 py-1.5 text-sm focus:ring-0 focus:border-slate-900 rounded-none"/>
+                </div>
+                <div class="col-span-6 flex items-end">
+                    <label class="flex items-center gap-3 cursor-pointer h-[34px]">
+                        <input type="checkbox" name="is_active" value="1" checked class="w-4 h-4 border-slate-300 text-slate-900 focus:ring-0 rounded-none"/>
+                        <span class="text-[10px] font-bold uppercase text-slate-700">Project Is Active</span>
+                    </label>
+                </div>
+
+                <!-- Start & End Dates -->
+                <div class="col-span-6">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Starts At (Optional)</label>
+                    <div class="relative">
+                        <input type="datetime-local" name="starts_at" class="w-full border border-slate-300 px-3 py-1.5 text-sm focus:ring-0 focus:border-slate-900 rounded-none"/>
+                    </div>
+                </div>
+                <div class="col-span-6">
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ends At (Optional)</label>
+                    <div class="relative">
+                        <input type="datetime-local" name="ends_at" class="w-full border border-slate-300 px-3 py-1.5 text-sm focus:ring-0 focus:border-slate-900 rounded-none"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div class="flex items-center justify-end gap-3 px-4 py-4 border-t border-slate-200 bg-slate-50 mt-auto shrink-0">
+                <button type="button" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 bg-white border border-slate-300 hover:bg-slate-100 transition-colors" onclick="document.getElementById('createProjectModal').classList.add('hidden')">Discard</button>
+                <button type="submit" id="submitProjectBtn" class="px-6 py-2 text-xs font-bold uppercase tracking-widest text-white bg-slate-950 border border-slate-950 hover:bg-slate-800 transition-colors">Save Project</button>
+            </div>
+        </form>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    function updateFileLabel(input, labelId, iconId, btnId) {
+        const label = document.getElementById(labelId);
+        const icon = document.getElementById(iconId);
+        const btn = document.getElementById(btnId);
+
+        if (input.files && input.files.length > 0) {
+            label.textContent = input.files[0].name;
+            label.classList.add('text-blue-600', 'font-bold');
+            
+            icon.textContent = 'check_circle';
+            icon.classList.add('text-[#529F60]');
+            icon.classList.remove('text-slate-400');
+            
+            btn.textContent = 'REPLACE';
+        } else {
+            label.textContent = labelId === 'thumb-label' ? 'Select image...' : 'Upload PDF, PPT, DOC';
+            label.classList.remove('text-blue-600', 'font-bold');
+            
+            icon.textContent = labelId === 'thumb-label' ? 'image' : 'description';
+            icon.classList.remove('text-[#529F60]');
+            icon.classList.add('text-slate-400');
+            
+            btn.textContent = labelId === 'thumb-label' ? 'BROWSE' : 'UPLOAD';
+        }
+    }
+
+    function handleProjectSubmit(e) {
+        const btn = document.getElementById('submitProjectBtn');
+        btn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin mr-2 align-middle">progress_activity</span> UPLOADING...';
+        btn.classList.add('opacity-80', 'cursor-wait');
+        btn.classList.remove('hover:bg-slate-800');
+        btn.style.pointerEvents = 'none';
+    }
+</script>
+@endpush
