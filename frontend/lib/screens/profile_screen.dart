@@ -10,6 +10,7 @@ import 'dart:convert';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import '../utils/auth_guard.dart';
+import '../main.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String role;
@@ -89,12 +90,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _handleLogout() async {
+    // 1. Clear local state immediately so UI shows guest
+    setState(() {
+      _user = null;
+      _isLoading = false;
+    });
+
+    // 2. Clear server session + all persisted data (tokens, cache, etc.)
     await _authService.logout();
+
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+
+    // 3. Reset MainShell to guest/teacher mode and navigate to Home tab
+    await KlassApp.mainShellKey.currentState?.reloadRole();
   }
 
   @override
@@ -141,15 +149,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildProfileHeader(),
-                          const SizedBox(height: 24),
-                          _buildStatsBento(),
-                          const SizedBox(height: 32),
-                          if (widget.role != 'freelancer') ...[
-                            _buildInstitutionalTools(),
-                            const SizedBox(height: 8),
-                            _buildTeachingMaterials(),
-                          ] else ...[
-                            _buildFreelancerProfileSection(),
+                          if (_user != null) ...[
+                            const SizedBox(height: 24),
+                            _buildStatsBento(),
+                            const SizedBox(height: 32),
+                            if (widget.role != 'freelancer') ...[
+                              _buildInstitutionalTools(),
+                              const SizedBox(height: 8),
+                              _buildTeachingMaterials(),
+                            ] else ...[
+                              _buildFreelancerProfileSection(),
+                            ],
                           ],
                           const SizedBox(height: 32),
                           _buildAccountSupport(),
@@ -200,48 +210,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       )
                     : const Icon(Icons.person_rounded, size: 64, color: AppColors.textMuted),
               ),
-              Positioned(
-                bottom: -8,
-                right: -8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.verified_rounded,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'VERIFIED',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 1,
+              if (_user != null)
+                Positioned(
+                  bottom: -8,
+                  right: -8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.verified_rounded,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'VERIFIED',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -266,38 +277,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: widget.role == 'freelancer'
-                  ? const Color(0xFF53C2B4).withValues(alpha: 0.12)
-                  : AppColors.primary.withValues(alpha: 0.1),
+              color: _user == null
+                  ? AppColors.textMuted.withValues(alpha: 0.1)
+                  : widget.role == 'freelancer'
+                      ? const Color(0xFF53C2B4).withValues(alpha: 0.12)
+                      : AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: widget.role == 'freelancer'
-                    ? const Color(0xFF53C2B4).withValues(alpha: 0.3)
-                    : AppColors.primary.withValues(alpha: 0.2),
+                color: _user == null
+                    ? AppColors.textMuted.withValues(alpha: 0.2)
+                    : widget.role == 'freelancer'
+                        ? const Color(0xFF53C2B4).withValues(alpha: 0.3)
+                        : AppColors.primary.withValues(alpha: 0.2),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  widget.role == 'freelancer'
-                      ? Icons.work_rounded
-                      : Icons.school_rounded,
+                  _user == null
+                      ? Icons.person_outline_rounded
+                      : widget.role == 'freelancer'
+                          ? Icons.work_rounded
+                          : Icons.school_rounded,
                   size: 16,
-                  color: widget.role == 'freelancer'
-                      ? const Color(0xFF53C2B4)
-                      : AppColors.primary,
+                  color: _user == null
+                      ? AppColors.textMuted
+                      : widget.role == 'freelancer'
+                          ? const Color(0xFF53C2B4)
+                          : AppColors.primary,
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  widget.role == 'freelancer' ? 'FREELANCER' : 'TEACHER',
+                  _user == null
+                      ? 'GUEST'
+                      : widget.role == 'freelancer' ? 'FREELANCER' : 'TEACHER',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
-                    color: widget.role == 'freelancer'
-                        ? const Color(0xFF53C2B4)
-                        : AppColors.primary,
+                    color: _user == null
+                        ? AppColors.textMuted
+                        : widget.role == 'freelancer'
+                            ? const Color(0xFF53C2B4)
+                            : AppColors.primary,
                     letterSpacing: 1,
                   ),
                 ),
@@ -305,78 +328,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
-        Center(
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
-            children: [
-              _buildInfoChip(
-                Icons.account_balance_rounded,
-                'Greenwood International School',
-              ),
-              _buildInfoChip(
-                Icons.history_edu_rounded,
-                '12 Years in Education',
-              ),
-            ],
+        if (_user != null) ...[
+          const SizedBox(height: 20),
+          Center(
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [
+                _buildInfoChip(
+                  Icons.account_balance_rounded,
+                  'Greenwood International School',
+                ),
+                _buildInfoChip(
+                  Icons.history_edu_rounded,
+                  '12 Years in Education',
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 32),
-        Center(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+          const SizedBox(height: 32),
+          Center(
             child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryDark],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, AppColors.primaryDark],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: () => FeatureComingSoon.show(
-                  context,
-                  title: 'Class Dashboard',
-                  description:
-                      'The Class Dashboard is being refined to provide you with a comprehensive overview of your teaching performance and student engagement metrics.',
-                  featureName: 'Performance Analytics',
-                  featureDescription:
-                      'Real-time data on class participation and curriculum progress.',
-                  icon: Icons.dashboard_customize_rounded,
-                  previewIcon: Icons.insights_rounded,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                child: ElevatedButton(
+                  onPressed: () => FeatureComingSoon.show(
+                    context,
+                    title: 'Class Dashboard',
+                    description:
+                        'The Class Dashboard is being refined to provide you with a comprehensive overview of your teaching performance and student engagement metrics.',
+                    featureName: 'Performance Analytics',
+                    featureDescription:
+                        'Real-time data on class participation and curriculum progress.',
+                    icon: Icons.dashboard_customize_rounded,
+                    previewIcon: Icons.insights_rounded,
                   ),
-                ),
-                child: const Text(
-                  'Class Dashboard',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text(
+                    'Class Dashboard',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

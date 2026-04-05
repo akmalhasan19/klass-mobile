@@ -5,6 +5,8 @@ import '../widgets/top_right_accent.dart';
 import '../widgets/layer2_white_clipper.dart';
 import '../config/animations.dart';
 import '../widgets/feature_coming_soon.dart';
+import '../services/auth_service.dart';
+import '../main.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
@@ -22,6 +24,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _complexity = 'Intermediate';
   bool _isDarkMode = true;
   bool _autoSave = true;
+  final _authService = AuthService();
+
+  void _handleLogout() async {
+    // 1. Clear server session + all persisted data (tokens, cache, etc.)
+    await _authService.logout();
+
+    if (!mounted) return;
+
+    // 2. Reset MainShell to guest/teacher mode and navigate to Home tab
+    await KlassApp.mainShellKey.currentState?.reloadRole();
+
+    if (!mounted) return;
+
+    // 3. Close the settings screen
+    Navigator.of(context).maybePop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -493,32 +511,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      width: double.infinity,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.red.withValues(alpha: 0.3),
-                          width: 2,
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.logout_rounded, size: 20, color: AppColors.red),
-                          SizedBox(width: 8),
-                          Text(
-                            'Log Out',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.red,
-                              letterSpacing: -0.3,
-                            ),
+                    child: GestureDetector(
+                      onTap: _handleLogout,
+                      child: Container(
+                        width: double.infinity,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.red.withValues(alpha: 0.3),
+                            width: 2,
                           ),
-                        ],
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.logout_rounded,
+                                size: 20, color: AppColors.red),
+                            SizedBox(width: 8),
+                            Text(
+                              'Log Out',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.red,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

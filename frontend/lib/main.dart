@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'config/theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/bookmark_screen.dart';
-import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/gallery_screen.dart';
-import 'screens/freelancer_home_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/freelancer_jobs_screen.dart';
 import 'screens/freelancer_portfolio_screen.dart';
+import 'screens/freelancer_home_screen.dart';
+import 'services/auth_service.dart';
 import 'widgets/bottom_nav.dart';
 import 'config/animations.dart'; 
 
@@ -61,6 +60,7 @@ class MainShell extends StatefulWidget {
 }
 
 class MainShellState extends State<MainShell> {
+  final AuthService _authService = AuthService();
   int _currentIndex = 0;
   bool _shouldFocusHomePrompt = false;
   String _userRole = 'teacher'; // Default role
@@ -74,20 +74,21 @@ class MainShellState extends State<MainShell> {
   /// Load user role from cached SharedPreferences data.
   Future<void> _loadUserRole() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userStr = prefs.getString('user_data');
-      if (userStr != null) {
-        final user = jsonDecode(userStr) as Map<String, dynamic>;
-        final role = user['role'] as String?;
-        if (role != null && mounted) {
-          setState(() {
-            // Treat legacy 'user' role as teacher
-            _userRole = (role == 'freelancer') ? 'freelancer' : 'teacher';
-          });
-        }
+      final role = await _authService.getUserRole();
+      if (!mounted) {
+        return;
       }
+
+      setState(() {
+        _userRole = AuthService.resolveAppRole(role);
+      });
     } catch (_) {
       // Silently default to teacher
+      if (mounted) {
+        setState(() {
+          _userRole = 'teacher';
+        });
+      }
     }
   }
 
@@ -147,6 +148,7 @@ class MainShellState extends State<MainShell> {
           key: const ValueKey('home'),
           onSettingsTap: _navigateToSettings,
           shouldFocusPrompt: _shouldFocusHomePrompt,
+          role: _userRole,
         );
         // Reset flag after consumption
         _shouldFocusHomePrompt = false;

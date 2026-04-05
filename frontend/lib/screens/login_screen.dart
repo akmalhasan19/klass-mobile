@@ -54,13 +54,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (success) {
         // Fetch user profile right after login/register
-        await _authService.getMe();
+        final userProfile = await _authService.getMe();
+        final role = AuthService.getRoleFromUserData(userProfile);
+        final isFreelancer = AuthService.resolveAppRole(role) == 'freelancer';
         
         if (!mounted) return;
-        // Navigate to main shell
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => MainShell(key: KlassApp.mainShellKey)),
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isFreelancer 
+                ? '✅ Berhasil masuk sebagai Freelancer.' 
+                : '✅ Berhasil masuk.',
+              style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
         );
+
+        await KlassApp.mainShellKey.currentState?.reloadRole();
+
+        if (!mounted) return;
+
+        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
       } else {
         setState(() {
           _errorMessage = 'Terjadi kesalahan. Coba lagi.';

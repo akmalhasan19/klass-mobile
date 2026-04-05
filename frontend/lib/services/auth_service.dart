@@ -6,6 +6,23 @@ import 'api_service.dart';
 class AuthService {
   final ApiService _apiService = ApiService();
 
+  static String? normalizeRoleValue(dynamic role) {
+    if (role == null) {
+      return null;
+    }
+
+    final normalizedRole = role.toString().trim().toLowerCase();
+    if (normalizedRole.isEmpty) {
+      return null;
+    }
+
+    return normalizedRole;
+  }
+
+  static String resolveAppRole(dynamic role) {
+    return normalizeRoleValue(role) == 'freelancer' ? 'freelancer' : 'teacher';
+  }
+
   Future<bool> login(String email, String password) async {
     try {
       final response = await _apiService.dio.post('/auth/login', data: {
@@ -29,7 +46,9 @@ class AuthService {
       }
       return false;
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Login failed');
+      final data = e.response?.data;
+      final msg = data is Map ? data['message'] : null;
+      throw Exception(msg ?? 'Login failed');
     }
   }
 
@@ -58,7 +77,9 @@ class AuthService {
       }
       return false;
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Registration failed');
+      final data = e.response?.data;
+      final msg = data is Map ? data['message'] : null;
+      throw Exception(msg ?? 'Registration failed');
     }
   }
 
@@ -74,7 +95,9 @@ class AuthService {
       }
       return null;
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to get security question');
+      final data = e.response?.data;
+      final msg = data is Map ? data['message'] : null;
+      throw Exception(msg ?? 'Failed to get security question');
     }
   }
 
@@ -90,7 +113,9 @@ class AuthService {
       }
       return false;
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to reset password');
+      final data = e.response?.data;
+      final msg = data is Map ? data['message'] : null;
+      throw Exception(msg ?? 'Failed to reset password');
     }
   }
 
@@ -103,6 +128,14 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');
       await prefs.remove('user_data');
+
+      // Clear all cached API responses so stale user data doesn't survive logout
+      final allKeys = prefs.getKeys().toList();
+      for (final key in allKeys) {
+        if (key.startsWith('api_cache_')) {
+          await prefs.remove(key);
+        }
+      }
     }
   }
 
@@ -135,20 +168,20 @@ class AuthService {
     final userStr = prefs.getString('user_data');
     if (userStr != null) {
       final user = jsonDecode(userStr) as Map<String, dynamic>;
-      return user['role'] as String?;
+      return normalizeRoleValue(user['role']);
     }
     return null;
   }
 
   /// Returns the user's role synchronously from a cached user map.
   static String? getRoleFromUserData(Map<String, dynamic>? user) {
-    return user?['role'] as String?;
+    return normalizeRoleValue(user?['role']);
   }
 
   /// Checks if user is a teacher (or legacy 'user' role).
   Future<bool> isTeacher() async {
     final role = await getUserRole();
-    return role == 'teacher' || role == 'user';
+    return role == 'teacher' || role == 'user' || role == 'admin';
   }
 
   /// Checks if user is a freelancer.
@@ -185,7 +218,9 @@ class AuthService {
       }
       return null;
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to upload avatar');
+      final data = e.response?.data;
+      final msg = data is Map ? data['message'] : null;
+      throw Exception(msg ?? 'Failed to upload avatar');
     }
   }
 }

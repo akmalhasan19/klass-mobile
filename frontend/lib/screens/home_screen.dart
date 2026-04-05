@@ -19,11 +19,13 @@ import '../widgets/skeleton_loaders.dart';
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSettingsTap;
   final bool shouldFocusPrompt;
+  final String role;
 
   const HomeScreen({
     super.key,
     this.onSettingsTap,
     this.shouldFocusPrompt = false,
+    this.role = 'guest',
   });
 
   @override
@@ -552,27 +554,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 0),
-                            const Text(
-                              'Generate Topik Pembelajaran',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 21,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textPrimary,
-                                letterSpacing: 0.5,
+                            if (widget.role != 'freelancer') ...[
+                              const SizedBox(height: 0),
+                              const Text(
+                                'Generate Topik Pembelajaran',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 10),
-                            PromptInputWidget(
-                              controller: _promptController,
-                              focusNode: _promptFocusNode,
-                              onSubmit: (text) async {
-                                if (await requireAuth(context)) {
-                                  debugPrint('Prompt submitted: $text');
-                                }
-                              },
-                            ),
+                              const SizedBox(height: 10),
+                              PromptInputWidget(
+                                controller: _promptController,
+                                focusNode: _promptFocusNode,
+                                onSubmit: (text) async {
+                                  if (await requireAuth(context)) {
+                                    debugPrint('Prompt submitted: $text');
+                                  }
+                                },
+                              ),
+                            ],
                           ],
                         ),
                       ),
