@@ -24,14 +24,10 @@ class BottomNav extends StatelessWidget {
       height: 90,
       padding: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: role == 'freelancer'
-            ? const Color(0xFF1A1A2E) // Dark theme for freelancer
-            : AppColors.background,
+        color: AppColors.background,
         border: Border(
           top: BorderSide(
-            color: role == 'freelancer'
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.borderLight,
+            color: AppColors.borderLight,
             width: 0.5,
           ),
         ),
@@ -59,9 +55,7 @@ class BottomNav extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: role == 'freelancer'
-                        ? const Color(0xFF53C2B4).withValues(alpha: 0.15)
-                        : AppColors.primary.withValues(alpha: 0.08),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -103,12 +97,8 @@ class BottomNav extends StatelessWidget {
   }
 
   Widget _buildNavButton(_NavItem item, bool isActive, VoidCallback onTap) {
-    final activeColor = role == 'freelancer'
-        ? const Color(0xFF53C2B4)
-        : AppColors.primary;
-    final inactiveColor = role == 'freelancer'
-        ? Colors.white.withValues(alpha: 0.4)
-        : AppColors.textMuted;
+    final activeColor = AppColors.primary;
+    final inactiveColor = AppColors.textMuted;
 
     return GestureDetector(
       onTap: onTap,

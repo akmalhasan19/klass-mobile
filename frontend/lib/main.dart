@@ -237,10 +237,22 @@ class MainShellState extends State<MainShell> {
             },
           );
         },
-        child: BottomNav(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          role: _userRole,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 600), // Increased to make staggering noticeable
+          switchInCurve: Curves.linear,
+          switchOutCurve: Curves.linear,
+          transitionBuilder: (child, animation) {
+            return StaggeredFadeTransition(
+              animation: animation,
+              child: child,
+            );
+          },
+          child: BottomNav(
+            key: ValueKey(_userRole),
+            currentIndex: _currentIndex,
+            onTap: (index) => setState(() => _currentIndex = index),
+            role: _userRole,
+          ),
         ),
       ),
     );

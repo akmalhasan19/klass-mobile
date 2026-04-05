@@ -113,6 +113,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_user == null && !_isLoading) {
+      return _buildGuestView();
+    }
+
     final topPadding = MediaQuery.of(context).padding.top;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -121,7 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Stack(
         children: [
-          // Layer 2 background (matches Home/Search logic)
+          // Layer 2 background
           Positioned.fill(
             child: Hero(
               tag: 'layer2_bg',
@@ -163,7 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                           const SizedBox(height: 32),
                           _buildAccountSupport(),
-                          const SizedBox(height: 120), // Bottom nav padding
+                          const SizedBox(height: 120),
                         ],
                       ),
                     ),
@@ -176,6 +180,391 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  Widget _buildGuestView() {
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark.copyWith(
+          statusBarColor: Colors.transparent,
+        ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 32 + topPadding,
+            bottom: 32,
+          ),
+          child: Column(
+            children: [
+              // Profile Header Section
+              _buildGuestHero(),
+              const SizedBox(height: 48),
+
+              // Main Action Section: Bento-ish Grid
+              _buildGuestBentoGrid(),
+              const SizedBox(height: 48),
+
+              // Authentication Prompt Card
+              _buildGuestAuthPrompt(),
+              const SizedBox(height: 64),
+
+              // Decorative Curator Quote
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Text(
+                    '"Knowledge is a curated gallery of the mind; begin your exhibition today."',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Mona_Sans',
+                      fontSize: 18,
+                      fontStyle: FontStyle.italic,
+                      color: AppColors.primary,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 120), // Bottom nav padding
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuestHero() {
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            Container(
+              width: 128,
+              height: 128,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 4),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.person_rounded,
+                size: 64,
+                color: AppColors.textMuted,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Text(
+                'GUEST',
+                style: TextStyle(
+                  fontFamily: 'Mona_Sans',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primary,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Guest User',
+          style: TextStyle(
+            fontFamily: 'Mona_Sans',
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+            color: AppColors.primary,
+            letterSpacing: -1,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'You are currently browsing as a guest',
+          style: TextStyle(
+            fontFamily: 'Mona_Sans',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textMuted,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGuestBentoGrid() {
+    return Column(
+      children: [
+        // Join as Teacher Card
+        _buildGuestActionCard(
+          title: 'Join as Teacher',
+          subtitle: 'Share your expertise and build your academic legacy.',
+          label: 'Opportunity',
+          icon: Icons.school_rounded,
+          isPrimary: true,
+          onTap: () {
+            FeatureComingSoon.show(
+              context,
+              title: 'Teacher Registration',
+              description: 'Become an educator and start sharing your knowledge today.',
+              featureName: 'Teacher Ecosystem',
+              featureDescription: 'Access tools for course creation and student management.',
+              icon: Icons.school_rounded,
+              previewIcon: Icons.rocket_launch_rounded,
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        // Join as Freelancer Card
+        _buildGuestActionCard(
+          title: 'Join as Freelancer',
+          subtitle: 'Work on your own terms with high-tier educational projects.',
+          label: 'Flexibility',
+          icon: Icons.work_rounded,
+          isPrimary: false,
+          onTap: () {
+            FeatureComingSoon.show(
+              context,
+              title: 'Freelancer Portal',
+              description: 'Register as a freelancer to participate in educational projects.',
+              featureName: 'Klass Freelance',
+              featureDescription: 'Flexible work opportunities for experts.',
+              icon: Icons.work_rounded,
+              previewIcon: Icons.bolt_rounded,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGuestActionCard({
+    required String title,
+    required String subtitle,
+    required String label,
+    required IconData icon,
+    required bool isPrimary,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 180),
+      decoration: BoxDecoration(
+        color: isPrimary ? AppColors.primary : Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: !isPrimary ? Border.all(color: AppColors.border.withValues(alpha: 0.5)) : null,
+        boxShadow: [
+          BoxShadow(
+            color: (isPrimary ? AppColors.primary : Colors.black).withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -20,
+                  bottom: -20,
+                  child: Opacity(
+                    opacity: isPrimary ? 0.15 : 0.05,
+                    child: Icon(
+                      icon,
+                      size: 160,
+                      color: isPrimary ? Colors.white : AppColors.primary,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(28.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label.toUpperCase(),
+                        style: TextStyle(
+                          fontFamily: 'Mona_Sans',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: isPrimary ? Colors.white.withValues(alpha: 0.7) : AppColors.textMuted,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'Mona_Sans',
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: isPrimary ? Colors.white : AppColors.primary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: 220,
+                        child: Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontFamily: 'Mona_Sans',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isPrimary ? Colors.white.withValues(alpha: 0.8) : AppColors.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Text(
+                            isPrimary ? 'Get Started' : 'Learn More',
+                            style: TextStyle(
+                              fontFamily: 'Mona_Sans',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: isPrimary ? Colors.white : AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            isPrimary ? Icons.chevron_right_rounded : Icons.arrow_forward_rounded,
+                            size: 18,
+                            color: isPrimary ? Colors.white : AppColors.primary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuestAuthPrompt() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Return to your journey',
+            style: TextStyle(
+              fontFamily: 'Mona_Sans',
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Access your curated classes and achievements.',
+            style: TextStyle(
+              fontFamily: 'Mona_Sans',
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                  child: const Text(
+                    'Log In',
+                    style: TextStyle(
+                      fontFamily: 'Mona_Sans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 4,
+                    shadowColor: AppColors.primary.withValues(alpha: 0.3),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Sign Up',
+                    style: TextStyle(
+                      fontFamily: 'Mona_Sans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildProfileHeader() {
     return Column(
