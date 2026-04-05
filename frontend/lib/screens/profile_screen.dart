@@ -810,6 +810,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: 'Help Center',
             isError: false,
           ),
+          const SizedBox(height: 12),
           _buildAccountSupportItem(
             icon: Icons.work_outline_rounded,
             label: 'Register as Freelancer',
@@ -900,36 +901,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isError
-                          ? AppColors.red.withValues(alpha: 0.1)
-                          : AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(12),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isError
+                            ? AppColors.red.withValues(alpha: 0.1)
+                            : AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        icon,
+                        color: isError ? AppColors.red : AppColors.primary,
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(
-                      icon,
-                      color: isError ? AppColors.red : AppColors.primary,
-                      size: 20,
+                    const SizedBox(width: 16),
+                    Flexible(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: isError ? AppColors.red : AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: isError ? AppColors.red : AppColors.textPrimary,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               if (!isError)
                 const Icon(

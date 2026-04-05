@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
 
 import '../widgets/animated_search_bar.dart';
+import '../widgets/skeleton_loaders.dart';
 import '../services/home_service.dart';
 
 /// Search/Discover Screen — mereplikasi halaman Search dari Klass Next.js.
@@ -39,13 +40,13 @@ class _SearchScreenState extends State<SearchScreen> {
     _fetchTeachers();
   }
 
-  Future<void> _fetchTeachers() async {
+  Future<void> _fetchTeachers({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      final res = await _homeService.fetchFreelancers();
+      final res = await _homeService.fetchFreelancers(forceRefresh: forceRefresh);
       if (mounted) {
         setState(() {
           teachers = res;
@@ -55,11 +56,37 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Network error. Please try again.';
+          _error = _normalizeErrorMessage(e);
           _isLoading = false;
         });
       }
     }
+  }
+
+  String _normalizeErrorMessage(Object error) {
+    final raw = error.toString();
+    const exceptionPrefix = 'Exception: ';
+    if (raw.startsWith(exceptionPrefix)) {
+      return raw.substring(exceptionPrefix.length);
+    }
+    return raw;
+  }
+
+  Future<void> _copyDebugInfo(String message) async {
+    await Clipboard.setData(ClipboardData(text: message));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Debug info copied to clipboard',
+          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   @override
@@ -94,7 +121,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Hero(
                 tag: 'content_fade',
                 child: RefreshIndicator(
-                  onRefresh: _fetchTeachers,
+                  onRefresh: () => _fetchTeachers(forceRefresh: true),
                   color: AppColors.primary,
                   backgroundColor: Colors.white,
                   child: CustomScrollView(
@@ -238,57 +265,11 @@ class _SearchScreenState extends State<SearchScreen> {
                           )
                         : _error != null
                           ? SliverToBoxAdapter(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 40),
-                                child: Center(
-                                  child: Column(
-                                    children: [
-                                      const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.red),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        _error!,
-                                        style: const TextStyle(fontFamily: 'Inter', color: AppColors.textMuted),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton(
-                                        onPressed: _fetchTeachers,
-                                        child: const Text('Retry'),
-                                      )
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              child: _buildErrorState(),
                             )
                           : teachers.isEmpty
                             ? SliverToBoxAdapter(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 60),
-                                  child: Center(
-                                    child: Column(
-                                      children: [
-                                        Icon(Icons.search_off_rounded, size: 64, color: AppColors.border),
-                                        const SizedBox(height: 16),
-                                        const Text(
-                                          'No results found',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w800,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        const Text(
-                                          'Try adjusting your search filters.',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            color: AppColors.textMuted,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                child: _buildEmptyState(),
                               )
                             : SliverList(
                                 delegate: SliverChildBuilderDelegate(
@@ -650,72 +631,429 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  // ─── Skeleton Loading Card (Shimmer) ───────────────────────────────
   Widget _buildSkeletonCard() {
-    return Opacity(
-      opacity: 0.4,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                color: AppColors.surfaceLight,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar skeleton
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  color: AppColors.border.withValues(alpha: 0.25),
+                ),
+                child: ShimmerEffect(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(22),
+                      color: Colors.white.withValues(alpha: 0.15),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Name skeleton
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: AppColors.border.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ShimmerEffect(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Rating badge skeleton
+                        Container(
+                          width: 50,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: AppColors.border.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ShimmerEffect(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: Colors.white.withValues(alpha: 0.15),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Role skeleton
+                    Container(
+                      height: 12,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: AppColors.border.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: ShimmerEffect(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Tags skeleton
+          Row(
+            children: [
+              _buildTagSkeleton(60),
+              const SizedBox(width: 8),
+              _buildTagSkeleton(80),
+              const SizedBox(width: 8),
+              _buildTagSkeleton(55),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Description skeleton lines
+          Container(
+            height: 12,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.border.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: ShimmerEffect(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 16,
-                    width: double.infinity * 0.75,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(8),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 12,
+            width: MediaQuery.of(context).size.width * 0.55,
+            decoration: BoxDecoration(
+              color: AppColors.border.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: ShimmerEffect(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Bottom action row skeleton
+          Container(
+            padding: const EdgeInsets.only(top: 16),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: AppColors.border.withValues(alpha: 0.3), width: 0.5),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Mini avatar circles skeleton
+                Row(
+                  children: List.generate(
+                    3,
+                    (i) => Container(
+                      width: 28,
+                      height: 28,
+                      transform: Matrix4.translationValues(i * -8.0, 0, 0),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.border.withValues(alpha: 0.2),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 12,
-                    width: 120,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(6),
+                ),
+                Container(
+                  width: 90,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: AppColors.border.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: ShimmerEffect(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(7),
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Container(
-                        height: 24,
-                        width: 60,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        height: 24,
-                        width: 80,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTagSkeleton(double width) {
+    return Container(
+      height: 26,
+      width: width,
+      decoration: BoxDecoration(
+        color: AppColors.border.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ShimmerEffect(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.white.withValues(alpha: 0.15),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Error State (Detailed Debug Info) ─────────────────────────────
+  Widget _buildErrorState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.red.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: AppColors.red.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Error icon with background
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.red.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 32,
+                color: AppColors.red,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Gagal Memuat Freelancer',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Terjadi masalah saat mengambil data. Detail error tersedia di bawah untuk debugging.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textMuted,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Debug info container
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 120),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    _error!,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
                   ),
-                ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Action buttons row
+            Row(
+              children: [
+                // Copy Debug Info button
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _copyDebugInfo(_error!),
+                    icon: const Icon(Icons.copy_rounded, size: 16),
+                    label: const Text(
+                      'Copy Debug Info',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Retry button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _fetchTeachers,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text(
+                      'Retry',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Empty State ───────────────────────────────────────────────────
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Center(
+        child: Column(
+          children: [
+            // Empty icon with subtle background
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.border.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Icon(
+                Icons.person_search_rounded,
+                size: 40,
+                color: AppColors.textMuted.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Belum Ada Freelancer',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Freelancer yang tersedia akan tampil di sini.\nCoba sesuaikan filter pencarian Anda.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMuted,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Refresh button
+            OutlinedButton.icon(
+              onPressed: () => _fetchTeachers(forceRefresh: true),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text(
+                'Refresh',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],

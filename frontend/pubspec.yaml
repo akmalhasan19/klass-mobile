@@ -38,6 +38,8 @@ dependencies:
   shared_preferences: ^2.5.5
   cached_network_image: ^3.4.1
   image_picker: ^1.2.1
+  dio_cache_interceptor: ^3.5.1
+  dio_cache_interceptor_hive_store: ^4.0.0
 
 dev_dependencies:
   flutter_test:

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../config/feature_flags.dart';
 import 'monitoring_service.dart';
+import 'cache_interceptor.dart';
 
 class ApiService {
   late Dio _dio;
@@ -27,6 +28,7 @@ class ApiService {
       },
     ));
 
+    _dio.interceptors.add(CacheInterceptor());
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final prefs = await SharedPreferences.getInstance();

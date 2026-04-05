@@ -1,10 +1,11 @@
 import 'api_service.dart';
 import '../config/feature_flags.dart';
+import 'package:dio/dio.dart';
 
 class SearchService {
   final ApiService _apiService = ApiService();
 
-  Future<List<Map<String, dynamic>>> searchTopics({String? q, String? category}) async {
+  Future<List<Map<String, dynamic>>> searchTopics({String? q, String? category, bool forceRefresh = false}) async {
     if (!FeatureFlags.useApiData || !FeatureFlags.enableServerSearch) {
       return []; // Fallback: return empty when API/search is disabled
     }
@@ -15,7 +16,11 @@ class SearchService {
        if (q != null && q.isNotEmpty) queryParams['search'] = q;
        if (category != null && category.isNotEmpty && category != 'All') queryParams['category'] = category;
 
-       final response = await _apiService.dio.get('/topics', queryParameters: queryParams);
+       final response = await _apiService.dio.get(
+         '/topics',
+         options: Options(extra: {'forceRefresh': forceRefresh}),
+         queryParameters: queryParams,
+       );
        if (response.statusCode == 200) {
          final data = response.data['data'] as List?;
          if (data != null) {

@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 class HomeService {
   final ApiService _apiService = ApiService();
 
-  Future<List<Map<String, dynamic>>> fetchProjects() async {
+  Future<List<Map<String, dynamic>>> fetchProjects({bool forceRefresh = false}) async {
     if (!FeatureFlags.useApiData) {
       return []; // Fallback: return empty when API is disabled
     }
@@ -13,6 +13,7 @@ class HomeService {
     try {
       final response = await _apiService.dio.get(
         '/homepage-recommendations',
+        options: Options(extra: {'forceRefresh': forceRefresh}),
         queryParameters: const {
           'limit': 10,
         },
@@ -50,13 +51,16 @@ class HomeService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchHomepageSections() async {
+  Future<List<Map<String, dynamic>>> fetchHomepageSections({bool forceRefresh = false}) async {
     if (!FeatureFlags.useApiData) {
       return []; // Fallback
     }
 
     try {
-      final response = await _apiService.dio.get('/homepage-sections');
+      final response = await _apiService.dio.get(
+        '/homepage-sections',
+        options: Options(extra: {'forceRefresh': forceRefresh}),
+      );
       if (response.statusCode == 200) {
         final payload = response.data;
         if (payload is Map<String, dynamic> && payload['data'] is List) {
@@ -70,13 +74,16 @@ class HomeService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchFreelancers() async {
+  Future<List<Map<String, dynamic>>> fetchFreelancers({bool forceRefresh = false}) async {
     if (!FeatureFlags.useApiData) {
       return []; // Fallback: return empty when API is disabled
     }
 
     try {
-      final response = await _apiService.dio.get('/marketplace-tasks');
+      final response = await _apiService.dio.get(
+        '/marketplace-tasks',
+        options: Options(extra: {'forceRefresh': forceRefresh}),
+      );
       if (response.statusCode == 200) {
         final payload = response.data;
         if (payload is Map<String, dynamic> && payload['data'] is List) {

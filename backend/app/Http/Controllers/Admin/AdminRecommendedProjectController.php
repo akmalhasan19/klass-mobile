@@ -6,15 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\RecommendedProject;
 use App\Services\FileUploadService;
+use App\Services\ThumbnailGeneratorService;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 
 class AdminRecommendedProjectController extends Controller
 {
     protected FileUploadService $fileUploadService;
+    protected ThumbnailGeneratorService $thumbnailGeneratorService;
 
-    public function __construct(FileUploadService $fileUploadService)
+    public function __construct(FileUploadService $fileUploadService, ThumbnailGeneratorService $thumbnailGeneratorService)
     {
         $this->fileUploadService = $fileUploadService;
+        $this->thumbnailGeneratorService = $thumbnailGeneratorService;
     }
 
     public function store(Request $request)
@@ -45,6 +49,11 @@ class AdminRecommendedProjectController extends Controller
             if ($request->hasFile('project_file')) {
                 $upload = $this->fileUploadService->upload($request->file('project_file'), 'materials');
                 $projectFileUrl = $upload['url'];
+            }
+
+            // Auto-generate thumbnail dari project_file jika tidak ada thumbnail
+            if ($thumbnailUrl === null && $request->hasFile('project_file')) {
+                $thumbnailUrl = $this->autoGenerateThumbnail($request->file('project_file'));
             }
 
             $project = RecommendedProject::create([
@@ -107,6 +116,13 @@ class AdminRecommendedProjectController extends Controller
             if ($request->hasFile('project_file')) {
                 $upload = $this->fileUploadService->upload($request->file('project_file'), 'materials');
                 $projectFileUrl = $upload['url'];
+            }
+
+            // Auto-generate thumbnail jika:
+            // 1. Tidak ada thumbnail saat ini DAN tidak ada thumbnail baru yang diupload
+            // 2. Ada project_file baru yang diupload
+            if ($thumbnailUrl === null && $request->hasFile('project_file')) {
+                $thumbnailUrl = $this->autoGenerateThumbnail($request->file('project_file'));
             }
 
             $recommendedProject->update([
@@ -186,5 +202,44 @@ class AdminRecommendedProjectController extends Controller
         ]);
 
         return back()->with('success', 'Project is successfully set to show now.');
+    }
+
+    /**
+     * Auto-generate thumbnail dari UploadedFile (project_file).
+     * Menggunakan ThumbnailGeneratorService untuk extract halaman/slide pertama,
+     * lalu upload hasilnya ke Supabase Storage via FileUploadService.
+     *
+     * @return string|null  URL thumbnail yang di-generate, atau null jika gagal
+     */
+    protected function autoGenerateThumbnail(UploadedFile $projectFile): ?string
+    {
+        try {
+            $tempThumbnailPath = $this->thumbnailGeneratorService->generateFromFile(
+                $projectFile->getRealPath()
+            );
+
+            if ($tempThumbnailPath === null) {
+                return null;
+            }
+
+            // Upload thumbnail yang di-generate ke Supabase Storage  
+            $generatedFile = new UploadedFile(
+                $tempThumbnailPath,
+                'auto_thumbnail_' . pathinfo($projectFile->getClientOriginalName(), PATHINFO_FILENAME) . '.' . pathinfo($tempThumbnailPath, PATHINFO_EXTENSION),
+                mime_content_type($tempThumbnailPath),
+                null,
+                true // test mode agar tidak perlu is_uploaded_file check
+            );
+
+            $upload = $this->fileUploadService->upload($generatedFile, 'gallery');
+
+            // Cleanup temp file
+            @unlink($tempThumbnailPath);
+
+            return $upload['url'];
+        } catch (\Throwable $e) {
+            report($e);
+            return null;
+        }
     }
 }

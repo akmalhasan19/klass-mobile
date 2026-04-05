@@ -17,7 +17,7 @@ class ProjectService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> fetchProjects() async {
+  Future<void> fetchProjects({bool forceRefresh = false}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -25,6 +25,7 @@ class ProjectService extends ChangeNotifier {
     try {
       final response = await _apiService.dio.get(
         '/topics',
+        options: Options(extra: {'forceRefresh': forceRefresh}),
         queryParameters: const {
           'include_contents': false,
           'per_page': 50,
@@ -64,7 +65,7 @@ class ProjectService extends ChangeNotifier {
     try {
       final response = await _apiService.dio.post('/topics', data: projectData);
       if (response.statusCode == 200 || response.statusCode == 201) {
-        fetchProjects(); // refresh list
+        fetchProjects(forceRefresh: true); // refresh list and bypass cache
         return true;
       }
       return false;

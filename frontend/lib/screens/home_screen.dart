@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchData();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _fetchData({bool forceRefresh = false}) async {
     if (mounted) {
       setState(() {
         _isProjectsLoading = true;
@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String? freelancersError;
 
     try {
-      fetchedSections = await _homeService.fetchHomepageSections();
+      fetchedSections = await _homeService.fetchHomepageSections(forceRefresh: forceRefresh);
       // Sort by position
       fetchedSections.sort((a, b) => (a['position'] ?? 0).compareTo(b['position'] ?? 0));
     } catch (e) {
@@ -83,13 +83,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      fetchedProjects = await _homeService.fetchProjects();
+      fetchedProjects = await _homeService.fetchProjects(forceRefresh: forceRefresh);
     } catch (e) {
       projectsError = _normalizeErrorMessage(e);
     }
 
     try {
-      fetchedFreelancers = await _homeService.fetchFreelancers();
+      fetchedFreelancers = await _homeService.fetchFreelancers(forceRefresh: forceRefresh);
     } catch (e) {
       freelancersError = _normalizeErrorMessage(e);
     }
@@ -428,7 +428,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Stack(
                 children: [
                   RefreshIndicator(
-                    onRefresh: _fetchData,
+                    onRefresh: () => _fetchData(forceRefresh: true),
                     color: AppColors.primary,
                     backgroundColor: Colors.white,
                     child: CustomScrollView(

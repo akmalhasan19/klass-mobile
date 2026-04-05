@@ -81,6 +81,19 @@ class ProjectSuggestionCard extends StatelessWidget {
                         Image.network(
                           imageUrl!,
                           fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                strokeWidth: 2,
+                                color: AppColors.primary.withValues(alpha: 0.4),
+                              ),
+                            );
+                          },
                           errorBuilder: (_, _, _) => _placeholderIcon(),
                         )
                       else

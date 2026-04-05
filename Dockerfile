@@ -9,10 +9,21 @@ RUN set -eux; \
         su-exec \
         libpq \
         postgresql-dev \
+        imagemagick \
+        imagemagick-dev \
+        ghostscript \
+        libzip-dev \
         $PHPIZE_DEPS; \
-    docker-php-ext-install -j"$(nproc)" pdo_pgsql opcache; \
-    apk del --no-network postgresql-dev $PHPIZE_DEPS; \
+    docker-php-ext-install -j"$(nproc)" pdo_pgsql opcache zip; \
+    pecl install imagick && docker-php-ext-enable imagick; \
+    apk del --no-network postgresql-dev imagemagick-dev $PHPIZE_DEPS; \
     rm -rf /var/cache/apk/*; \
+    if [ -f /etc/ImageMagick-7/policy.xml ]; then \
+        sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<!-- <policy domain="coder" rights="none" pattern="PDF" \/> -->/' /etc/ImageMagick-7/policy.xml; \
+    fi; \
+    if [ -f /etc/ImageMagick-6/policy.xml ]; then \
+        sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<!-- <policy domain="coder" rights="none" pattern="PDF" \/> -->/' /etc/ImageMagick-6/policy.xml; \
+    fi; \
     mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"; \
     { \
         echo '[opcache]'; \
