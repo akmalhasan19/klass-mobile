@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'config/theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
@@ -7,6 +9,9 @@ import 'screens/bookmark_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/gallery_screen.dart';
+import 'screens/freelancer_home_screen.dart';
+import 'screens/freelancer_jobs_screen.dart';
+import 'screens/freelancer_portfolio_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'config/animations.dart'; 
 
@@ -47,7 +52,7 @@ class KlassApp extends StatelessWidget {
 
 
 /// Main Shell — Container utama dengan Bottom Navigation.
-/// Mengelola switching antar 4 tab utama: Home, Search, Workspace, Profile.
+/// Role-aware: menampilkan tab yang berbeda untuk Teacher dan Freelancer.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -58,6 +63,41 @@ class MainShell extends StatefulWidget {
 class MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   bool _shouldFocusHomePrompt = false;
+  String _userRole = 'teacher'; // Default role
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  /// Load user role from cached SharedPreferences data.
+  Future<void> _loadUserRole() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userStr = prefs.getString('user_data');
+      if (userStr != null) {
+        final user = jsonDecode(userStr) as Map<String, dynamic>;
+        final role = user['role'] as String?;
+        if (role != null && mounted) {
+          setState(() {
+            // Treat legacy 'user' role as teacher
+            _userRole = (role == 'freelancer') ? 'freelancer' : 'teacher';
+          });
+        }
+      }
+    } catch (_) {
+      // Silently default to teacher
+    }
+  }
+
+  /// Reload role from SharedPreferences (called after login/registration).
+  Future<void> reloadRole() async {
+    await _loadUserRole();
+    setState(() {
+      _currentIndex = 0; // Reset to first tab
+    });
+  }
 
   void setTabIndex(int index) {
     setState(() {
@@ -93,6 +133,14 @@ class MainShellState extends State<MainShell> {
   }
 
   Widget _buildCurrentPage() {
+    if (_userRole == 'freelancer') {
+      return _buildFreelancerPage();
+    }
+    return _buildTeacherPage();
+  }
+
+  /// Teacher tabs: Home, Search, Workspace, Profile
+  Widget _buildTeacherPage() {
     switch (_currentIndex) {
       case 0:
         final home = HomeScreen(
@@ -112,7 +160,26 @@ class MainShellState extends State<MainShell> {
           onViewGallery: _navigateToGallery,
         );
       case 3:
-        return const ProfileScreen(key: ValueKey('profile'));
+        return ProfileScreen(key: const ValueKey('profile'), role: _userRole);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  /// Freelancer tabs: Home, Jobs, Portfolio, Profile
+  Widget _buildFreelancerPage() {
+    switch (_currentIndex) {
+      case 0:
+        return FreelancerHomeScreen(
+          key: const ValueKey('freelancer_home'),
+          onSettingsTap: _navigateToSettings,
+        );
+      case 1:
+        return const FreelancerJobsScreen(key: ValueKey('freelancer_jobs'));
+      case 2:
+        return const FreelancerPortfolioScreen(key: ValueKey('freelancer_portfolio'));
+      case 3:
+        return ProfileScreen(key: const ValueKey('profile'), role: _userRole);
       default:
         return const SizedBox.shrink();
     }
@@ -121,7 +188,9 @@ class MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: _userRole == 'freelancer'
+          ? const Color(0xFF1A1A2E)
+          : Theme.of(context).scaffoldBackgroundColor,
       // `extendBody` agar konten bisa extend di belakang bottom nav
       extendBody: true,
       extendBodyBehindAppBar: true,
@@ -169,6 +238,7 @@ class MainShellState extends State<MainShell> {
         child: BottomNav(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
+          role: _userRole,
         ),
       ),
     );

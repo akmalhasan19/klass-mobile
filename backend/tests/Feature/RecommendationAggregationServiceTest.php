@@ -165,10 +165,12 @@ class RecommendationAggregationServiceTest extends TestCase
 
         RecommendedProject::factory()->scheduled()->create([
             'title' => 'Scheduled Item',
+            'starts_at' => $moment->addDay(),
         ]);
 
         RecommendedProject::factory()->expired()->create([
             'title' => 'Expired Item',
+            'ends_at' => $moment->subDay(),
         ]);
 
         $feed = $service->buildFeed($moment);

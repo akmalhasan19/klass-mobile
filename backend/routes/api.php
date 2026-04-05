@@ -76,11 +76,24 @@ Route::get('/gallery', [GalleryController::class, 'index']);
 // Protected Routes (require Sanctum auth)
 // =========================================================================
 Route::middleware('auth:sanctum')->group(function () {
-    // Avatar Upload
+    // Avatar Upload — all authenticated users
     Route::post('/user/avatar', [AvatarController::class, 'store']);
+});
 
-    // Authenticated user project creation flow used by the mobile app.
+// =========================================================================
+// Teacher-Only Routes (require auth + teacher role)
+// =========================================================================
+Route::middleware(['auth:sanctum', 'teacher'])->group(function () {
+    // Project creation flow — teachers create educational content
     Route::post('/topics', [TopicController::class, 'store']);
+});
+
+// =========================================================================
+// Freelancer-Only Routes (require auth + freelancer role)
+// =========================================================================
+Route::middleware(['auth:sanctum', 'freelancer'])->group(function () {
+    // Placeholder: freelancer-specific endpoints will be added here
+    // e.g. accepting marketplace tasks, managing portfolio, etc.
 });
 
 // =========================================================================
@@ -108,3 +121,4 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::delete('/upload/{category}', [FileUploadController::class, 'destroy'])
         ->where('category', 'avatars|gallery|materials|attachments');
 });
+

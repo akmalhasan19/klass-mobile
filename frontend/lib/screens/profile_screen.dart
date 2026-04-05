@@ -12,7 +12,9 @@ import 'login_screen.dart';
 import '../utils/auth_guard.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String role;
+
+  const ProfileScreen({super.key, this.role = 'teacher'});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -142,9 +144,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 24),
                           _buildStatsBento(),
                           const SizedBox(height: 32),
-                          _buildInstitutionalTools(),
-                          const SizedBox(height: 8),
-                          _buildTeachingMaterials(),
+                          if (widget.role != 'freelancer') ...[
+                            _buildInstitutionalTools(),
+                            const SizedBox(height: 8),
+                            _buildTeachingMaterials(),
+                          ] else ...[
+                            _buildFreelancerProfileSection(),
+                          ],
                           const SizedBox(height: 32),
                           _buildAccountSupport(),
                           const SizedBox(height: 120), // Bottom nav padding
@@ -257,15 +263,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 8),
         Center(
-          child: Text(
-            _user?['role'] ?? _user?['email'] ?? 'User / Student',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: widget.role == 'freelancer'
+                  ? const Color(0xFF53C2B4).withValues(alpha: 0.12)
+                  : AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: widget.role == 'freelancer'
+                    ? const Color(0xFF53C2B4).withValues(alpha: 0.3)
+                    : AppColors.primary.withValues(alpha: 0.2),
+              ),
             ),
-            textAlign: TextAlign.center,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  widget.role == 'freelancer'
+                      ? Icons.work_rounded
+                      : Icons.school_rounded,
+                  size: 16,
+                  color: widget.role == 'freelancer'
+                      ? const Color(0xFF53C2B4)
+                      : AppColors.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  widget.role == 'freelancer' ? 'FREELANCER' : 'TEACHER',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: widget.role == 'freelancer'
+                        ? const Color(0xFF53C2B4)
+                        : AppColors.primary,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -945,6 +982,146 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFreelancerProfileSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        const Row(
+          children: [
+            Icon(Icons.work_rounded, color: Color(0xFF53C2B4), size: 22),
+            SizedBox(width: 8),
+            Text(
+              'Freelancer Profile',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // Skills section
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Keahlian',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: ['Desain Grafis', 'Presentasi', 'Video Editing', 'Konten Edukasi']
+                    .map((skill) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF53C2B4).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF53C2B4).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            skill,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF53C2B4),
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.edit_rounded, color: AppColors.textMuted, size: 24),
+                    SizedBox(height: 8),
+                    Text(
+                      'Edit Keahlian — Segera Hadir',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Portfolio stats coming soon
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: const Column(
+            children: [
+              Icon(Icons.trending_up_rounded, color: AppColors.textMuted, size: 32),
+              SizedBox(height: 12),
+              Text(
+                'Statistik Portfolio',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Statistik performa dan review dari teacher akan ditampilkan di sini.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMuted,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

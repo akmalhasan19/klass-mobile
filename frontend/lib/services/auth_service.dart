@@ -33,13 +33,14 @@ class AuthService {
     }
   }
 
-  Future<bool> register(String name, String email, String password) async {
+  Future<bool> register(String name, String email, String password, {String role = 'teacher'}) async {
     try {
       final response = await _apiService.dio.post('/auth/register', data: {
         'name': name,
         'email': email,
         'password': password,
         'password_confirmation': password,
+        'role': role,
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -125,6 +126,37 @@ class AuthService {
     return prefs.getString('auth_token') != null;
   }
 
+  // ─── Role Helpers ────────────────────────────────────────────
+
+  /// Returns the user's role from cached user data.
+  /// Possible values: 'teacher', 'freelancer', 'admin', 'user' (legacy).
+  Future<String?> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userStr = prefs.getString('user_data');
+    if (userStr != null) {
+      final user = jsonDecode(userStr) as Map<String, dynamic>;
+      return user['role'] as String?;
+    }
+    return null;
+  }
+
+  /// Returns the user's role synchronously from a cached user map.
+  static String? getRoleFromUserData(Map<String, dynamic>? user) {
+    return user?['role'] as String?;
+  }
+
+  /// Checks if user is a teacher (or legacy 'user' role).
+  Future<bool> isTeacher() async {
+    final role = await getUserRole();
+    return role == 'teacher' || role == 'user';
+  }
+
+  /// Checks if user is a freelancer.
+  Future<bool> isFreelancer() async {
+    final role = await getUserRole();
+    return role == 'freelancer';
+  }
+
   Future<String?> uploadAvatar(String filePath) async {
     try {
       final formData = FormData.fromMap({
@@ -157,3 +189,4 @@ class AuthService {
     }
   }
 }
+

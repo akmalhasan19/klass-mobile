@@ -19,11 +19,27 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
-    public const ROLE_USER = 'user';
+    public const ROLE_USER = 'user'; // Legacy — treated as teacher for backward compat
+    public const ROLE_TEACHER = 'teacher';
+    public const ROLE_FREELANCER = 'freelancer';
 
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
+    }
+
+    /**
+     * A user is considered a teacher if their role is explicitly 'teacher'
+     * or the legacy 'user' role (backward compatibility).
+     */
+    public function isTeacher(): bool
+    {
+        return in_array($this->role, [self::ROLE_TEACHER, self::ROLE_USER], true);
+    }
+
+    public function isFreelancer(): bool
+    {
+        return $this->role === self::ROLE_FREELANCER;
     }
 
     /**

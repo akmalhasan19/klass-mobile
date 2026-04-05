@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLogin = true;
   bool _isLoading = false;
   String _errorMessage = '';
+  String _selectedRole = 'teacher'; // Default role for registration
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -47,6 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _nameController.text.trim(),
           _emailController.text.trim(),
           _passwordController.text,
+          role: _selectedRole,
         );
       }
 
@@ -105,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _isLogin ? 'Sign in to jump back into your learning journey.' : 'Join Klass and start learning today.',
+                _isLogin ? 'Sign in to jump back into your learning journey.' : 'Join Klass and start your journey.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: 'Inter',
@@ -130,6 +132,42 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+              ],
+
+              // ─── Role Selector (Register Mode Only) ────────────────
+              if (!_isLogin) ...[
+                const Text(
+                  'Daftar sebagai:',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildRoleOption(
+                        role: 'teacher',
+                        label: 'Teacher',
+                        icon: Icons.school_rounded,
+                        description: 'Buat & kelola materi',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildRoleOption(
+                        role: 'freelancer',
+                        label: 'Freelancer',
+                        icon: Icons.work_rounded,
+                        description: 'Tawarkan jasa desain',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
               ],
 
               if (!_isLogin) ...[
@@ -198,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                       )
                     : Text(
-                        _isLogin ? 'Sign In' : 'Sign Up',
+                        _isLogin ? 'Sign In' : 'Sign Up as ${_selectedRole == 'teacher' ? 'Teacher' : 'Freelancer'}',
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 16,
@@ -226,6 +264,83 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleOption({
+    required String role,
+    required String label,
+    required IconData icon,
+    required String description,
+  }) {
+    final isSelected = _selectedRole == role;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedRole = role),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.08)
+              : AppColors.background,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.15)
+                    : AppColors.surfaceLight,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? AppColors.primary : AppColors.textMuted,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.7)
+                    : AppColors.textMuted,
+              ),
+            ),
+          ],
         ),
       ),
     );

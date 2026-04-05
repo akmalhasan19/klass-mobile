@@ -28,7 +28,7 @@ class HomepageRecommendationController extends Controller
 
         $requestedLimit = isset($validated['limit']) ? (int) $validated['limit'] : null;
 
-        if (! $section?->is_enabled) {
+        if ($section !== null && ! $section->is_enabled) {
             return (new RecommendedProjectRecommendationCollection(collect()))
                 ->withContextMeta([
                     'section' => $this->buildSectionMeta($section),

@@ -369,6 +369,33 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildTeacherCard(Map<String, dynamic> teacher) {
+    // ── Null-safe data extraction ──
+    // API /marketplace-tasks returns: id, content_id, status, creator_id,
+    // attachment_url, content (nested). Map these to UI fields with fallbacks.
+    final content = teacher['content'] as Map<String, dynamic>?;
+    final displayName = (teacher['name']
+        ?? content?['title']
+        ?? teacher['creator_id']
+        ?? 'Unknown').toString();
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+    final role = (teacher['role']
+        ?? teacher['status']
+        ?? 'Freelancer').toString();
+    final description = (teacher['description']
+        ?? content?['description']
+        ?? 'No description available').toString();
+    final rating = teacher['rating'] ?? '-';
+    final isOnline = teacher['online'] == true;
+
+    // Tags: support List<String>, List<dynamic>, or null
+    final rawTags = teacher['tags'];
+    final List<String> tags;
+    if (rawTags is List) {
+      tags = rawTags.map((e) => e.toString()).toList();
+    } else {
+      tags = [];
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -409,7 +436,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         child: Center(
                           child: Text(
-                            teacher['name'][0],
+                            initial,
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 24,
@@ -419,7 +446,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                         ),
                       ),
-                      if (teacher['online'] == true)
+                      if (isOnline)
                         Positioned(
                           bottom: 0,
                           right: 0,
@@ -446,7 +473,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                teacher['name'],
+                                displayName,
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 17,
@@ -470,7 +497,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                       size: 14, color: AppColors.amber),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${teacher['rating']}',
+                                    '$rating',
                                     style: const TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 12,
@@ -485,7 +512,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          teacher['role'],
+                          role,
                           style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 13,
@@ -501,34 +528,35 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               const SizedBox(height: 16),
               // Tags
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: (teacher['tags'] as List<String>).map((tag) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Text(
-                      tag.toUpperCase(),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.5,
+              if (tags.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: tags.map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.border),
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
+                      child: Text(
+                        tag.toUpperCase(),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              if (tags.isNotEmpty) const SizedBox(height: 16),
               // Description
               Text(
-                teacher['description'],
+                description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(

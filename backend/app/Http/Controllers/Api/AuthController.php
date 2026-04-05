@@ -32,11 +32,18 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        $role = $request->input('role', User::ROLE_TEACHER);
+
+        // Validate role is one of the allowed values
+        if (!in_array($role, [User::ROLE_TEACHER, User::ROLE_FREELANCER], true)) {
+            return $this->error('Role tidak valid. Pilih teacher atau freelancer.', 422);
+        }
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => User::ROLE_USER,
+            'role' => $role,
         ]);
 
         $token = $user->createToken('auth-token')->plainTextToken;

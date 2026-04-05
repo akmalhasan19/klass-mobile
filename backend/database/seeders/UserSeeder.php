@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Hash;
  * UserSeeder
  *
  * Membuat user awal yang merepresentasikan:
+ * - 1 akun admin (Klass Admin)
  * - 1 akun demo teacher (Dr. Sarah Jenkins — profil utama app)
+ * - 1 akun demo freelancer (Rina Freelancer — demo freelancer login)
  * - 4 freelancer/tutor (Agus, Ani, Budi, Susi — dari home screen)
  * - 2 teacher (Elena Rodriguez, Marcus Chen — dari search screen)
  */
@@ -32,59 +34,74 @@ class UserSeeder extends Seeder
                 'security_answer' => Hash::make('kucing'),
             ],
 
-            // Demo teacher — profil utama yang ditampilkan di profile_screen.dart
+            // ── Demo Teacher ─────────────────────────────────────────
+            // Profil utama yang ditampilkan di profile_screen.dart
             [
                 'name' => 'Dr. Sarah Jenkins',
                 'email' => 'sarah.jenkins@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/ani.png'),
-                'role' => User::ROLE_USER,
+                'role' => User::ROLE_TEACHER,
+                'security_question' => 'Apa nama sekolah pertama Anda?',
+                'security_answer' => Hash::make('sdn1'),
             ],
 
-            // Freelancers dari home_screen.dart
+            // ── Demo Freelancer ──────────────────────────────────────
+            // Akun demo untuk login sebagai freelancer
+            [
+                'name' => 'Rina Kreatif',
+                'email' => 'rina@klass.id',
+                'password' => Hash::make('password'),
+                'avatar_url' => $uploadService->generatePublicUrl('avatars/susi.png'),
+                'role' => User::ROLE_FREELANCER,
+                'security_question' => 'Apa warna favorit Anda?',
+                'security_answer' => Hash::make('biru'),
+            ],
+
+            // ── Freelancers (ditampilkan di home_screen.dart) ────────
             [
                 'name' => 'Agus S',
                 'email' => 'agus@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/agus.png'),
-                'role' => User::ROLE_USER,
+                'role' => User::ROLE_FREELANCER,
             ],
             [
                 'name' => 'Ani A',
                 'email' => 'ani@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/ani.png'),
-                'role' => User::ROLE_USER,
+                'role' => User::ROLE_FREELANCER,
             ],
             [
                 'name' => 'Budi O',
                 'email' => 'budi@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/budi.png'),
-                'role' => User::ROLE_USER,
+                'role' => User::ROLE_FREELANCER,
             ],
             [
                 'name' => 'Susi',
                 'email' => 'susi@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/susi.png'),
-                'role' => User::ROLE_USER,
+                'role' => User::ROLE_FREELANCER,
             ],
 
-            // Teachers dari search_screen.dart
+            // ── Teachers (ditampilkan di search_screen.dart) ────────
             [
                 'name' => 'Elena Rodriguez',
                 'email' => 'elena@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => null,
-                'role' => User::ROLE_USER,
+                'role' => User::ROLE_TEACHER,
             ],
             [
                 'name' => 'Marcus Chen',
                 'email' => 'marcus@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => null,
-                'role' => User::ROLE_USER,
+                'role' => User::ROLE_TEACHER,
             ],
         ];
 
@@ -96,3 +113,4 @@ class UserSeeder extends Seeder
         }
     }
 }
+

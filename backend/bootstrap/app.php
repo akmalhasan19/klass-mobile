@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsFreelancer;
+use App\Http\Middleware\EnsureUserIsTeacher;
 use App\Http\Middleware\StructuredApiLogger;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -24,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+            'teacher' => EnsureUserIsTeacher::class,
+            'freelancer' => EnsureUserIsFreelancer::class,
         ]);
 
         // Structured API logging for all API routes
