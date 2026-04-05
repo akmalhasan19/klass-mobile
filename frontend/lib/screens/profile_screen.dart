@@ -14,8 +14,13 @@ import '../main.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String role;
+  final bool isGuest;
 
-  const ProfileScreen({super.key, this.role = 'teacher'});
+  const ProfileScreen({
+    super.key,
+    this.role = 'teacher',
+    this.isGuest = false,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -24,7 +29,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _authService = AuthService();
   Map<String, dynamic>? _user;
-  bool _isLoading = true;
+  late bool _isLoading;
   late final ScrollController _scrollController;
 
   /// Profile curriculum modules — placeholder data for the profile screen.
@@ -63,18 +68,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _isLoading = !widget.isGuest;
+
+    if (widget.isGuest) {
+      return;
+    }
+
     _loadUser();
   }
 
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
+    final hasAuthToken = prefs.getString('auth_token') != null;
     final userStr = prefs.getString('user_data');
+
     if (userStr != null) {
       setState(() {
         _user = jsonDecode(userStr);
         _isLoading = false;
       });
     }
+
+    if (!hasAuthToken) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _user = null;
+        _isLoading = false;
+      });
+      return;
+    }
+
     // Fetch latest from API
     final me = await _authService.getMe();
     if (me != null && mounted) {
@@ -113,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_user == null && !_isLoading) {
+    if (widget.isGuest || (_user == null && !_isLoading)) {
       return _buildGuestView();
     }
 
@@ -182,37 +208,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGuestView() {
-    final topPadding = MediaQuery.of(context).padding.top;
-
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.dark.copyWith(
-          statusBarColor: Colors.transparent,
-        ),
+      body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 32 + topPadding,
-            bottom: 32,
-          ),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
           child: Column(
             children: [
-              // Profile Header Section
               _buildGuestHero(),
               const SizedBox(height: 48),
-
-              // Main Action Section: Bento-ish Grid
               _buildGuestBentoGrid(),
               const SizedBox(height: 48),
-
-              // Authentication Prompt Card
               _buildGuestAuthPrompt(),
               const SizedBox(height: 64),
-
-              // Decorative Curator Quote
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24),
                 child: Opacity(
@@ -230,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 120), // Bottom nav padding
+              const SizedBox(height: 120),
             ],
           ),
         ),

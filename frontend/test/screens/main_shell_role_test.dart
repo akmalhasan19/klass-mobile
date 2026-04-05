@@ -10,9 +10,11 @@ import 'package:klass_app/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MainShellAdapter implements HttpClientAdapter {
-  _MainShellAdapter({required this.user});
+  _MainShellAdapter({this.user, this.meDelay = Duration.zero});
 
-  final Map<String, dynamic> user;
+  final Map<String, dynamic>? user;
+  final Duration meDelay;
+  int meRequestCount = 0;
 
   @override
   Future<ResponseBody> fetch(
@@ -21,6 +23,15 @@ class _MainShellAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     if (options.path.contains('/auth/me')) {
+      meRequestCount += 1;
+      if (meDelay > Duration.zero) {
+        await Future<void>.delayed(meDelay);
+      }
+
+      if (user == null) {
+        return _jsonResponse({'message': 'Unauthorized'}, statusCode: 401);
+      }
+
       return _jsonResponse({'data': user});
     }
 
@@ -46,10 +57,13 @@ class _MainShellAdapter implements HttpClientAdapter {
     return _jsonResponse({'data': []});
   }
 
-  ResponseBody _jsonResponse(Map<String, dynamic> payload) {
+  ResponseBody _jsonResponse(
+    Map<String, dynamic> payload, {
+    int statusCode = 200,
+  }) {
     return ResponseBody.fromString(
       jsonEncode(payload),
-      200,
+      statusCode,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
       },
@@ -60,26 +74,35 @@ class _MainShellAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-Future<void> _pumpMainShell(
+Future<_MainShellAdapter> _pumpMainShell(
   WidgetTester tester, {
-  required Map<String, dynamic> user,
+  Map<String, dynamic>? user,
+  Map<String, Object>? prefsData,
+  MainShell shell = const MainShell(),
+  Duration meDelay = Duration.zero,
 }) async {
-  SharedPreferences.setMockInitialValues({
-    'auth_token': 'test-token',
-    'user_data': jsonEncode(user),
-  });
+  SharedPreferences.setMockInitialValues(
+    prefsData ??
+        {
+          if (user != null) 'auth_token': 'test-token',
+          if (user != null) 'user_data': jsonEncode(user),
+        },
+  );
 
   final api = ApiService();
-  api.dio.httpClientAdapter = _MainShellAdapter(user: user);
+  final adapter = _MainShellAdapter(user: user, meDelay: meDelay);
+  api.dio.httpClientAdapter = adapter;
 
   await tester.pumpWidget(
-    const MaterialApp(
-      home: MainShell(),
+    MaterialApp(
+      home: shell,
     ),
   );
 
   await tester.pump(const Duration(milliseconds: 300));
   await tester.pump(const Duration(milliseconds: 1200));
+
+  return adapter;
 }
 
 void main() {
@@ -130,5 +153,43 @@ void main() {
 
     expect(find.text('TEACHER'), findsOneWidget);
     expect(find.text('Sarah Jenkins'), findsOneWidget);
+  });
+
+  testWidgets('Guest profile restores header and prompt UI immediately without loading or account settings', (tester) async {
+    final adapter = await _pumpMainShell(
+      tester,
+      shell: const MainShell(
+        initialRole: 'teacher',
+        initialIsGuest: true,
+      ),
+      prefsData: const {},
+      meDelay: const Duration(seconds: 2),
+    );
+
+    await tester.tap(find.text('Profile'));
+    await tester.pump();
+
+    expect(find.text('Join as Teacher'), findsOneWidget);
+    expect(find.text('Join as Freelancer'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Guest User'), findsOneWidget);
+    expect(find.text('You are currently browsing as a guest'), findsOneWidget);
+    expect(find.text('Return to your journey'), findsOneWidget);
+    expect(find.text('Log In'), findsOneWidget);
+    expect(find.text('Sign Up'), findsOneWidget);
+    expect(find.text('Account Settings'), findsNothing);
+    expect(adapter.meRequestCount, 0);
+
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(find.text('Join as Teacher'), findsOneWidget);
+    expect(find.text('Join as Freelancer'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Guest User'), findsOneWidget);
+    expect(find.text('You are currently browsing as a guest'), findsOneWidget);
+    expect(find.text('Return to your journey'), findsOneWidget);
+    expect(find.text('Log In'), findsOneWidget);
+    expect(find.text('Sign Up'), findsOneWidget);
+    expect(find.text('Account Settings'), findsNothing);
   });
 }

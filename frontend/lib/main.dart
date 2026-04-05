@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'config/theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
@@ -14,8 +15,10 @@ import 'services/auth_service.dart';
 import 'widgets/bottom_nav.dart';
 import 'config/animations.dart'; 
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final initialShellState = await _loadInitialShellState();
 
   // Membuat status bar transparan — konten extend di belakang status bar
   SystemChrome.setSystemUIOverlayStyle(
@@ -29,14 +32,46 @@ void main() {
   // Edge-to-edge mode (konten membentang di belakang system bars)
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  runApp(const KlassApp());
+  runApp(
+    KlassApp(
+      initialRole: initialShellState.role,
+      initialIsGuest: initialShellState.isGuest,
+    ),
+  );
+}
+
+Future<_InitialShellState> _loadInitialShellState() async {
+  final prefs = await SharedPreferences.getInstance();
+  final hasAuthToken = prefs.getString('auth_token') != null;
+  final cachedRole = await AuthService().getUserRole();
+
+  return _InitialShellState(
+    role: hasAuthToken ? AuthService.resolveAppRole(cachedRole) : 'teacher',
+    isGuest: !hasAuthToken,
+  );
+}
+
+class _InitialShellState {
+  const _InitialShellState({
+    required this.role,
+    required this.isGuest,
+  });
+
+  final String role;
+  final bool isGuest;
 }
 
 /// Root widget aplikasi Klass.
 class KlassApp extends StatelessWidget {
-  const KlassApp({super.key});
+  const KlassApp({
+    super.key,
+    this.initialRole = 'teacher',
+    this.initialIsGuest = false,
+  });
 
   static final GlobalKey<MainShellState> mainShellKey = GlobalKey<MainShellState>();
+  final String initialRole;
+  final bool initialIsGuest;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +79,11 @@ class KlassApp extends StatelessWidget {
       title: 'Klass',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: MainShell(key: mainShellKey),
+      home: MainShell(
+        key: mainShellKey,
+        initialRole: initialRole,
+        initialIsGuest: initialIsGuest,
+      ),
     );
   }
 }
@@ -53,7 +92,14 @@ class KlassApp extends StatelessWidget {
 /// Main Shell — Container utama dengan Bottom Navigation.
 /// Role-aware: menampilkan tab yang berbeda untuk Teacher dan Freelancer.
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  const MainShell({
+    super.key,
+    this.initialRole = 'teacher',
+    this.initialIsGuest = false,
+  });
+
+  final String initialRole;
+  final bool initialIsGuest;
 
   @override
   State<MainShell> createState() => MainShellState();
@@ -63,30 +109,36 @@ class MainShellState extends State<MainShell> {
   final AuthService _authService = AuthService();
   int _currentIndex = 0;
   bool _shouldFocusHomePrompt = false;
-  String _userRole = 'teacher'; // Default role
+  late String _userRole;
+  late bool _isGuest;
 
   @override
   void initState() {
     super.initState();
+    _userRole = widget.initialRole;
+    _isGuest = widget.initialIsGuest;
     _loadUserRole();
   }
 
   /// Load user role from cached SharedPreferences data.
   Future<void> _loadUserRole() async {
     try {
+      final isLoggedIn = await _authService.isLoggedIn();
       final role = await _authService.getUserRole();
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _userRole = AuthService.resolveAppRole(role);
+        _isGuest = !isLoggedIn;
+        _userRole = isLoggedIn ? AuthService.resolveAppRole(role) : 'teacher';
       });
     } catch (_) {
       // Silently default to teacher
       if (mounted) {
         setState(() {
           _userRole = 'teacher';
+          _isGuest = true;
         });
       }
     }
@@ -133,6 +185,14 @@ class MainShellState extends State<MainShell> {
     );
   }
 
+  Duration get _pageTransitionDuration {
+    if (_isGuest && _currentIndex == 3) {
+      return Duration.zero;
+    }
+
+    return const Duration(milliseconds: 1000);
+  }
+
   Widget _buildCurrentPage() {
     if (_userRole == 'freelancer') {
       return _buildFreelancerPage();
@@ -162,7 +222,11 @@ class MainShellState extends State<MainShell> {
           onViewGallery: _navigateToGallery,
         );
       case 3:
-        return ProfileScreen(key: const ValueKey('profile'), role: _userRole);
+        return ProfileScreen(
+          key: ValueKey('profile_${_userRole}_${_isGuest ? 'guest' : 'member'}'),
+          role: _userRole,
+          isGuest: _isGuest,
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -181,7 +245,11 @@ class MainShellState extends State<MainShell> {
       case 2:
         return const FreelancerPortfolioScreen(key: ValueKey('freelancer_portfolio'));
       case 3:
-        return ProfileScreen(key: const ValueKey('profile'), role: _userRole);
+        return ProfileScreen(
+          key: ValueKey('profile_${_userRole}_${_isGuest ? 'guest' : 'member'}'),
+          role: _userRole,
+          isGuest: _isGuest,
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -197,10 +265,15 @@ class MainShellState extends State<MainShell> {
       extendBody: true,
       extendBodyBehindAppBar: true,
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 1000),
+        duration: _pageTransitionDuration,
+        reverseDuration: _pageTransitionDuration,
         switchInCurve: Curves.linear,
         switchOutCurve: Curves.linear,
         transitionBuilder: (child, animation) {
+          if (_pageTransitionDuration == Duration.zero) {
+            return child;
+          }
+
           return StaggeredFadeTransition(
             animation: animation,
             child: child,
