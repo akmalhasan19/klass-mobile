@@ -33,21 +33,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = true;
   bool _autoSave = true;
   bool _isUpdatingLocale = false;
+  String? _userRole;
   final _authService = AuthService();
 
-  void _handleLogout() async {
-    // 1. Clear auth/session data while keeping app preferences such as locale.
-    await _authService.logout();
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserRole();
+  }
 
-    if (!mounted) return;
-
-    // 2. Reset MainShell to guest/teacher mode and navigate to Home tab
-    await KlassApp.mainShellKey.currentState?.reloadRole();
-
-    if (!mounted) return;
-
-    // 3. Close the settings screen
-    Navigator.of(context).maybePop();
+  Future<void> _fetchUserRole() async {
+    final role = await _authService.getUserRole();
+    if (mounted) {
+      setState(() {
+        _userRole = role;
+      });
+    }
   }
 
   Future<void> _handleLocaleSelection(Locale locale) async {
@@ -397,28 +398,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 32),
 
                   // ═══════════════════════════════════════════════
-                  // CREATOR TOOLS — WAJIB BACKGROUND COKLAT (#794517)
+                  // REQUEST NEW CLUB — WAJIB BACKGROUND COKLAT (#794517)
                   // ═══════════════════════════════════════════════
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: AppColors.brown,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.brown.withValues(alpha: 0.3),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
+                  if (_userRole == 'freelancer' || _userRole == 'teacher') ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: GestureDetector(
+                        onTap: () => FeatureComingSoon.show(
+                          context,
+                          title: localizations?.settingsRequestClubFeatureTitle,
+                          description: localizations?.settingsRequestClubFeatureDescription,
+                          featureName: localizations?.settingsRequestClubFeatureName,
+                          featureDescription: localizations?.settingsRequestClubFeatureHelper,
+                          icon: Icons.group_add_rounded,
+                          previewIcon: Icons.groups_rounded,
+                        ),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.brown,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.brown.withValues(alpha: 0.3),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                          child: Row(
                             children: [
                               Container(
                                 width: 40,
@@ -428,155 +437,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
-                                  Icons.build_rounded,
+                                  Icons.group_add_rounded,
                                   color: Colors.white,
                                   size: 20,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                localizations?.settingsCreatorToolsTitle ?? 'Creator Tools',
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      localizations?.settingsRequestClubCardTitle ?? 'Request New Club',
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      localizations?.settingsRequestClubCardSubtitle ?? 'Request a new club for your community',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white.withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.white.withValues(alpha: 0.5),
+                                size: 24,
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            localizations?.settingsCreatorToolsDescription ?? 'Access special tools to create high-quality educational content.',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.75),
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          GestureDetector(
-                            onTap: () => FeatureComingSoon.show(
-                              context,
-                              title: localizations?.settingsCreatorDashboardFeatureTitle,
-                              description: localizations?.settingsCreatorDashboardFeatureDescription,
-                              featureName: localizations?.settingsCreatorDashboardFeatureName,
-                              featureDescription: localizations?.settingsCreatorDashboardFeatureHelper,
-                              icon: Icons.dashboard_rounded,
-                              previewIcon: Icons.analytics_rounded,
-                            ),
-                            child: Container(
-                              width: double.infinity,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  localizations?.settingsCreatorDashboardButton ?? 'Open Creator Dashboard',
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ═══════════════════════════════════════════════
-                  // REQUEST NEW CLUB — WAJIB BACKGROUND COKLAT (#794517)
-                  // ═══════════════════════════════════════════════
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: GestureDetector(
-                      onTap: () => FeatureComingSoon.show(
-                        context,
-                        title: localizations?.settingsRequestClubFeatureTitle,
-                        description: localizations?.settingsRequestClubFeatureDescription,
-                        featureName: localizations?.settingsRequestClubFeatureName,
-                        featureDescription: localizations?.settingsRequestClubFeatureHelper,
-                        icon: Icons.group_add_rounded,
-                        previewIcon: Icons.groups_rounded,
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppColors.brown,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.brown.withValues(alpha: 0.3),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.group_add_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    localizations?.settingsRequestClubCardTitle ?? 'Request New Club',
-                                    style: const TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    localizations?.settingsRequestClubCardSubtitle ?? 'Request a new club for your community',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white.withValues(alpha: 0.7),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.white.withValues(alpha: 0.5),
-                              size: 24,
-                            ),
-                          ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
+                  ],
 
-                  // Version + Logout
+                  // Version
                   Center(
                     child: Text(
                       localizations?.settingsVersionLabel('1.0.0') ?? 'KLASS VERSION 1.0.0',
@@ -590,42 +496,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: GestureDetector(
-                      onTap: _handleLogout,
-                      child: Container(
-                        width: double.infinity,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.red.withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.logout_rounded,
-                                size: 20, color: AppColors.red),
-                            const SizedBox(width: 8),
-                            Text(
-                              localizations?.settingsLogOut ?? 'Log Out',
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.red,
-                                letterSpacing: -0.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 120),
                 ],
               ),
             ),
