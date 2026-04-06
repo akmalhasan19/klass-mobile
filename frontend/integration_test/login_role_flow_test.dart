@@ -101,9 +101,11 @@ Future<void> _pumpLoginFlow(
   await tester.pump(const Duration(milliseconds: 300));
 
   final context = KlassApp.mainShellKey.currentContext;
-  expect(context, isNotNull);
+  if (context == null || !context.mounted) {
+    fail('MainShell context is not available or not mounted');
+  }
 
-  Navigator.of(context!, rootNavigator: true).push(
+  Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute(builder: (_) => const LoginScreen()),
   );
 
