@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 
 class FeatureComingSoon extends StatelessWidget {
@@ -28,6 +29,8 @@ class FeatureComingSoon extends StatelessWidget {
     IconData? icon,
     IconData? previewIcon,
   }) {
+    final localizations = AppLocalizations.of(context);
+
     return showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.3),
@@ -35,10 +38,10 @@ class FeatureComingSoon extends StatelessWidget {
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(24),
         child: FeatureComingSoon(
-          title: title ?? 'A New Chapter for Your Library',
-          description: description ?? 'We’re busy building this feature for you. It’ll be ready in a future update! Our curators are currently indexing new collections to enhance your experience.',
-          featureName: featureName ?? 'Enhanced Archiving',
-          featureDescription: featureDescription ?? 'Intelligent cross-referencing for your sources.',
+          title: title ?? localizations?.featureComingSoonDefaultTitle ?? 'A New Chapter for Your Library',
+          description: description ?? localizations?.featureComingSoonDefaultDescription ?? 'We’re busy building this feature for you. It’ll be ready in a future update! Our curators are currently indexing new collections to enhance your experience.',
+          featureName: featureName ?? localizations?.featureComingSoonDefaultFeatureName ?? 'Enhanced Archiving',
+          featureDescription: featureDescription ?? localizations?.featureComingSoonDefaultFeatureDescription ?? 'Intelligent cross-referencing for your sources.',
           icon: icon ?? Icons.menu_book_rounded,
           previewIcon: previewIcon ?? Icons.history_edu_rounded,
         ),
@@ -91,6 +94,8 @@ class FeatureComingSoon extends StatelessWidget {
   }
 
   Widget _buildTopBar(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -102,10 +107,10 @@ class FeatureComingSoon extends StatelessWidget {
               padding: const EdgeInsets.all(12),
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Upcoming Feature',
-              style: TextStyle(
+              localizations?.featureComingSoonHeader ?? 'Upcoming Feature',
+              style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -120,22 +125,28 @@ class FeatureComingSoon extends StatelessWidget {
   }
 
   Widget _buildStatusChip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: const Text(
-        'COMING SOON',
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          color: AppColors.primary,
-          letterSpacing: 1.2,
-        ),
-      ),
+    return Builder(
+      builder: (context) {
+        final localizations = AppLocalizations.of(context);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: Text(
+            localizations?.featureComingSoonBadge ?? 'COMING SOON',
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+              letterSpacing: 1.2,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -265,6 +276,8 @@ class FeatureComingSoon extends StatelessWidget {
   }
 
   Widget _buildActionButton(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     return ElevatedButton(
       onPressed: () => Navigator.pop(context),
       style: ElevatedButton.styleFrom(
@@ -274,9 +287,9 @@ class FeatureComingSoon extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
         elevation: 0,
       ),
-      child: const Text(
-        'Got it!',
-        style: TextStyle(
+      child: Text(
+        localizations?.featureComingSoonDismiss ?? 'Got it!',
+        style: const TextStyle(
           fontFamily: 'Inter',
           fontSize: 16,
           fontWeight: FontWeight.w900,

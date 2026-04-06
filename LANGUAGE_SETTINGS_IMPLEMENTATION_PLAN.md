@@ -55,21 +55,21 @@ Menyediakan Settings page yang dapat diakses dari ikon gear pada Home screen, me
 
 ### Phase 4 - Build Language Control in Settings
 
-- [ ] Ganti row `System Language` yang statis di `SettingsScreen` menjadi kontrol yang aktif
-- [ ] Tampilkan pilihan bahasa English
-- [ ] Tampilkan pilihan bahasa Bahasa Indonesia
-- [ ] Sinkronkan nilai selector dengan locale aktif saat screen dibuka
-- [ ] Simpan pilihan bahasa segera setelah user memilih
-- [ ] Trigger update UI aplikasi tanpa perlu restart manual
-- [ ] Pastikan Settings screen tetap shared untuk Guest, Teacher/Guru, dan Freelancer
+- [x] Ganti row `System Language` yang statis di `SettingsScreen` menjadi kontrol yang aktif
+- [x] Tampilkan pilihan bahasa English
+- [x] Tampilkan pilihan bahasa Bahasa Indonesia
+- [x] Sinkronkan nilai selector dengan locale aktif saat screen dibuka
+- [x] Simpan pilihan bahasa segera setelah user memilih
+- [x] Trigger update UI aplikasi tanpa perlu restart manual
+- [x] Pastikan Settings screen tetap shared untuk Guest, Teacher/Guru, dan Freelancer
 
 ### Phase 5 - Localize Shared App Chrome
 
-- [ ] Localize app title dan root-level labels
-- [ ] Localize bottom navigation labels di `frontend/lib/widgets/bottom_nav.dart`
-- [ ] Localize Settings screen labels, section titles, buttons, dan helper text
-- [ ] Localize reusable modal/sheet text pada widget bersama
-- [ ] Localize generic empty states, prompts, dan CTA yang dipakai lintas screen
+- [x] Localize app title dan root-level labels
+- [x] Localize bottom navigation labels di `frontend/lib/widgets/bottom_nav.dart`
+- [x] Localize Settings screen labels, section titles, buttons, dan helper text
+- [x] Localize reusable modal/sheet text pada widget bersama
+- [x] Localize generic empty states, prompts, dan CTA yang dipakai lintas screen
 
 ### Phase 6 - Localize Priority Screens
 
@@ -164,8 +164,8 @@ Menyediakan Settings page yang dapat diakses dari ikon gear pada Home screen, me
 - [x] Planning selesai
 - [x] Implementasi dimulai
 - [x] Localization infrastructure selesai
-- [ ] Settings language selector selesai
-- [ ] App-wide string migration selesai
+- [x] Settings language selector selesai
+- [x] App-wide string migration selesai
 - [ ] Automated test coverage selesai
 - [ ] Manual QA selesai
 - [ ] Feature siap direview / merge

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 
 class AnimatedSearchBar extends StatefulWidget {
   final Function(String)? onChanged;
   final VoidCallback? onExpanded;
   final VoidCallback? onCollapsed;
-  final String hintText;
+  final String? hintText;
 
   const AnimatedSearchBar({
     super.key,
     this.onChanged,
     this.onExpanded,
     this.onCollapsed,
-    this.hintText = 'Search for teachers, topics...',
+    this.hintText,
   });
 
   @override
@@ -48,6 +49,8 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar>
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOutCubic,
@@ -103,7 +106,7 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar>
                   color: AppColors.textPrimary,
                 ),
                 decoration: InputDecoration(
-                  hintText: widget.hintText,
+                  hintText: widget.hintText ?? localizations?.animatedSearchHint ?? 'Search for teachers, topics...',
                   hintStyle: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 14,

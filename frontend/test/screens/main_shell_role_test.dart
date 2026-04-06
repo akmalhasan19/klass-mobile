@@ -216,6 +216,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1200));
 
     expect(find.byKey(SettingsScreen.screenKey), findsOneWidget);
+    expect(find.byKey(SettingsScreen.languageControlKey), findsOneWidget);
   });
 
   testWidgets('Freelancer home settings entry opens shared SettingsScreen through MainShell', (tester) async {
@@ -238,5 +239,26 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1200));
 
     expect(find.byKey(SettingsScreen.screenKey), findsOneWidget);
+    expect(find.byKey(SettingsScreen.languageControlKey), findsOneWidget);
+  });
+
+  testWidgets('Guest home settings entry opens the shared SettingsScreen with the language selector', (tester) async {
+    await _pumpMainShell(
+      tester,
+      shell: const MainShell(
+        initialRole: 'teacher',
+        initialIsGuest: true,
+      ),
+      prefsData: const {},
+    );
+
+    expect(find.byKey(HomeScreen.settingsButtonKey), findsOneWidget);
+
+    await tester.tap(find.byKey(HomeScreen.settingsButtonKey));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    expect(find.byKey(SettingsScreen.screenKey), findsOneWidget);
+    expect(find.byKey(SettingsScreen.languageControlKey), findsOneWidget);
   });
 }

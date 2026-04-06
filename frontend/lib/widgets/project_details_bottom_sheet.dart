@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 import 'project_confirmation_bottom_sheet.dart';
 
@@ -14,6 +15,8 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     // Determine image source
     final String imageSource =
       (project['imagePath'] ?? project['image'] ?? project['media_url'] ?? '')
@@ -82,7 +85,7 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
 
                   // Title
                   Text(
-                    project['title'] ?? 'Review Project',
+                    project['title'] ?? localizations?.projectDetailsFallbackTitle ?? 'Review Project',
                     style: const TextStyle(
                       fontFamily: 'Mona_Sans',
                       fontSize: 24,
@@ -94,9 +97,9 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   // Overview Section
-                  const Text(
-                    'Overview',
-                    style: TextStyle(
+                  Text(
+                    localizations?.projectDetailsOverviewTitle ?? 'Overview',
+                    style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -106,7 +109,7 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                   const SizedBox(height: 12),
                   
                   Text(
-                    project['description'] ?? 'No description provided.',
+                    project['description'] ?? localizations?.projectDetailsNoDescription ?? 'No description provided.',
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
@@ -167,9 +170,9 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Recreate',
-                            style: TextStyle(
+                          child: Text(
+                            localizations?.projectDetailsRecreate ?? 'Recreate',
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -204,9 +207,9 @@ class ProjectDetailsBottomSheet extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Use as it is',
-                            style: TextStyle(
+                          child: Text(
+                            localizations?.projectDetailsUseAsIs ?? 'Use as it is',
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 15,
                               fontWeight: FontWeight.w700,

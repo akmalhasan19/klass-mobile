@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 
 /// Widget input prompt dengan tombol submit yang selalu di tengah vertikal.
@@ -8,6 +9,7 @@ class PromptInputWidget extends StatefulWidget {
   final String? initialValue;
   final TextEditingController? controller;
   final FocusNode? focusNode;
+  final String? hintText;
 
   const PromptInputWidget({
     super.key,
@@ -15,6 +17,7 @@ class PromptInputWidget extends StatefulWidget {
     this.initialValue,
     this.controller,
     this.focusNode,
+    this.hintText,
   });
 
   @override
@@ -46,6 +49,8 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     return Container(
       constraints: const BoxConstraints(minHeight: 60),
       padding: const EdgeInsets.fromLTRB(20, 6, 8, 6),
@@ -81,9 +86,9 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
                 color: AppColors.textPrimary,
                 height: 1.5,
               ),
-              decoration: const InputDecoration(
-                hintText: 'Ketik topik yang ingin dipelajari...',
-                hintStyle: TextStyle(color: AppColors.textMuted),
+              decoration: InputDecoration(
+                hintText: widget.hintText ?? localizations?.promptInputHint ?? 'Type a topic you want to learn...',
+                hintStyle: const TextStyle(color: AppColors.textMuted),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,

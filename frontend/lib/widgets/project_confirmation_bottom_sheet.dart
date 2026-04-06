@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../screens/project_success_screen.dart';
 
@@ -12,19 +13,21 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     // Determine image source
     final String imageSource = project['imagePath'] ?? project['image'] ?? '';
     final bool isNetworkImage = imageSource.startsWith('http');
     final String projectType = project['type'] ?? 'PPT';
     final List<dynamic> modules = project['modules'] ?? [];
 
-    String sectionTitleText = 'Project Modules (Slides)';
+    String sectionTitleText = localizations?.projectConfirmationModulesSlides ?? 'Project Modules (Slides)';
     IconData moduleIcon = Icons.science_outlined;
     if (projectType == 'Infographic') {
-      sectionTitleText = 'Project Modules (Points)';
+      sectionTitleText = localizations?.projectConfirmationModulesPoints ?? 'Project Modules (Points)';
       moduleIcon = Icons.info_outline;
     } else if (projectType == 'Quiz') {
-      sectionTitleText = 'Project Modules (Quiz)';
+      sectionTitleText = localizations?.projectConfirmationModulesQuiz ?? 'Project Modules (Quiz)';
       moduleIcon = Icons.emoji_events_outlined;
     }
 
@@ -63,9 +66,9 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.arrow_back, color: AppColors.textSecondary),
                   ),
-                  const Text(
-                    'Project Confirmation',
-                    style: TextStyle(
+                  Text(
+                    localizations?.projectConfirmationTitle ?? 'Project Confirmation',
+                    style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -97,9 +100,9 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                           ),
-                          child: const Text(
-                            'TEMPLATE',
-                            style: TextStyle(
+                          child: Text(
+                            localizations?.projectConfirmationTemplateBadge ?? 'TEMPLATE',
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -109,9 +112,9 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
-                          'Created by Education Team',
-                          style: TextStyle(
+                        Text(
+                          localizations?.projectConfirmationCreatedBy ?? 'Created by Education Team',
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -124,7 +127,7 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
 
                     // Project Name
                     Text(
-                      project['title'] ?? 'Botany 101',
+                      project['title'] ?? localizations?.projectConfirmationFallbackTitle ?? 'Botany 101',
                       style: const TextStyle(
                         fontFamily: 'Mona_Sans',
                         fontSize: 28,
@@ -135,9 +138,9 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     // Project Description
-                    const Text(
-                      'Review the modules included in this project before adding it to your workspace. This curated sequence is designed for optimal learning outcomes.',
-                      style: TextStyle(
+                    Text(
+                      localizations?.projectConfirmationDescription ?? 'Review the modules included in this project before adding it to your workspace. This curated sequence is designed for optimal learning outcomes.',
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 15,
                         height: 1.5,
@@ -195,7 +198,7 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${modules.length} Modules Total',
+                          localizations?.projectConfirmationModulesTotal(modules.length) ?? '${modules.length} Modules Total',
                           style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 14,
@@ -307,22 +310,23 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: RichText(
-                              text: const TextSpan(
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 14,
-                                  height: 1.5,
-                                  color: AppColors.primaryDark,
-                                ),
-                                children: [
-                                  TextSpan(text: 'Adding this project will use '),
-                                  TextSpan(
-                                    text: '1 workspace slot',
-                                    style: TextStyle(fontWeight: FontWeight.w700),
-                                  ),
-                                  TextSpan(text: '. You can edit these modules later in your Project Dashboard.'),
-                                ],
+                              text: TextSpan(
+                              text: '',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 14,
+                                height: 1.5,
+                                color: AppColors.primaryDark,
                               ),
+                              children: [
+                                TextSpan(text: localizations?.projectConfirmationWorkspaceSlotPrefix ?? 'Adding this project will use '),
+                                TextSpan(
+                                  text: localizations?.projectConfirmationWorkspaceSlotHighlight ?? '1 workspace slot',
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                TextSpan(text: localizations?.projectConfirmationWorkspaceSlotSuffix ?? '. You can edit these modules later in your Project Dashboard.'),
+                              ],
+                            ),
                             ),
                           ),
                         ],
@@ -365,12 +369,12 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                         ),
                         minimumSize: const Size(double.infinity, 60),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Confirm & Add to Workspace',
-                            style: TextStyle(
+                            localizations?.projectConfirmationConfirm ?? 'Confirm & Add to Workspace',
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -395,9 +399,9 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
                         ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
+                        child: Text(
+                          localizations?.projectConfirmationCancel ?? 'Cancel',
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

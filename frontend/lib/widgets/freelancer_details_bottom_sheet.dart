@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../utils/auth_guard.dart';
 
@@ -12,8 +13,9 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final displayName =
-      (freelancer['name'] ?? freelancer['creator_id'] ?? 'Unknown').toString();
+      (freelancer['name'] ?? freelancer['creator_id'] ?? localizations?.freelancerDetailsUnknown ?? 'Unknown').toString();
     final avatarSource =
       (freelancer['avatar_url'] ?? freelancer['avatarPath'] ?? '').toString();
     final isNetworkAvatar = avatarSource.startsWith('http');
@@ -84,9 +86,9 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                                   height: 1.0,
                                 ),
                               ),
-                              const Text(
-                                '/hr',
-                                style: TextStyle(
+                              Text(
+                                localizations?.freelancerDetailsPerHour ?? '/hr',
+                                style: const TextStyle(
                                   fontFamily: 'Outfit',
                                   fontSize: 14, // text-sm
                                   fontWeight: FontWeight.w400,
@@ -170,19 +172,19 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                   children: [
                     _buildStatCard(
                       value: '${freelancer['projects'] ?? 0}',
-                      label: 'PROJECTS',
+                      label: localizations?.freelancerDetailsProjects ?? 'PROJECTS',
                     ),
                     const SizedBox(width: 12),
                     _buildStatCard(
                       value: '${freelancer['rating'] ?? 0}',
-                      label: 'RATING',
+                      label: localizations?.freelancerDetailsRating ?? 'RATING',
                       icon: const Icon(Icons.star_rounded,
                           color: Color(0xFFF59E0B), size: 18),
                     ),
                     const SizedBox(width: 12),
                     _buildStatCard(
                       value: freelancer['responseTime'] ?? '-',
-                      label: 'RESPONSE',
+                      label: localizations?.freelancerDetailsResponse ?? 'RESPONSE',
                     ),
                   ],
                 ),
@@ -211,7 +213,7 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Hire ${displayName.split(' ').first}',
+                          localizations?.freelancerDetailsHire(displayName.split(' ').first) ?? 'Hire ${displayName.split(' ').first}',
                           style: const TextStyle(
                             fontFamily: 'Mona_Sans',
                             fontSize: 18,

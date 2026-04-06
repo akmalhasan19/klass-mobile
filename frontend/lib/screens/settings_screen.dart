@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../widgets/top_right_accent.dart';
 import '../widgets/layer2_white_clipper.dart';
 import '../config/animations.dart';
 import '../widgets/feature_coming_soon.dart';
 import '../services/auth_service.dart';
+import '../services/locale_preferences_service.dart';
 import '../main.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
@@ -13,6 +15,10 @@ import '../main.dart';
 /// Creator Tools (BROWN), Request New Club (BROWN), Logout.
 class SettingsScreen extends StatefulWidget {
   static const Key screenKey = Key('settings_screen');
+  static const Key languageControlKey = Key('settings_language_control');
+  static const Key languageCurrentValueKey = Key('settings_language_current_value');
+  static const Key languageEnglishOptionKey = Key('settings_language_option_en');
+  static const Key languageBahasaIndonesiaOptionKey = Key('settings_language_option_id');
 
   const SettingsScreen({super.key});
 
@@ -22,10 +28,11 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   double _creativity = 2;
-  String _learningStyle = 'Visual';
-  String _complexity = 'Intermediate';
+  String _learningStyle = 'visual';
+  String _complexity = 'intermediate';
   bool _isDarkMode = true;
   bool _autoSave = true;
+  bool _isUpdatingLocale = false;
   final _authService = AuthService();
 
   void _handleLogout() async {
@@ -43,9 +50,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(context).maybePop();
   }
 
+  Future<void> _handleLocaleSelection(Locale locale) async {
+    if (_isUpdatingLocale) {
+      return;
+    }
+
+    final matchedLocale = LocalePreferencesService.matchSupportedLocale(
+      locale,
+      supportedLocales: KlassApp.supportedLocales,
+    );
+    if (matchedLocale == null) {
+      return;
+    }
+
+    final currentLocale = _resolveActiveLocale(context);
+    if (LocalePreferencesService.sameLocale(currentLocale, matchedLocale)) {
+      return;
+    }
+
+    setState(() {
+      _isUpdatingLocale = true;
+    });
+
+    try {
+      await KlassApp.of(context).updateLocale(matchedLocale);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingLocale = false;
+        });
+      }
+    }
+  }
+
+  Locale _resolveActiveLocale(BuildContext context) {
+    return LocalePreferencesService.matchSupportedLocale(
+          Localizations.localeOf(context),
+          supportedLocales: KlassApp.supportedLocales,
+        ) ??
+        KlassApp.supportedLocales.first;
+  }
+
+  String _languageLabelForLocale(
+    Locale locale,
+    AppLocalizations? localizations,
+  ) {
+    return locale.languageCode == 'id'
+        ? localizations?.languageBahasaIndonesia ?? 'Bahasa Indonesia'
+        : localizations?.languageEnglish ?? 'English';
+  }
+
+  String _learningStyleLabel(String value, AppLocalizations? localizations) {
+    switch (value) {
+      case 'hands_on':
+        return localizations?.settingsLearningStyleHandsOn ?? 'Hands-on';
+      case 'reading':
+        return localizations?.settingsLearningStyleReading ?? 'Reading';
+      case 'visual':
+      default:
+        return localizations?.settingsLearningStyleVisual ?? 'Visual';
+    }
+  }
+
+  String _complexityLabel(String value, AppLocalizations? localizations) {
+    switch (value) {
+      case 'beginner':
+        return localizations?.settingsComplexityBeginner ?? 'Beginner';
+      case 'advanced':
+        return localizations?.settingsComplexityAdvanced ?? 'Advanced';
+      case 'intermediate':
+      default:
+        return localizations?.settingsComplexityIntermediate ?? 'Intermediate';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final localizations = AppLocalizations.of(context);
+    final activeLocale = _resolveActiveLocale(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -141,9 +224,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        const Text(
-                          'Settings',
-                          style: TextStyle(
+                        Text(
+                          localizations?.settingsTitle ?? 'Settings',
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
@@ -159,7 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // AI Preferences Section
                   _buildSectionHeader(
                     icon: Icons.psychology_rounded,
-                    title: 'AI Preferences',
+                    title: localizations?.settingsSectionAiPreferences ?? 'AI Preferences',
                   ),
                   const SizedBox(height: 12),
 
@@ -168,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('CREATIVITY LEVEL'),
+                        _buildLabel(localizations?.settingsCreativityLevel ?? 'CREATIVITY LEVEL'),
                         const SizedBox(height: 16),
                         SliderTheme(
                           data: SliderThemeData(
@@ -192,9 +275,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _creativityLabel('Precise', _creativity.round() == 1),
-                            _creativityLabel('Balanced', _creativity.round() == 2),
-                            _creativityLabel('Creative', _creativity.round() == 3),
+                            _creativityLabel(localizations?.settingsCreativityPrecise ?? 'Precise', _creativity.round() == 1),
+                            _creativityLabel(localizations?.settingsCreativityBalanced ?? 'Balanced', _creativity.round() == 2),
+                            _creativityLabel(localizations?.settingsCreativityCreative ?? 'Creative', _creativity.round() == 3),
                           ],
                         ),
                       ],
@@ -207,7 +290,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('LEARNING STYLES'),
+                        _buildLabel(localizations?.settingsLearningStyles ?? 'LEARNING STYLES'),
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
@@ -215,10 +298,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             spacing: 10,
                             runSpacing: 10,
                             alignment: WrapAlignment.center,
-                            children: ['Visual', 'Hands-on', 'Reading']
-                                .map((style) => _buildChip(
-                                      label: style,
-                                      isActive: _learningStyle == style,
+                            children: ['visual', 'hands_on', 'reading']
+                              .map((style) => _buildChip(
+                                  label: _learningStyleLabel(style, localizations),
+                                  isActive: _learningStyle == style,
                                       onTap: () =>
                                           setState(() => _learningStyle = style),
                                     ))
@@ -235,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('DEFAULT PROJECT COMPLEXITY'),
+                        _buildLabel(localizations?.settingsDefaultProjectComplexity ?? 'DEFAULT PROJECT COMPLEXITY'),
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
@@ -243,7 +326,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             spacing: 10,
                             runSpacing: 10,
                             alignment: WrapAlignment.center,
-                            children: ['Beginner', 'Intermediate', 'Advanced']
+                            children: ['beginner', 'intermediate', 'advanced']
                                 .map((lvl) => _buildComplexityButton(lvl))
                                 .toList(),
                           ),
@@ -256,7 +339,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // Interface & Theme Section
                   _buildSectionHeader(
                     icon: Icons.palette_rounded,
-                    title: 'Interface & Theme',
+                    title: localizations?.settingsSectionInterfaceTheme ?? 'Interface & Theme',
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsCard(
@@ -264,8 +347,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _buildToggleRow(
                           icon: Icons.dark_mode_rounded,
-                          title: 'Theme Mode',
-                          subtitle: 'Switch between light and dark',
+                          title: localizations?.settingsThemeModeTitle ?? 'Theme Mode',
+                          subtitle: localizations?.settingsThemeModeSubtitle ?? 'Switch between light and dark',
                           value: _isDarkMode,
                           onChanged: (v) =>
                               setState(() => _isDarkMode = v),
@@ -273,10 +356,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Divider(
                             color: AppColors.border.withValues(alpha: 0.5),
                             height: 1),
-                        _buildNavRow(
-                          icon: Icons.language_rounded,
-                          title: 'System Language',
-                          subtitle: 'Bahasa Indonesia',
+                        _buildLanguageSelector(
+                          localizations: localizations,
+                          activeLocale: activeLocale,
                         ),
                       ],
                     ),
@@ -286,7 +368,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // Workspace & Data Section
                   _buildSectionHeader(
                     icon: Icons.storage_rounded,
-                    title: 'Workspace & Data',
+                    title: localizations?.settingsSectionWorkspaceData ?? 'Workspace & Data',
                   ),
                   const SizedBox(height: 12),
                   _buildSettingsCard(
@@ -294,8 +376,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _buildToggleRow(
                           icon: Icons.save_rounded,
-                          title: 'Auto-save projects',
-                          subtitle: 'Sync changes in real-time',
+                          title: localizations?.settingsAutoSaveProjectsTitle ?? 'Auto-save projects',
+                          subtitle: localizations?.settingsAutoSaveProjectsSubtitle ?? 'Sync changes in real-time',
                           value: _autoSave,
                           onChanged: (v) =>
                               setState(() => _autoSave = v),
@@ -305,9 +387,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             height: 1),
                         _buildActionRow(
                           icon: Icons.history_rounded,
-                          title: 'Clear history',
-                          subtitle: 'Wipe all generation logs',
-                          actionLabel: 'CLEAR',
+                          title: localizations?.settingsClearHistoryTitle ?? 'Clear history',
+                          subtitle: localizations?.settingsClearHistorySubtitle ?? 'Wipe all generation logs',
+                          actionLabel: localizations?.settingsClearHistoryAction ?? 'CLEAR',
                         ),
                       ],
                     ),
@@ -352,9 +434,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              const Text(
-                                'Creator Tools',
-                                style: TextStyle(
+                              Text(
+                                localizations?.settingsCreatorToolsTitle ?? 'Creator Tools',
+                                style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,
@@ -365,7 +447,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Akses alat khusus untuk membuat konten edukasi berkualitas tinggi.',
+                            localizations?.settingsCreatorToolsDescription ?? 'Access special tools to create high-quality educational content.',
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 14,
@@ -378,12 +460,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           GestureDetector(
                             onTap: () => FeatureComingSoon.show(
                               context,
-                              title: 'Creator Dashboard',
-                              description:
-                                  'We are building a powerful dashboard for creators to manage their educational content, track student progress, and analyze engagement.',
-                              featureName: 'Content Analytics',
-                              featureDescription:
-                                  'Deep insights into how students interact with your materials.',
+                              title: localizations?.settingsCreatorDashboardFeatureTitle,
+                              description: localizations?.settingsCreatorDashboardFeatureDescription,
+                              featureName: localizations?.settingsCreatorDashboardFeatureName,
+                              featureDescription: localizations?.settingsCreatorDashboardFeatureHelper,
                               icon: Icons.dashboard_rounded,
                               previewIcon: Icons.analytics_rounded,
                             ),
@@ -394,10 +474,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Text(
-                                  'Open Creator Dashboard',
-                                  style: TextStyle(
+                                  localizations?.settingsCreatorDashboardButton ?? 'Open Creator Dashboard',
+                                  style: const TextStyle(
                                     fontFamily: 'Inter',
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
@@ -421,12 +501,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: GestureDetector(
                       onTap: () => FeatureComingSoon.show(
                         context,
-                        title: 'Request a Club',
-                        description:
-                            'Clubs are coming to Klass! You will soon be able to create and join communities focused on specific subjects and interests.',
-                        featureName: 'Club Communities',
-                        featureDescription:
-                            'Collaborate with other students and teachers in specialized groups.',
+                        title: localizations?.settingsRequestClubFeatureTitle,
+                        description: localizations?.settingsRequestClubFeatureDescription,
+                        featureName: localizations?.settingsRequestClubFeatureName,
+                        featureDescription: localizations?.settingsRequestClubFeatureHelper,
                         icon: Icons.group_add_rounded,
                         previewIcon: Icons.groups_rounded,
                       ),
@@ -464,9 +542,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Request New Club',
-                                    style: TextStyle(
+                                  Text(
+                                    localizations?.settingsRequestClubCardTitle ?? 'Request New Club',
+                                    style: const TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 16,
                                       fontWeight: FontWeight.w800,
@@ -475,7 +553,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Ajukan klub baru untuk komunitas Anda',
+                                    localizations?.settingsRequestClubCardSubtitle ?? 'Request a new club for your community',
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 13,
@@ -501,7 +579,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // Version + Logout
                   Center(
                     child: Text(
-                      'KLASS VERSION 1.0.0',
+                      localizations?.settingsVersionLabel('1.0.0') ?? 'KLASS VERSION 1.0.0',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11,
@@ -526,15 +604,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             width: 2,
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.logout_rounded,
+                            const Icon(Icons.logout_rounded,
                                 size: 20, color: AppColors.red),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
-                              'Log Out',
-                              style: TextStyle(
+                              localizations?.settingsLogOut ?? 'Log Out',
+                              style: const TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
@@ -644,11 +722,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildChip({
+    Key? key,
     required String label,
     required bool isActive,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -682,7 +762,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildLanguageSelector({
+    required AppLocalizations? localizations,
+    required Locale activeLocale,
+  }) {
+    final currentLanguageLabel = _languageLabelForLocale(
+      activeLocale,
+      localizations,
+    );
+
+    return Padding(
+      key: SettingsScreen.languageControlKey,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Icon(
+                  Icons.language_rounded,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localizations?.settingsLanguageLabel ?? 'System Language',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currentLanguageLabel,
+                      key: SettingsScreen.languageCurrentValueKey,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _isUpdatingLocale ? 1 : 0,
+                child: const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.only(left: 54),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _buildChip(
+                  key: SettingsScreen.languageEnglishOptionKey,
+                  label: localizations?.languageEnglish ?? 'English',
+                  isActive: activeLocale.languageCode == 'en',
+                  onTap: () => _handleLocaleSelection(const Locale('en')),
+                ),
+                _buildChip(
+                  key: SettingsScreen.languageBahasaIndonesiaOptionKey,
+                  label: localizations?.languageBahasaIndonesia ?? 'Bahasa Indonesia',
+                  isActive: activeLocale.languageCode == 'id',
+                  onTap: () => _handleLocaleSelection(const Locale('id')),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildComplexityButton(String level) {
+    final localizations = AppLocalizations.of(context);
     final isActive = _complexity == level;
     return GestureDetector(
       onTap: () => setState(() => _complexity = level),
@@ -701,7 +881,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         child: Center(
           child: Text(
-            level,
+            _complexityLabel(level, localizations),
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 13,

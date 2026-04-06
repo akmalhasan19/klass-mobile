@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 
 /// Bottom Navigation Bar — role-aware navigation.
@@ -18,7 +19,7 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = _getNavItems();
+    final items = _getNavItems(context);
 
     return Container(
       height: 90,
@@ -78,21 +79,23 @@ class BottomNav extends StatelessWidget {
     );
   }
 
-  List<_NavItem> _getNavItems() {
+  List<_NavItem> _getNavItems(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     if (role == 'freelancer') {
       return [
-        _NavItem(icon: Icons.dashboard_rounded, label: 'Home'),
-        _NavItem(icon: Icons.work_rounded, label: 'Jobs'),
-        _NavItem(icon: Icons.cases_rounded, label: 'Portfolio'),
-        _NavItem(icon: Icons.person_rounded, label: 'Profile'),
+        _NavItem(icon: Icons.dashboard_rounded, label: localizations?.navHome ?? 'Home'),
+        _NavItem(icon: Icons.work_rounded, label: localizations?.navJobs ?? 'Jobs'),
+        _NavItem(icon: Icons.cases_rounded, label: localizations?.navPortfolio ?? 'Portfolio'),
+        _NavItem(icon: Icons.person_rounded, label: localizations?.navProfile ?? 'Profile'),
       ];
     }
     // Teacher uses icon images from assets
     return [
-      _NavItem(iconPath: 'assets/icons/house.png', label: 'Home'),
-      _NavItem(iconPath: 'assets/icons/search.png', label: 'Search'),
-      _NavItem(iconPath: 'assets/icons/workspaces.png', label: 'Workspace'),
-      _NavItem(iconPath: 'assets/icons/profile.png', label: 'Profile'),
+      _NavItem(iconPath: 'assets/icons/house.png', label: localizations?.navHome ?? 'Home'),
+      _NavItem(iconPath: 'assets/icons/search.png', label: localizations?.navSearch ?? 'Search'),
+      _NavItem(iconPath: 'assets/icons/workspaces.png', label: localizations?.navWorkspace ?? 'Workspace'),
+      _NavItem(iconPath: 'assets/icons/profile.png', label: localizations?.navProfile ?? 'Profile'),
     ];
   }
 
