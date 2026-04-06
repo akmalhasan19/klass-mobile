@@ -28,8 +28,8 @@ class SearchService {
          }
        }
        return [];
-    } catch (e) {
-      throw Exception('Search failed: $e');
+    } catch (_) {
+      rethrow;
     }
   }
 }

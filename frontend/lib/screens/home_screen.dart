@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../widgets/prompt_input_widget.dart';
 import '../widgets/project_suggestion_card.dart';
@@ -9,6 +10,7 @@ import '../widgets/project_details_bottom_sheet.dart';
 import '../widgets/freelancer_details_bottom_sheet.dart';
 import '../config/animations.dart';
 import '../services/home_service.dart';
+import '../utils/api_debug_info.dart';
 import '../utils/auth_guard.dart';
 
 import '../widgets/skeleton_loaders.dart';
@@ -89,13 +91,13 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       fetchedProjects = await _homeService.fetchProjects(forceRefresh: forceRefresh);
     } catch (e) {
-      projectsError = _normalizeErrorMessage(e);
+      projectsError = _localizeErrorMessage(e);
     }
 
     try {
       fetchedFreelancers = await _homeService.fetchFreelancers(forceRefresh: forceRefresh);
     } catch (e) {
-      freelancersError = _normalizeErrorMessage(e);
+      freelancersError = _localizeErrorMessage(e);
     }
 
     if (!mounted) return;
@@ -131,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _projectsError = _normalizeErrorMessage(e);
+        _projectsError = _localizeErrorMessage(e);
         _isProjectsLoading = false;
       });
     }
@@ -156,26 +158,23 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _freelancersError = _normalizeErrorMessage(e);
+        _freelancersError = _localizeErrorMessage(e);
         _isFreelancersLoading = false;
       });
     }
   }
 
-  String _normalizeErrorMessage(Object error) {
-    final raw = error.toString();
-    const exceptionPrefix = 'Exception: ';
-    if (raw.startsWith(exceptionPrefix)) {
-      return raw.substring(exceptionPrefix.length);
-    }
-    return raw;
+  String _localizeErrorMessage(Object error) {
+    return ApiDebugInfo.localize(error, AppLocalizations.of(context));
   }
 
   Future<void> _copyDebugInfo(String message) async {
+    final localizations = AppLocalizations.of(context);
+
     await Clipboard.setData(ClipboardData(text: message));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Debug info copied to clipboard')),
+      SnackBar(content: Text(localizations?.commonDebugInfoCopied ?? 'Debug info copied to clipboard')),
     );
   }
 
@@ -188,6 +187,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Widget> _buildDynamicSections() {
+    final localizations = AppLocalizations.of(context);
+
     // If sections from API are empty or still loading, show default order with skeletons if needed
     if (_sections.isEmpty) {
       if (_isSectionsLoading) {
@@ -200,9 +201,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       // Fallback if API fails
       return [
-        _buildProjectsSection('Project Recommendations'),
+        _buildProjectsSection(localizations?.homeProjectsFallbackSectionTitle ?? 'Project Recommendations'),
         const SizedBox(height: 32),
-        _buildFreelancersSection('Top Freelancers'),
+        _buildFreelancersSection(localizations?.homeFreelancersFallbackSectionTitle ?? 'Top Freelancers'),
       ];
     }
 
@@ -211,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (section['is_enabled'] == false) continue;
 
       final key = section['key'];
-      final label = section['label'] ?? 'Untitled';
+      final label = section['label'] ?? localizations?.homeUntitled ?? 'Untitled';
 
       if (key == 'project_recommendations' || key == 'projects') {
         widgets.add(_buildProjectsSection(label));
@@ -225,6 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProjectsSection(String title) {
+    final localizations = AppLocalizations.of(context);
+
     return BleedingHorizontalList(
       title: title,
       height: 260,
@@ -241,19 +244,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ]
               : projects.isEmpty
                   ? [
-                      _buildEmptyPlaceholder('Belum ada project', icon: Icons.folder_open_rounded),
+                      _buildEmptyPlaceholder(localizations?.homeNoProjects ?? 'Belum ada project', icon: Icons.folder_open_rounded),
                     ]
                   : projects.map((p) {
                       final imageCandidate = (p['media_url'] ?? p['imagePath'] ?? p['image'] ?? '').toString();
                       final isNetworkImage = imageCandidate.startsWith('http');
 
                       return ProjectSuggestionCard(
-                        title: p['title'] ?? 'Untitled',
-                        author: p['author'] ?? p['author_name'] ?? 'By Unknown',
+                        title: p['title'] ?? localizations?.homeUntitled ?? 'Untitled',
+                        author: _projectAuthorLabel(localizations, p),
                         ratio: p['ratio'] ?? 'ppt',
                         imageUrl: isNetworkImage ? imageCandidate : null,
                         imagePath: (!isNetworkImage && imageCandidate.isNotEmpty) ? imageCandidate : null,
-                        sourceBadge: p['source_type'] == 'admin_upload' ? '★ Curated' : null,
+                        sourceBadge: p['source_type'] == 'admin_upload'
+                            ? localizations?.homeCuratedBadge ?? '★ Curated'
+                            : null,
                         onTap: () {
                           showModalBottomSheet(
                             context: context,
@@ -277,6 +282,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFreelancersSection(String title) {
+    final localizations = AppLocalizations.of(context);
+
     return BleedingHorizontalList(
       title: title,
       height: 140,
@@ -289,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ]
               : freelancers.isEmpty
                   ? [
-                      _buildEmptyPlaceholder('Belum ada freelancer', icon: Icons.group_off_rounded),
+                      _buildEmptyPlaceholder(localizations?.homeNoFreelancers ?? 'Belum ada freelancer', icon: Icons.group_off_rounded),
                     ]
                   : freelancers.map((f) {
                       return _buildFreelancerCard(f);
@@ -297,8 +304,34 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  String _projectAuthorLabel(
+    AppLocalizations? localizations,
+    Map<String, dynamic> project,
+  ) {
+    final author = project['author']?.toString().trim();
+    if (author != null && author.isNotEmpty) {
+      return author;
+    }
+
+    final authorName = project['author_name']?.toString().trim();
+    if (authorName != null && authorName.isNotEmpty) {
+      return authorName;
+    }
+
+    switch (project['source_type']) {
+      case 'admin_upload':
+        return localizations?.projectSourceKlassCurated ?? 'Klass Curated';
+      case 'system_topic':
+        return localizations?.projectSourceSystemRecommendation ?? 'System Recommendation';
+      default:
+        return localizations?.projectSourceKlassApp ?? 'Klass App';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     // Kita gunakan topPadding agar hijau Layer 1 meliputi area status bar,
     // plus tambahan sedikit agar garis luarnya terlihat jelas
     final topPadding = MediaQuery.of(context).padding.top;
@@ -516,8 +549,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: child,
                                 );
                               },
-                              child: const Text(
-                                'Klass',
+                              child: Text(
+                                localizations?.appTitle ?? 'Klass',
                                 style: TextStyle(
                                   fontFamily: 'Mona_Sans',
                                   fontSize: 24,
@@ -546,8 +579,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Transform.translate(
                               offset: const Offset(0, -40),
-                              child: const Text(
-                                'Klass',
+                              child: Text(
+                                localizations?.appTitle ?? 'Klass',
                                 style: TextStyle(
                                   fontFamily: 'Mona_Sans',
                                   fontSize: 51,
@@ -558,8 +591,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             if (widget.role != 'freelancer') ...[
                               const SizedBox(height: 0),
-                              const Text(
-                                'Generate Topik Pembelajaran',
+                              Text(
+                                localizations?.homeHeroTitle ?? 'Generate Topik Pembelajaran',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 21,
@@ -739,6 +772,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildErrorPlaceholder(String message, {VoidCallback? onRetry}) {
+    final localizations = AppLocalizations.of(context);
+
     final screenWidth = MediaQuery.of(context).size.width;
     return Container(
       width: screenWidth - 48, // Matches screen width minus ListView horizontal padding (24+24)
@@ -769,13 +804,16 @@ class _HomeScreenState extends State<HomeScreen> {
           OutlinedButton.icon(
             onPressed: () => _copyDebugInfo(message),
             icon: const Icon(Icons.copy_rounded, size: 16),
-            label: const Text('Copy Debug Info'),
+            label: Text(localizations?.commonCopyDebugInfo ?? 'Copy Debug Info'),
           ),
           if (onRetry != null) ...[
             const SizedBox(height: 8),
             TextButton(
               onPressed: onRetry,
-              child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(
+                localizations?.commonRetry ?? 'Retry',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ],

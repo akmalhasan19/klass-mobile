@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 
 class FilterModal extends StatefulWidget {
@@ -21,12 +22,14 @@ class FilterModal extends StatefulWidget {
 
 class _FilterModalState extends State<FilterModal> {
   // State pilihan filter (mengikuti referensi)
-  final Set<String> _selectedSubjects = {'Science', 'Literature'};
-  final Set<String> _selectedResourceTypes = {'Worksheets'};
-  String _selectedDate = 'Anytime';
+  final Set<String> _selectedSubjects = {'science', 'literature'};
+  final Set<String> _selectedResourceTypes = {'worksheets'};
+  String _selectedDate = 'anytime';
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
       decoration: const BoxDecoration(
@@ -44,15 +47,15 @@ class _FilterModalState extends State<FilterModal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader('SUBJECT'),
+                  _buildSectionHeader(localizations.galleryFilterSubject),
                   const SizedBox(height: 16),
                   _buildSubjectChips(),
                   const SizedBox(height: 32),
-                  _buildSectionHeader('RESOURCE TYPE'),
+                  _buildSectionHeader(localizations.galleryFilterResourceType),
                   const SizedBox(height: 16),
                   _buildResourceTypeChips(),
                   const SizedBox(height: 32),
-                  _buildSectionHeader('DATE ADDED'),
+                  _buildSectionHeader(localizations.galleryFilterDateAdded),
                   const SizedBox(height: 16),
                   _buildDateChips(),
                 ],
@@ -66,6 +69,8 @@ class _FilterModalState extends State<FilterModal> {
   }
 
   Widget _buildTopBar() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: Row(
@@ -77,9 +82,9 @@ class _FilterModalState extends State<FilterModal> {
               padding: const EdgeInsets.all(12),
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Filter Materials',
+              localizations.galleryFilterTitle,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 18,
@@ -94,11 +99,11 @@ class _FilterModalState extends State<FilterModal> {
               setState(() {
                 _selectedSubjects.clear();
                 _selectedResourceTypes.clear();
-                _selectedDate = 'Anytime';
+                _selectedDate = 'anytime';
               });
             },
-            child: const Text(
-              'Clear all',
+            child: Text(
+              localizations.galleryFilterClearAll,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
@@ -114,6 +119,8 @@ class _FilterModalState extends State<FilterModal> {
   }
 
   Widget _buildSearchArea() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -129,7 +136,7 @@ class _FilterModalState extends State<FilterModal> {
         ),
         child: TextField(
           decoration: InputDecoration(
-            hintText: 'Search materials, tags, or topics...',
+            hintText: localizations.galleryFilterSearchHint,
             hintStyle: TextStyle(
               fontFamily: 'Inter',
               color: AppColors.textMuted.withValues(alpha: 0.6),
@@ -166,12 +173,12 @@ class _FilterModalState extends State<FilterModal> {
   }
 
   Widget _buildSubjectChips() {
-    final subjects = ['Math', 'Science', 'History', 'Literature', 'Art', 'Geography'];
+    final subjects = ['math', 'science', 'history', 'literature', 'art', 'geography'];
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: subjects.map((s) => _buildFilterChip(
-        label: s,
+        label: _subjectLabel(s),
         isSelected: _selectedSubjects.contains(s),
         onTap: () {
           setState(() {
@@ -188,25 +195,25 @@ class _FilterModalState extends State<FilterModal> {
 
   Widget _buildResourceTypeChips() {
     final types = [
-      {'label': 'PDFs', 'icon': Icons.picture_as_pdf_rounded},
-      {'label': 'Images', 'icon': Icons.image_rounded},
-      {'label': 'Worksheets', 'icon': Icons.description_rounded},
-      {'label': 'Videos', 'icon': Icons.smart_display_rounded},
-      {'label': 'Links', 'icon': Icons.link_rounded},
+      {'key': 'pdfs', 'icon': Icons.picture_as_pdf_rounded},
+      {'key': 'images', 'icon': Icons.image_rounded},
+      {'key': 'worksheets', 'icon': Icons.description_rounded},
+      {'key': 'videos', 'icon': Icons.smart_display_rounded},
+      {'key': 'links', 'icon': Icons.link_rounded},
     ];
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: types.map((t) => _buildFilterChip(
-        label: t['label'] as String,
+        label: _resourceTypeLabel(t['key'] as String),
         icon: t['icon'] as IconData,
-        isSelected: _selectedResourceTypes.contains(t['label']),
+        isSelected: _selectedResourceTypes.contains(t['key']),
         onTap: () {
           setState(() {
-            if (_selectedResourceTypes.contains(t['label'])) {
-              _selectedResourceTypes.remove(t['label']);
+            if (_selectedResourceTypes.contains(t['key'])) {
+              _selectedResourceTypes.remove(t['key']);
             } else {
-              _selectedResourceTypes.add(t['label'] as String);
+              _selectedResourceTypes.add(t['key'] as String);
             }
           });
         },
@@ -215,12 +222,12 @@ class _FilterModalState extends State<FilterModal> {
   }
 
   Widget _buildDateChips() {
-    final dates = ['Anytime', 'Past Week', 'Past Month', 'Past Year'];
+    final dates = ['anytime', 'past_week', 'past_month', 'past_year'];
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: dates.map((d) => _buildFilterChip(
-        label: d,
+        label: _dateLabel(d),
         isSelected: _selectedDate == d,
         onTap: () => setState(() => _selectedDate = d),
       )).toList(),
@@ -282,6 +289,8 @@ class _FilterModalState extends State<FilterModal> {
   }
 
   Widget _buildBottomAction() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -306,8 +315,8 @@ class _FilterModalState extends State<FilterModal> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
           ),
-          child: const Text(
-            'Show 42 Results',
+          child: Text(
+            localizations.galleryFilterShowResults(42),
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 16,
@@ -317,5 +326,61 @@ class _FilterModalState extends State<FilterModal> {
         ),
       ),
     );
+  }
+
+  String _subjectLabel(String key) {
+    final localizations = AppLocalizations.of(context)!;
+
+    switch (key) {
+      case 'math':
+        return localizations.galleryFilterSubjectMath;
+      case 'science':
+        return localizations.galleryFilterSubjectScience;
+      case 'history':
+        return localizations.galleryFilterSubjectHistory;
+      case 'literature':
+        return localizations.galleryFilterSubjectLiterature;
+      case 'art':
+        return localizations.galleryFilterSubjectArt;
+      case 'geography':
+        return localizations.galleryFilterSubjectGeography;
+      default:
+        return key;
+    }
+  }
+
+  String _resourceTypeLabel(String key) {
+    final localizations = AppLocalizations.of(context)!;
+
+    switch (key) {
+      case 'pdfs':
+        return localizations.galleryFilterTypePdfs;
+      case 'images':
+        return localizations.galleryFilterTypeImages;
+      case 'worksheets':
+        return localizations.galleryFilterTypeWorksheets;
+      case 'videos':
+        return localizations.galleryFilterTypeVideos;
+      case 'links':
+        return localizations.galleryFilterTypeLinks;
+      default:
+        return key;
+    }
+  }
+
+  String _dateLabel(String key) {
+    final localizations = AppLocalizations.of(context)!;
+
+    switch (key) {
+      case 'past_week':
+        return localizations.galleryFilterDatePastWeek;
+      case 'past_month':
+        return localizations.galleryFilterDatePastMonth;
+      case 'past_year':
+        return localizations.galleryFilterDatePastYear;
+      case 'anytime':
+      default:
+        return localizations.galleryFilterDateAnytime;
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -18,7 +19,11 @@ class FreelancerHomeScreen extends StatefulWidget {
 }
 
 class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
-  String _userName = 'Freelancer';
+  String _userName = '';
+
+  AppLocalizations _localizations() {
+    return AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
+  }
 
   @override
   void initState() {
@@ -32,14 +37,18 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
     if (userStr != null) {
       final user = jsonDecode(userStr) as Map<String, dynamic>;
       if (mounted) {
-        setState(() => _userName = user['name'] ?? 'Freelancer');
+        setState(() => _userName = (user['name'] ?? '').toString());
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = _localizations();
     final topPadding = MediaQuery.of(context).padding.top;
+    final displayName = _userName.isEmpty
+        ? localizations.commonFreelancer
+        : _userName;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
@@ -108,7 +117,7 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hai, $_userName! 👋',
+                              '${localizations.freelancerHomeGreeting(displayName)} 👋',
                               style: const TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 24,
@@ -117,8 +126,8 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'FREELANCER DASHBOARD',
+                            Text(
+                              localizations.freelancerHomeDashboardLabel,
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 11,
@@ -158,11 +167,11 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Row(
                       children: [
-                        Expanded(child: _buildStatCard('0', 'Active\nProjects', Icons.work_rounded)),
+                        Expanded(child: _buildStatCard('0', localizations.freelancerHomeActiveProjects, Icons.work_rounded)),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildStatCard('0', 'Pending\nOffers', Icons.mail_rounded)),
+                        Expanded(child: _buildStatCard('0', localizations.freelancerHomePendingOffers, Icons.mail_rounded)),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildStatCard('—', 'Rating', Icons.star_rounded)),
+                        Expanded(child: _buildStatCard('—', localizations.freelancerHomeRating, Icons.star_rounded)),
                       ],
                     ),
                   ),
@@ -203,8 +212,8 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            'Dashboard Dalam Pengembangan',
+                          Text(
+                            localizations.freelancerHomeBannerTitle,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 20,
@@ -214,10 +223,8 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Kami sedang membangun pengalaman freelancer yang luar biasa untuk Anda. '
-                            'Fitur seperti mencari proyek, mengelola portfolio, dan menerima pembayaran '
-                            'akan segera hadir!',
+                          Text(
+                            localizations.freelancerHomeBannerDescription,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 14,
@@ -240,8 +247,8 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Segera Hadir',
+                        Text(
+                          localizations.freelancerHomeSectionTitle,
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 18,
@@ -252,29 +259,29 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
                         const SizedBox(height: 16),
                         _buildFeaturePreview(
                           Icons.search_rounded,
-                          'Cari Proyek',
-                          'Temukan proyek yang sesuai dengan keahlian Anda',
+                          localizations.freelancerHomeFeatureSearchProjects,
+                          localizations.freelancerHomeFeatureSearchProjectsDescription,
                           const Color(0xFF3498DB),
                         ),
                         const SizedBox(height: 12),
                         _buildFeaturePreview(
                           Icons.cases_rounded,
-                          'Portfolio',
-                          'Tampilkan karya terbaik Anda kepada teacher',
+                          localizations.freelancerHomeFeaturePortfolio,
+                          localizations.freelancerHomeFeaturePortfolioDescription,
                           const Color(0xFFE94560),
                         ),
                         const SizedBox(height: 12),
                         _buildFeaturePreview(
                           Icons.payments_rounded,
-                          'Pembayaran',
-                          'Terima pembayaran dengan mudah dan aman',
+                          localizations.freelancerHomeFeaturePayments,
+                          localizations.freelancerHomeFeaturePaymentsDescription,
                           const Color(0xFF2ECC71),
                         ),
                         const SizedBox(height: 12),
                         _buildFeaturePreview(
                           Icons.chat_rounded,
-                          'Pesan',
-                          'Komunikasi langsung dengan teacher',
+                          localizations.freelancerHomeFeatureMessages,
+                          localizations.freelancerHomeFeatureMessagesDescription,
                           const Color(0xFFF39C12),
                         ),
                       ],
@@ -329,6 +336,8 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
   }
 
   Widget _buildFeaturePreview(IconData icon, String title, String desc, Color color) {
+    final localizations = _localizations();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -380,8 +389,8 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
               color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
-              'SOON',
+            child: Text(
+              localizations.featureComingSoonBadge,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 10,

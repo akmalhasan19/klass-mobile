@@ -221,6 +221,7 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                         children: List.generate(modules.length, (index) {
                           final mod = modules[index];
                           final isLast = index == modules.length - 1;
+                          final moduleDetail = (mod['detail'] ?? '').toString();
                           return Column(
                             children: [
                               Padding(
@@ -256,7 +257,9 @@ class ProjectConfirmationBottomSheet extends StatelessWidget {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            mod['detail'] ?? '',
+                                            moduleDetail.isNotEmpty
+                                                ? moduleDetail
+                                                : (localizations?.projectConfirmationModuleIncluded ?? 'Included module'),
                                             style: const TextStyle(
                                               fontFamily: 'Inter',
                                               fontSize: 14,

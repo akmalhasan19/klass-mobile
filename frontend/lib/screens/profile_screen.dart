@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'dart:ui';
 import '../config/app_colors.dart';
 
@@ -33,37 +34,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late bool _isLoading;
   late final ScrollController _scrollController;
 
-  /// Profile curriculum modules — placeholder data for the profile screen.
-  /// In a future phase, this will be fetched from the API.
-  static final List<Map<String, dynamic>> _profileModules = [
-    {
-      'title': 'Intro to Quantum Physics',
-      'description': 'A comprehensive journey from classical mechanics to the mysteries of quantum entanglements.',
-      'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTGKxSjUWwWvC2HvRdzg_RmvbCSLmCQH4UIU84ACn48uxwjyucMwK_wWVloZS99Ija6TT0Qr8yWPeti7JYBlEwelvNYlUTZ_rv5tQTZ7JqQ6H3oNIAjgCk0zGA_mjuh7FMYP92E5O8iA1zAiciFWoMTuFEqFxvhiNq5-i5tpKHdoI03HZphV9FcfsUUrzuu6vLitJfPtQVkvJ9Jxmcfzz8dyBwk2dJylV8Scjv6d22YZpLbpnRh1EQjmki4XCJ5iaz61XHKpHUxusQ',
-      'status': 'Published',
-      'isDraft': false,
-      'statsText': '1.2k students · 14h',
-      'statsIcon': Icons.group_rounded,
-    },
-    {
-      'title': 'Modern Art History',
-      'description': 'Exploring the seismic shifts in artistic expression from the mid-19th century to today.',
-      'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuAE7PoZ9LTIoG5uutNqz6Xt6gD2YUvbqq305GgIp-hfioQTmG3nGy3Oueh2HGA6A0lCtP1lUmn17dyLJ2gaphosdX3DwcPgBMk8-EhDHoMWq3WmL5pVaYXw_ohoMasfJV49PFhNeIJ1Tn7i1lyKuPxvoofnIF63eoOciRZ7wDUKCpxezigtDmQajbBiTf0jU1Xi1hIUeXxYJphhgn96vCQIJencrKhiN9HuG1j5gprRDmnP4ETdGnst1cXyPh1pVICDPNqoGZHywo7g',
-      'status': 'Published',
-      'isDraft': false,
-      'statsText': '850 students · 8h',
-      'statsIcon': Icons.group_rounded,
-    },
-    {
-      'title': 'Advanced Thermodynamics',
-      'description': 'In-depth analysis of entropy, enthalpy, and energy conversion systems.',
-      'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuCR6hR6bvffsyKtu12OhoJs6jMLIN6XlZ7V_c10UhZ4NnbX-CVQzaD48EjnPlC_ZG76rC7T7d82o5F7bBRsNmeezOeU7-Rmtkn_BXIU88LmGYkaduQGJhsEZHbEYkvc0x_Jpll2b4-3oBvv0b0V711JUu--D242lHRWTM0pPN6dZVKx8kON4x5QfsP4d_kRrzv0gyf6WyyKFkKbkjcHPqQq3PUtcf3K1lrg-j-6jPoH3dZo_H62th4HDgoOU9K8Jzv-2LMxpn0Lcwnj',
-      'status': 'Draft',
-      'isDraft': true,
-      'statsText': '4/12 Modules',
-      'statsIcon': Icons.history_edu_rounded,
-    },
-  ];
+  AppLocalizations _localizations() {
+    return AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
+  }
 
   @override
   void initState() {
@@ -233,12 +206,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 32),
                           _buildGuestAuthPrompt(),
                           const SizedBox(height: 64),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 24),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: Opacity(
                               opacity: 0.4,
                               child: Text(
-                                '"Knowledge is a curated gallery of the mind; begin your exhibition today."',
+                                _localizations().profileQuote,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: 'Mona_Sans',
@@ -304,12 +277,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String _getAppBarTitle() {
+    final localizations = _localizations();
+
     if (widget.isGuest || (_user == null && !_isLoading)) {
-      return 'Guest User';
+      return localizations.commonGuestUser;
     } else if (widget.role == 'freelancer') {
-      return 'Freelancer';
+      return localizations.commonFreelancer;
     } else {
-      return 'Teacher';
+      return localizations.commonTeacher;
     }
   }
 
@@ -345,6 +320,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGuestHero() {
+    final localizations = _localizations();
+
     return Column(
       children: [
         Stack(
@@ -378,8 +355,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white, width: 2),
               ),
-              child: const Text(
-                'GUEST',
+              child: Text(
+                localizations.commonGuestBadge,
                 style: TextStyle(
                   fontFamily: 'Mona_Sans',
                   fontSize: 10,
@@ -392,8 +369,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Guest User',
+        Text(
+          localizations.commonGuestUser,
           style: TextStyle(
             fontFamily: 'Mona_Sans',
             fontSize: 36,
@@ -403,8 +380,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'You are currently browsing as a guest',
+        Text(
+          localizations.profileGuestSubtitle,
           style: TextStyle(
             fontFamily: 'Mona_Sans',
             fontSize: 14,
@@ -418,22 +395,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGuestBentoGrid() {
+    final localizations = _localizations();
+
     return Column(
       children: [
         // Join as Teacher Card
         _buildGuestActionCard(
-          title: 'Join as Teacher',
-          subtitle: 'Share your expertise and build your academic legacy.',
-          label: 'Opportunity',
+          title: localizations.profileJoinTeacherTitle,
+          subtitle: localizations.profileJoinTeacherSubtitle,
+          label: localizations.profileJoinTeacherLabel,
           icon: Icons.school_rounded,
           isPrimary: true,
           onTap: () {
             FeatureComingSoon.show(
               context,
-              title: 'Teacher Registration',
-              description: 'Become an educator and start sharing your knowledge today.',
-              featureName: 'Teacher Ecosystem',
-              featureDescription: 'Access tools for course creation and student management.',
+              title: localizations.profileTeacherRegistrationTitle,
+              description: localizations.profileTeacherRegistrationDescription,
+              featureName: localizations.profileTeacherRegistrationFeatureName,
+              featureDescription: localizations.profileTeacherRegistrationFeatureDescription,
               icon: Icons.school_rounded,
               previewIcon: Icons.rocket_launch_rounded,
             );
@@ -442,18 +421,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 20),
         // Join as Freelancer Card
         _buildGuestActionCard(
-          title: 'Join as Freelancer',
-          subtitle: 'Work on your own terms with high-tier educational projects.',
-          label: 'Flexibility',
+          title: localizations.profileJoinFreelancerTitle,
+          subtitle: localizations.profileJoinFreelancerSubtitle,
+          label: localizations.profileJoinFreelancerLabel,
           icon: Icons.work_rounded,
           isPrimary: false,
           onTap: () {
             FeatureComingSoon.show(
               context,
-              title: 'Freelancer Portal',
-              description: 'Register as a freelancer to participate in educational projects.',
-              featureName: 'Klass Freelance',
-              featureDescription: 'Flexible work opportunities for experts.',
+              title: localizations.profileFreelancerPortalTitle,
+              description: localizations.profileFreelancerPortalDescription,
+              featureName: localizations.profileFreelancerPortalFeatureName,
+              featureDescription: localizations.profileFreelancerPortalFeatureDescription,
               icon: Icons.work_rounded,
               previewIcon: Icons.bolt_rounded,
             );
@@ -471,6 +450,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required bool isPrimary,
     required VoidCallback onTap,
   }) {
+    final localizations = _localizations();
+
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 180),
@@ -550,7 +531,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Row(
                         children: [
                           Text(
-                            isPrimary ? 'Get Started' : 'Learn More',
+                            isPrimary
+                                ? localizations.profileJoinTeacherCta
+                                : localizations.profileJoinFreelancerCta,
                             style: TextStyle(
                               fontFamily: 'Mona_Sans',
                               fontSize: 14,
@@ -578,6 +561,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGuestAuthPrompt() {
+    final localizations = _localizations();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -587,8 +572,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          const Text(
-            'Return to your journey',
+          Text(
+            localizations.profileReturnTitle,
             style: TextStyle(
               fontFamily: 'Mona_Sans',
               fontSize: 20,
@@ -597,8 +582,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Access your curated classes and achievements.',
+          Text(
+            localizations.profileReturnSubtitle,
             style: TextStyle(
               fontFamily: 'Mona_Sans',
               fontSize: 13,
@@ -626,8 +611,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       side: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
                     ),
                   ),
-                  child: const Text(
-                    'Log In',
+                  child: Text(
+                    localizations.commonLogIn,
                     style: TextStyle(
                       fontFamily: 'Mona_Sans',
                       fontSize: 14,
@@ -654,8 +639,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text(
-                    'Sign Up',
+                  child: Text(
+                    localizations.commonSignUp,
                     style: TextStyle(
                       fontFamily: 'Mona_Sans',
                       fontSize: 14,
@@ -673,6 +658,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 
   Widget _buildProfileHeader() {
+    final localizations = _localizations();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -725,17 +712,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.verified_rounded,
                           color: Colors.white,
                           size: 14,
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
-                          'VERIFIED',
+                          localizations.profileVerifiedBadge,
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 10,
@@ -756,7 +743,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: _isLoading 
             ? const CircularProgressIndicator()
             : Text(
-                _user?['name'] ?? 'Guest User',
+                _user?['name'] ?? localizations.commonGuestUser,
                 style: const TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 32,
@@ -805,8 +792,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 6),
                 Text(
                   _user == null
-                      ? 'GUEST'
-                      : widget.role == 'freelancer' ? 'FREELANCER' : 'TEACHER',
+                      ? localizations.commonGuestBadge
+                      : widget.role == 'freelancer'
+                          ? localizations.profileRoleFreelancerBadge
+                          : localizations.profileRoleTeacherBadge,
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
@@ -837,7 +826,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 _buildInfoChip(
                   Icons.history_edu_rounded,
-                  '12 Years in Education',
+                  localizations.profileYearsInEducation,
                 ),
               ],
             ),
@@ -866,12 +855,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: ElevatedButton(
                   onPressed: () => FeatureComingSoon.show(
                     context,
-                    title: 'Class Dashboard',
-                    description:
-                        'The Class Dashboard is being refined to provide you with a comprehensive overview of your teaching performance and student engagement metrics.',
-                    featureName: 'Performance Analytics',
-                    featureDescription:
-                        'Real-time data on class participation and curriculum progress.',
+                    title: localizations.profileClassDashboardTitle,
+                    description: localizations.profileClassDashboardDescription,
+                    featureName: localizations.profileClassDashboardFeatureName,
+                    featureDescription: localizations.profileClassDashboardFeatureDescription,
                     icon: Icons.dashboard_customize_rounded,
                     previewIcon: Icons.insights_rounded,
                   ),
@@ -884,8 +871,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: const Text(
-                    'Class Dashboard',
+                  child: Text(
+                    localizations.profileClassDashboardTitle,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 18,
@@ -929,18 +916,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStatsBento() {
+    final localizations = _localizations();
+
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard('06', 'Classes Taught', subtext: 'Active'),
+          child: _buildStatCard('06', localizations.profileStatsClassesTaught, subtext: localizations.profileStatsActive),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('180', 'Student Count', subtext: 'Enrolled'),
+          child: _buildStatCard('180', localizations.profileStatsStudentCount, subtext: localizations.profileStatsEnrolled),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('24', 'Curriculum Hours', subtext: 'h/week'),
+          child: _buildStatCard('24', localizations.profileStatsCurriculumHours, subtext: localizations.profileStatsHoursPerWeek),
         ),
       ],
     );
@@ -1016,11 +1005,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildInstitutionalTools() {
+    final localizations = _localizations();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Institutional Tools',
+        Text(
+          localizations.profileInstitutionalToolsTitle,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 20,
@@ -1039,14 +1030,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             _buildToolButton(
               Icons.assignment_turned_in_rounded,
-              'Gradebook &\nAttendance',
+              localizations.profileToolGradebookAttendance,
             ),
             _buildToolButton(
               Icons.edit_calendar_rounded,
-              'Curriculum\nPlanner',
+              localizations.profileToolCurriculumPlanner,
             ),
-            _buildToolButton(Icons.campaign_rounded, 'School\nAnnouncements'),
-            _buildToolButton(Icons.groups_rounded, 'Parent\nPortal'),
+            _buildToolButton(Icons.campaign_rounded, localizations.profileToolSchoolAnnouncements),
+            _buildToolButton(Icons.groups_rounded, localizations.profileToolParentPortal),
           ],
         ),
       ],
@@ -1054,6 +1045,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildToolButton(IconData icon, String label) {
+    final localizations = _localizations();
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background,
@@ -1073,11 +1066,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: () => FeatureComingSoon.show(
             context,
             title: label.replaceAll('\n', ' '),
-            description:
-                'We are working on bringing ${label.replaceAll('\n', ' ')} directly to your mobile device for seamless institutional management.',
-            featureName: 'Institutional Sync',
-            featureDescription:
-                'Stay connected with your school\'s management systems on the go.',
+            description: localizations.profileInstitutionalToolDescription(label.replaceAll('\n', ' ')),
+            featureName: localizations.profileInstitutionalSyncFeatureName,
+            featureDescription: localizations.profileInstitutionalSyncFeatureDescription,
             icon: icon,
             previewIcon: Icons.sync_rounded,
           ),
@@ -1112,6 +1103,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildTeachingMaterials() {
+    final localizations = _localizations();
+    final profileModules = _localizedProfileModules(localizations);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1119,12 +1113,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Curriculum Modules',
+                    localizations.profileTeachingMaterialsTitle,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 22,
@@ -1135,7 +1129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Manage and review your educational curriculum.',
+                    localizations.profileTeachingMaterialsSubtitle,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
@@ -1156,12 +1150,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              child: const Text('View All'),
+              child: Text(localizations.commonViewAll),
             ),
           ],
         ),
         const SizedBox(height: 20),
-        ..._profileModules.map((module) => Padding(
+        ...profileModules.map((module) => Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: _buildModuleCard(
                 title: module['title'] as String,
@@ -1337,6 +1331,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAccountSupport() {
+    final localizations = _localizations();
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1346,8 +1342,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Account & Support',
+          Text(
+            localizations.profileAccountSupportTitle,
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 20,
@@ -1357,33 +1353,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 16),
           _buildAccountSupportItem(
+            actionKey: 'account_settings',
             icon: Icons.settings_rounded,
-            label: 'Account Settings',
+            label: localizations.profileAccountSettings,
             isError: false,
           ),
           const SizedBox(height: 12),
           _buildAccountSupportItem(
+            actionKey: 'help_center',
             icon: Icons.help_rounded,
-            label: 'Help Center',
+            label: localizations.profileHelpCenter,
             isError: false,
           ),
           const SizedBox(height: 12),
           _buildAccountSupportItem(
+            actionKey: 'register_freelancer',
             icon: Icons.work_outline_rounded,
-            label: 'Register as Freelancer',
+            label: localizations.profileRegisterFreelancer,
             isError: false,
           ),
           const SizedBox(height: 12),
           if (_user != null)
             _buildAccountSupportItem(
+              actionKey: 'logout',
               icon: Icons.logout_rounded,
-              label: 'Logout',
+              label: localizations.profileLogout,
               isError: true,
             )
           else
             _buildAccountSupportItem(
+              actionKey: 'login',
               icon: Icons.login_rounded,
-              label: 'Log In / Create Account',
+              label: localizations.profileLogInCreateAccount,
               isError: false,
             ),
         ],
@@ -1392,6 +1393,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAccountSupportItem({
+    required String actionKey,
     required IconData icon,
     required String label,
     required bool isError,
@@ -1400,7 +1402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () async {
-          if (label == 'Account Settings') {
+          if (actionKey == 'account_settings') {
             if (await requireAuth(context)) {
               if (mounted) {
                 Navigator.of(context)
@@ -1420,29 +1422,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     });
               }
             }
-          } else if (label == 'Help Center') {
+              } else if (actionKey == 'help_center') {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => const HelpScreen(),
               ),
             );
-          } else if (label == 'Register as Freelancer') {
+              } else if (actionKey == 'register_freelancer') {
             if (await requireAuth(context)) {
               if (mounted) {
+                    final localizations = _localizations();
                 FeatureComingSoon.show(
                   context,
-                  title: 'Freelancer Registration',
-                  description: 'Our freelancer registration portal is currently under construction.',
-                  featureName: 'Become a Teacher',
-                  featureDescription: 'Share your curicullum and earn from your creations.',
+                      title: localizations.profileFreelancerRegistrationTitle,
+                      description: localizations.profileFreelancerRegistrationDescription,
+                      featureName: localizations.profileFreelancerRegistrationFeatureName,
+                      featureDescription: localizations.profileFreelancerRegistrationFeatureDescription,
                   icon: Icons.work_rounded,
                   previewIcon: Icons.rocket_launch_rounded,
                 );
               }
             }
-          } else if (label == 'Logout') {
+              } else if (actionKey == 'logout') {
             _handleLogout();
-          } else if (label == 'Log In / Create Account') {
+              } else if (actionKey == 'login') {
             Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(builder: (context) => const LoginScreen()),
             );
@@ -1506,16 +1509,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildFreelancerProfileSection() {
+    final localizations = _localizations();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Section header
-        const Row(
+        Row(
           children: [
-            Icon(Icons.work_rounded, color: Color(0xFF53C2B4), size: 22),
-            SizedBox(width: 8),
+            const Icon(Icons.work_rounded, color: Color(0xFF53C2B4), size: 22),
+            const SizedBox(width: 8),
             Text(
-              'Freelancer Profile',
+              localizations.profileFreelancerProfileTitle,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 20,
@@ -1539,8 +1544,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Keahlian',
+              Text(
+                localizations.profileSkillsTitle,
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 16,
@@ -1552,7 +1557,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: ['Desain Grafis', 'Presentasi', 'Video Editing', 'Konten Edukasi']
+                children: [
+                  localizations.profileSkillGraphicDesign,
+                  localizations.profileSkillPresentation,
+                  localizations.profileSkillVideoEditing,
+                  localizations.profileSkillEducationalContent,
+                ]
                     .map((skill) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
@@ -1582,12 +1592,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Icon(Icons.edit_rounded, color: AppColors.textMuted, size: 24),
-                    SizedBox(height: 8),
+                    const Icon(Icons.edit_rounded, color: AppColors.textMuted, size: 24),
+                    const SizedBox(height: 8),
                     Text(
-                      'Edit Keahlian — Segera Hadir',
+                      localizations.profileSkillsComingSoon,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
@@ -1613,12 +1623,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.border),
           ),
-          child: const Column(
+          child: Column(
             children: [
-              Icon(Icons.trending_up_rounded, color: AppColors.textMuted, size: 32),
-              SizedBox(height: 12),
+              const Icon(Icons.trending_up_rounded, color: AppColors.textMuted, size: 32),
+              const SizedBox(height: 12),
               Text(
-                'Statistik Portfolio',
+                localizations.profilePortfolioStatsTitle,
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 16,
@@ -1626,9 +1636,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.textPrimary,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
-                'Statistik performa dan review dari teacher akan ditampilkan di sini.',
+                localizations.profilePortfolioStatsDescription,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Inter',
@@ -1643,5 +1653,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ],
     );
+  }
+
+  List<Map<String, dynamic>> _localizedProfileModules(AppLocalizations localizations) {
+    return [
+      {
+        'title': localizations.profileModuleOneTitle,
+        'description': localizations.profileModuleOneDescription,
+        'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTGKxSjUWwWvC2HvRdzg_RmvbCSLmCQH4UIU84ACn48uxwjyucMwK_wWVloZS99Ija6TT0Qr8yWPeti7JYBlEwelvNYlUTZ_rv5tQTZ7JqQ6H3oNIAjgCk0zGA_mjuh7FMYP92E5O8iA1zAiciFWoMTuFEqFxvhiNq5-i5tpKHdoI03HZphV9FcfsUUrzuu6vLitJfPtQVkvJ9Jxmcfzz8dyBwk2dJylV8Scjv6d22YZpLbpnRh1EQjmki4XCJ5iaz61XHKpHUxusQ',
+        'status': localizations.commonPublished,
+        'isDraft': false,
+        'statsText': localizations.profileModuleOneStats,
+        'statsIcon': Icons.group_rounded,
+      },
+      {
+        'title': localizations.profileModuleTwoTitle,
+        'description': localizations.profileModuleTwoDescription,
+        'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuAE7PoZ9LTIoG5uutNqz6Xt6gD2YUvbqq305GgIp-hfioQTmG3nGy3Oueh2HGA6A0lCtP1lUmn17dyLJ2gaphosdX3DwcPgBMk8-EhDHoMWq3WmL5pVaYXw_ohoMasfJV49PFhNeIJ1Tn7i1lyKuPxvoofnIF63eoOciRZ7wDUKCpxezigtDmQajbBiTf0jU1Xi1hIUeXxYJphhgn96vCQIJencrKhiN9HuG1j5gprRDmnP4ETdGnst1cXyPh1pVICDPNqoGZHywo7g',
+        'status': localizations.commonPublished,
+        'isDraft': false,
+        'statsText': localizations.profileModuleTwoStats,
+        'statsIcon': Icons.group_rounded,
+      },
+      {
+        'title': localizations.profileModuleThreeTitle,
+        'description': localizations.profileModuleThreeDescription,
+        'imageUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuCR6hR6bvffsyKtu12OhoJs6jMLIN6XlZ7V_c10UhZ4NnbX-CVQzaD48EjnPlC_ZG76rC7T7d82o5F7bBRsNmeezOeU7-Rmtkn_BXIU88LmGYkaduQGJhsEZHbEYkvc0x_Jpll2b4-3oBvv0b0V711JUu--D242lHRWTM0pPN6dZVKx8kON4x5QfsP4d_kRrzv0gyf6WyyKFkKbkjcHPqQq3PUtcf3K1lrg-j-6jPoH3dZo_H62th4HDgoOU9K8Jzv-2LMxpn0Lcwnj',
+        'status': localizations.commonDraft,
+        'isDraft': true,
+        'statsText': localizations.profileModuleThreeStats,
+        'statsIcon': Icons.history_edu_rounded,
+      },
+    ];
   }
 }

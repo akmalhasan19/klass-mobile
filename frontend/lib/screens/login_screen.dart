@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../services/auth_service.dart';
 import '../main.dart'; // To access MainShell
@@ -31,6 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _submit() async {
+    final localizations = AppLocalizations.of(context)!;
+
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -64,8 +67,8 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(
             content: Text(
               isFreelancer 
-                ? '✅ Berhasil masuk sebagai Freelancer.' 
-                : '✅ Berhasil masuk.',
+                ? localizations.loginSuccessFreelancer
+                : localizations.loginSuccess,
               style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
             ),
             backgroundColor: AppColors.primary,
@@ -82,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
       } else {
         setState(() {
-          _errorMessage = 'Terjadi kesalahan. Coba lagi.';
+          _errorMessage = localizations.loginGenericError;
         });
       }
     } catch (e) {
@@ -98,6 +101,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: Center(
@@ -115,7 +120,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                _isLogin ? 'Welcome Back' : 'Create Account',
+                _isLogin
+                    ? localizations.loginTitleSignIn
+                    : localizations.loginTitleSignUp,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: 'Mona Sans',
@@ -126,7 +133,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _isLogin ? 'Sign in to jump back into your learning journey.' : 'Join Klass and start your journey.',
+                _isLogin
+                    ? localizations.loginSubtitleSignIn
+                    : localizations.loginSubtitleSignUp,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: 'Inter',
@@ -155,8 +164,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // ─── Role Selector (Register Mode Only) ────────────────
               if (!_isLogin) ...[
-                const Text(
-                  'Daftar sebagai:',
+                Text(
+                  localizations.loginRegisterAs,
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 14,
@@ -170,18 +179,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     Expanded(
                       child: _buildRoleOption(
                         role: 'teacher',
-                        label: 'Teacher',
+                        label: _roleLabel(localizations, 'teacher'),
                         icon: Icons.school_rounded,
-                        description: 'Buat & kelola materi',
+                        description: localizations.loginTeacherDescription,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildRoleOption(
                         role: 'freelancer',
-                        label: 'Freelancer',
+                        label: _roleLabel(localizations, 'freelancer'),
                         icon: Icons.work_rounded,
-                        description: 'Tawarkan jasa desain',
+                        description: localizations.loginFreelancerDescription,
                       ),
                     ),
                   ],
@@ -192,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
               if (!_isLogin) ...[
                 _buildTextField(
                   controller: _nameController,
-                  label: 'Full Name',
+                  label: localizations.commonFullName,
                   icon: Icons.person_outline,
                 ),
                 const SizedBox(height: 16),
@@ -200,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               _buildTextField(
                 controller: _emailController,
-                label: 'Email Address',
+                label: localizations.commonEmailAddress,
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -208,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               _buildTextField(
                 controller: _passwordController,
-                label: 'Password',
+                label: localizations.commonPassword,
                 icon: Icons.lock_outline,
                 obscureText: true,
               ),
@@ -222,8 +231,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
                       );
                     },
-                    child: const Text(
-                      'Forgot Password?',
+                    child: Text(
+                      localizations.loginForgotPassword,
                       style: TextStyle(
                         color: AppColors.primary,
                         fontFamily: 'Inter',
@@ -255,7 +264,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                       )
                     : Text(
-                        _isLogin ? 'Sign In' : 'Sign Up as ${_selectedRole == 'teacher' ? 'Teacher' : 'Freelancer'}',
+                        _isLogin
+                            ? localizations.loginSubmitSignIn
+                            : localizations.loginSubmitSignUp(
+                                _roleLabel(localizations, _selectedRole),
+                              ),
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 16,
@@ -273,7 +286,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   });
                 },
                 child: Text(
-                  _isLogin ? 'Don\'t have an account? Sign up' : 'Already have an account? Sign in',
+                  _isLogin
+                      ? localizations.loginToggleToSignUp
+                      : localizations.loginToggleToSignIn,
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     color: AppColors.primary,
@@ -286,6 +301,17 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  String _roleLabel(AppLocalizations localizations, String role) {
+    switch (role) {
+      case 'teacher':
+        return localizations.commonTeacher;
+      case 'freelancer':
+        return localizations.commonFreelancer;
+      default:
+        return role;
+    }
   }
 
   Widget _buildRoleOption({

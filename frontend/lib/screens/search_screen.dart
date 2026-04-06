@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 
 import '../widgets/animated_search_bar.dart';
 import '../widgets/skeleton_loaders.dart';
 import '../services/home_service.dart';
+import '../utils/api_debug_info.dart';
 
 /// Search/Discover Screen — mereplikasi halaman Search dari Klass Next.js.
 /// Fitur: Sticky header "Discover", category pills, teacher cards.
@@ -16,17 +18,17 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  String _activeCategory = 'All';
+  String _activeCategory = 'all';
   final ScrollController _scrollController = ScrollController();
   bool _isSearching = false;
 
   final List<Map<String, dynamic>> categories = const [
-    {'name': 'All', 'icon': Icons.grid_view_rounded},
-    {'name': 'Science', 'icon': Icons.science_rounded},
-    {'name': 'Math', 'icon': Icons.calculate_rounded},
-    {'name': 'Art', 'icon': Icons.palette_rounded},
-    {'name': 'Code', 'icon': Icons.code_rounded},
-    {'name': 'History', 'icon': Icons.menu_book_rounded},
+    {'key': 'all', 'icon': Icons.grid_view_rounded},
+    {'key': 'science', 'icon': Icons.science_rounded},
+    {'key': 'math', 'icon': Icons.calculate_rounded},
+    {'key': 'art', 'icon': Icons.palette_rounded},
+    {'key': 'code', 'icon': Icons.code_rounded},
+    {'key': 'history', 'icon': Icons.menu_book_rounded},
   ];
   
   final _homeService = HomeService();
@@ -56,29 +58,26 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = _normalizeErrorMessage(e);
+          _error = _localizeErrorMessage(e);
           _isLoading = false;
         });
       }
     }
   }
 
-  String _normalizeErrorMessage(Object error) {
-    final raw = error.toString();
-    const exceptionPrefix = 'Exception: ';
-    if (raw.startsWith(exceptionPrefix)) {
-      return raw.substring(exceptionPrefix.length);
-    }
-    return raw;
+  String _localizeErrorMessage(Object error) {
+    return ApiDebugInfo.localize(error, AppLocalizations.of(context));
   }
 
   Future<void> _copyDebugInfo(String message) async {
+    final localizations = AppLocalizations.of(context)!;
+
     await Clipboard.setData(ClipboardData(text: message));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text(
-          'Debug info copied to clipboard',
+        content: Text(
+          localizations.commonDebugInfoCopied,
           style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
         ),
         backgroundColor: AppColors.primary,
@@ -97,6 +96,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final topPadding = MediaQuery.of(context).padding.top;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -160,8 +160,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Text(
-                                            'Discover',
+                                          Text(
+                                            localizations.searchDiscoverTitle,
                                             style: TextStyle(
                                               fontFamily: 'Inter',
                                               fontSize: 28,
@@ -172,7 +172,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'EXPLORE TEACHERS',
+                                            localizations.searchDiscoverSubtitle,
                                             style: TextStyle(
                                               fontFamily: 'Inter',
                                               fontSize: 11,
@@ -197,10 +197,10 @@ class _SearchScreenState extends State<SearchScreen> {
                           title: AnimatedOpacity(
                             opacity: (headerOpacity > 0.8 && !_isSearching) ? 1.0 : 0.0,
                             duration: const Duration(milliseconds: 200),
-                            child: const Padding(
+                            child: Padding(
                               padding: EdgeInsets.only(top: 16.0),
                               child: Text(
-                                'Discover',
+                                localizations.searchDiscoverTitle,
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 26,
@@ -225,8 +225,8 @@ class _SearchScreenState extends State<SearchScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Recommended For You',
+                            Text(
+                              localizations.searchRecommendedTitle,
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 15,
@@ -235,7 +235,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                             ),
                             Text(
-                              'View All',
+                              localizations.commonViewAll,
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 13,
@@ -303,6 +303,8 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildCategoryPills() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       height: 56,
       decoration: BoxDecoration(
@@ -319,9 +321,10 @@ class _SearchScreenState extends State<SearchScreen> {
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final cat = categories[index];
-          final isActive = _activeCategory == cat['name'];
+          final categoryKey = cat['key'] as String;
+          final isActive = _activeCategory == categoryKey;
           return GestureDetector(
-            onTap: () => setState(() => _activeCategory = cat['name']),
+            onTap: () => setState(() => _activeCategory = categoryKey),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
@@ -351,7 +354,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    cat['name'],
+                    _categoryLabel(localizations, categoryKey),
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -369,6 +372,8 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildTeacherCard(Map<String, dynamic> teacher) {
+    final localizations = AppLocalizations.of(context)!;
+
     // ── Null-safe data extraction ──
     // API /marketplace-tasks returns: id, content_id, status, creator_id,
     // attachment_url, content (nested). Map these to UI fields with fallbacks.
@@ -376,14 +381,14 @@ class _SearchScreenState extends State<SearchScreen> {
     final displayName = (teacher['name']
         ?? content?['title']
         ?? teacher['creator_id']
-        ?? 'Unknown').toString();
+      ?? localizations.commonUnknown).toString();
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
     final role = (teacher['role']
         ?? teacher['status']
-        ?? 'Freelancer').toString();
+      ?? localizations.commonFreelancer).toString();
     final description = (teacher['description']
         ?? content?['description']
-        ?? 'No description available').toString();
+      ?? localizations.commonNoDescriptionAvailable).toString();
     final rating = teacher['rating'] ?? '-';
     final isOnline = teacher['online'] == true;
 
@@ -633,7 +638,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     Row(
                       children: [
                         Text(
-                          'View Profile',
+                          localizations.searchViewProfile,
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 13,
@@ -878,6 +883,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   // ─── Error State (Detailed Debug Info) ─────────────────────────────
   Widget _buildErrorState() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 32),
       child: Container(
@@ -906,8 +913,8 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Gagal Memuat Freelancer',
+            Text(
+              localizations.searchErrorTitle,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 16,
@@ -916,8 +923,8 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Terjadi masalah saat mengambil data. Detail error tersedia di bawah untuk debugging.',
+            Text(
+              localizations.searchErrorDescription,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Inter',
@@ -962,8 +969,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _copyDebugInfo(_error!),
                     icon: const Icon(Icons.copy_rounded, size: 16),
-                    label: const Text(
-                      'Copy Debug Info',
+                    label: Text(
+                      localizations.commonCopyDebugInfo,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 12,
@@ -986,8 +993,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _fetchTeachers,
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text(
-                      'Retry',
+                    label: Text(
+                      localizations.commonRetry,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
@@ -1015,6 +1022,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   // ─── Empty State ───────────────────────────────────────────────────
   Widget _buildEmptyState() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Center(
@@ -1038,8 +1047,8 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Belum Ada Freelancer',
+            Text(
+              localizations.searchEmptyTitle,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 18,
@@ -1048,10 +1057,10 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                'Freelancer yang tersedia akan tampil di sini.\nCoba sesuaikan filter pencarian Anda.',
+                localizations.searchEmptyDescription,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Inter',
@@ -1067,8 +1076,8 @@ class _SearchScreenState extends State<SearchScreen> {
             OutlinedButton.icon(
               onPressed: () => _fetchTeachers(forceRefresh: true),
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text(
-                'Refresh',
+              label: Text(
+                localizations.commonRefresh,
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
@@ -1088,5 +1097,23 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
       ),
     );
+  }
+
+  String _categoryLabel(AppLocalizations localizations, String key) {
+    switch (key) {
+      case 'science':
+        return localizations.searchCategoryScience;
+      case 'math':
+        return localizations.searchCategoryMath;
+      case 'art':
+        return localizations.searchCategoryArt;
+      case 'code':
+        return localizations.searchCategoryCode;
+      case 'history':
+        return localizations.searchCategoryHistory;
+      case 'all':
+      default:
+        return localizations.searchCategoryAll;
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 
 class HelpScreen extends StatelessWidget {
@@ -6,6 +7,8 @@ class HelpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -15,8 +18,8 @@ class HelpScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Help Center',
+        title: Text(
+          localizations.helpCenterTitle,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 20,
@@ -33,13 +36,13 @@ class HelpScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSearchHeader(),
+            _buildSearchHeader(context),
             const SizedBox(height: 40),
-            _buildQuickActions(),
+            _buildQuickActions(context),
             const SizedBox(height: 40),
-            _buildFAQSection(),
+            _buildFAQSection(context),
             const SizedBox(height: 40),
-            _buildContactSupport(),
+            _buildContactSupport(context),
             const SizedBox(height: 40),
           ],
         ),
@@ -47,12 +50,14 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchHeader() {
+  Widget _buildSearchHeader(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'How can we help?',
+        Text(
+          localizations.helpHeadline,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 32,
@@ -77,7 +82,7 @@ class HelpScreen extends StatelessWidget {
           ),
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Search for articles, guides...',
+              hintText: localizations.helpSearchHint,
               hintStyle: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 15,
@@ -97,12 +102,14 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Help',
+        Text(
+          localizations.helpQuickHelpTitle,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 20,
@@ -117,16 +124,16 @@ class HelpScreen extends StatelessWidget {
             Expanded(
               child: _buildActionCard(
                 Icons.rocket_launch_rounded,
-                'Getting Started',
-                'Learn the basics',
+                localizations.helpGettingStartedTitle,
+                localizations.helpGettingStartedSubtitle,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _buildActionCard(
                 Icons.menu_book_rounded,
-                'User Guide',
-                'Detailed tutorials',
+                localizations.helpUserGuideTitle,
+                localizations.helpUserGuideSubtitle,
               ),
             ),
           ],
@@ -185,12 +192,14 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFAQSection() {
+  Widget _buildFAQSection(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Popular Questions',
+        Text(
+          localizations.helpPopularQuestionsTitle,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 20,
@@ -200,13 +209,13 @@ class HelpScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        _buildFAQItem('How do I create a new module?'),
+        _buildFAQItem(localizations.helpQuestionNewModule),
         const SizedBox(height: 12),
-        _buildFAQItem('Can I sync my school data?'),
+        _buildFAQItem(localizations.helpQuestionSyncSchoolData),
         const SizedBox(height: 12),
-        _buildFAQItem('How to share materials with students?'),
+        _buildFAQItem(localizations.helpQuestionShareMaterials),
         const SizedBox(height: 12),
-        _buildFAQItem('What is a verified instructor profile?'),
+        _buildFAQItem(localizations.helpQuestionVerifiedInstructor),
       ],
     );
   }
@@ -245,7 +254,9 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactSupport() {
+  Widget _buildContactSupport(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -267,8 +278,8 @@ class HelpScreen extends StatelessWidget {
         children: [
           const Icon(Icons.headset_mic_rounded, color: Colors.white, size: 40),
           const SizedBox(height: 16),
-          const Text(
-            'Still need help?',
+          Text(
+            localizations.helpStillNeedHelpTitle,
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 20,
@@ -278,7 +289,7 @@ class HelpScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Our support team is available 24/7 to assist you with any issues.',
+            localizations.helpStillNeedHelpDescription,
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 14,
@@ -301,8 +312,8 @@ class HelpScreen extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Contact Support',
+              child: Text(
+                localizations.helpContactSupport,
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 16,

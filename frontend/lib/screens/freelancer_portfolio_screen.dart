@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 
 
 /// Freelancer Portfolio Screen — Placeholder untuk portfolio management.
@@ -9,6 +10,8 @@ class FreelancerPortfolioScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
@@ -38,8 +41,8 @@ class FreelancerPortfolioScreen extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Portfolio',
+                          Text(
+                            localizations.navPortfolio,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 28,
@@ -50,7 +53,7 @@ class FreelancerPortfolioScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'KARYA ANDA',
+                            localizations.portfolioSubtitle,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 11,
@@ -73,7 +76,7 @@ class FreelancerPortfolioScreen extends StatelessWidget {
                             const Icon(Icons.add_rounded, size: 18, color: Colors.white60),
                             const SizedBox(width: 4),
                             Text(
-                              'Tambah',
+                              localizations.portfolioAdd,
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 13,
@@ -95,11 +98,11 @@ class FreelancerPortfolioScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: Row(
                     children: [
-                      Expanded(child: _buildStat('0', 'Karya')),
+                      Expanded(child: _buildStat(context, '0', localizations.portfolioStatsWorks)),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildStat('0', 'Dilihat')),
+                      Expanded(child: _buildStat(context, '0', localizations.portfolioStatsViewed)),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildStat('0', 'Disukai')),
+                      Expanded(child: _buildStat(context, '0', localizations.portfolioStatsLiked)),
                     ],
                   ),
                 ),
@@ -125,8 +128,8 @@ class FreelancerPortfolioScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Portfolio Segera Hadir',
+                      Text(
+                        localizations.portfolioComingSoonTitle,
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 22,
@@ -136,8 +139,7 @@ class FreelancerPortfolioScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Tampilkan karya terbaik Anda — desain materi, presentasi, '
-                        'dan konten pendidikan — untuk menarik minat teacher.',
+                        localizations.portfolioComingSoonDescription,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'Inter',
@@ -189,7 +191,7 @@ class FreelancerPortfolioScreen extends StatelessWidget {
     );
   }
 
-  static Widget _buildStat(String value, String label) {
+  static Widget _buildStat(BuildContext context, String value, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(

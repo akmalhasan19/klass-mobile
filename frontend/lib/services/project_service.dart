@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'api_service.dart';
+import '../utils/api_debug_info.dart';
 
 class ProjectService extends ChangeNotifier {
   static final ProjectService _instance = ProjectService._internal();
@@ -37,22 +38,23 @@ class ProjectService extends ChangeNotifier {
           final data = payload['data'] as List;
           _addedProjects = ApiService.normalizeTopicCollection(data);
         } else {
-          _error =
-              'Gagal memuat materials\n'
-              'Endpoint: /topics\n'
-              'Error: Invalid response format. Expected data as List.';
+          _error = ApiService.buildDebugInfo(
+            'Invalid response format. Expected data as List.',
+            operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
+            endpoint: '/topics',
+          );
         }
       }
     } on DioException catch (e) {
       _error = ApiService.buildDebugInfo(
         e,
-        operation: 'Gagal memuat materials',
+        operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
         endpoint: '/topics',
       );
     } catch (e) {
       _error = ApiService.buildDebugInfo(
         e,
-        operation: 'Gagal memuat materials',
+        operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
         endpoint: '/topics',
       );
     } finally {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_colors.dart';
@@ -25,8 +26,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
 
-  String _complexity = 'Beginner';
-  final List<String> _styles = ['Visual'];
+  String _complexity = 'beginner';
+  final List<String> _styles = ['visual'];
   double _aiLevel = 0.5; // Balanced
 
   bool _emailNotifications = true;
@@ -40,6 +41,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _loadUserData() async {
+    final localizations = AppLocalizations.of(context)!;
     final prefs = await SharedPreferences.getInstance();
     final userStr = prefs.getString('user_data');
     if (userStr != null) {
@@ -49,7 +51,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           _user = user;
           _nameController.text = user['name'] ?? '';
           _emailController.text = user['email'] ?? '';
-          _bioController.text = user['bio'] ?? 'No bio provided.';
+          _bioController.text = user['bio'] ?? localizations.accountSettingsNoBioProvided;
         });
       }
     }
@@ -70,13 +72,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           }
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avatar updated successfully')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.accountSettingsAvatarUpdatedSuccess)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.accountSettingsAvatarUploadFailed(e.toString()))),
         );
       }
     } finally {
@@ -137,6 +139,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildHeader(double topPadding) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       padding: EdgeInsets.only(top: topPadding + 8, left: 16, right: 16, bottom: 8),
       color: AppColors.surface.withAlpha(204), // 80% opacity
@@ -148,8 +152,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             splashRadius: 24,
           ),
           const SizedBox(width: 8),
-          const Text(
-            'Account Settings',
+          Text(
+            localizations.accountSettingsTitle,
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 20,
@@ -164,6 +168,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildHeroSection() {
+    final localizations = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -238,7 +244,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            _user?['name'] ?? 'Guest User',
+                            _user?['name'] ?? localizations.commonGuestUser,
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 22,
@@ -260,13 +266,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         color: AppColors.primary.withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.verified_rounded, color: AppColors.primary, size: 12),
-                          SizedBox(width: 4),
+                          const Icon(Icons.verified_rounded, color: AppColors.primary, size: 12),
+                          const SizedBox(width: 4),
                           Text(
-                            'VERIFIED TEACHER',
+                            localizations.accountSettingsVerifiedTeacher,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 9,
@@ -285,7 +291,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            _user?['role'] ?? 'User / Student',
+            _user?['role'] ?? localizations.accountSettingsUserStudentRole,
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 13,
@@ -308,8 +314,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   side: const BorderSide(color: AppColors.border),
                 ),
               ),
-              child: const Text(
-                'Preview Public Profile',
+              child: Text(
+                localizations.accountSettingsPreviewPublicProfile,
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 14,
@@ -324,17 +330,33 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildPersonalInformation() {
+    final localizations = AppLocalizations.of(context)!;
+
     return _buildBentoCard(
       icon: Icons.person_outline_rounded,
-      title: 'Personal Information',
+      title: localizations.accountSettingsPersonalInformation,
       iconColor: AppColors.primary,
       iconBgColor: AppColors.primary.withAlpha(26),
       children: [
-        _buildInputField(label: 'FULL NAME', controller: _nameController),
+        _buildInputField(
+          label: localizations.commonFullName.toUpperCase(),
+          hint: localizations.accountSettingsHintFullName,
+          controller: _nameController,
+        ),
         const SizedBox(height: 20),
-        _buildInputField(label: 'EMAIL ADDRESS', controller: _emailController, keyboardType: TextInputType.emailAddress),
+        _buildInputField(
+          label: localizations.commonEmailAddress.toUpperCase(),
+          hint: localizations.accountSettingsHintEmailAddress,
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+        ),
         const SizedBox(height: 20),
-        _buildInputField(label: 'SHORT BIO', controller: _bioController, maxLines: 4),
+        _buildInputField(
+          label: localizations.accountSettingsShortBioLabel,
+          hint: localizations.accountSettingsHintShortBio,
+          controller: _bioController,
+          maxLines: 4,
+        ),
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
@@ -363,8 +385,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text(
-                'Save Changes',
+              child: Text(
+                localizations.commonSaveChanges,
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 14,
@@ -379,13 +401,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildTeachingPreferences() {
+    final localizations = AppLocalizations.of(context)!;
+
     return _buildBentoCard(
       icon: Icons.psychology_outlined,
-      title: 'Teaching Preferences',
+      title: localizations.accountSettingsTeachingPreferences,
       iconColor: AppColors.amber,
       iconBgColor: AppColors.amber.withAlpha(26),
       children: [
-        _buildSectionLabel('DEFAULT COMPLEXITY'),
+        _buildSectionLabel(localizations.settingsDefaultProjectComplexity),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
@@ -393,7 +417,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             spacing: 10,
             runSpacing: 10,
             alignment: WrapAlignment.center,
-            children: ['Beginner', 'Intermediate', 'Advanced'].map((lvl) {
+            children: ['beginner', 'intermediate', 'advanced'].map((lvl) {
               final isSelected = _complexity == lvl;
               return GestureDetector(
                 onTap: () => setState(() => _complexity = lvl),
@@ -408,7 +432,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     ),
                   ),
                   child: Text(
-                    lvl,
+                    _complexityLabel(localizations, lvl),
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -422,7 +446,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        _buildSectionLabel('PREFERRED TEACHING STYLE'),
+        _buildSectionLabel(localizations.settingsLearningStyles),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
@@ -431,14 +455,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             runSpacing: 10,
             alignment: WrapAlignment.center,
             children: [
-              _buildStyleChip('Visual', Icons.visibility_outlined),
-              _buildStyleChip('Hands-on', Icons.front_hand_outlined),
-              _buildStyleChip('Reading', Icons.menu_book_outlined),
+              _buildStyleChip('visual', Icons.visibility_outlined),
+              _buildStyleChip('hands_on', Icons.front_hand_outlined),
+              _buildStyleChip('reading', Icons.menu_book_outlined),
             ],
           ),
         ),
         const SizedBox(height: 24),
-        _buildSectionLabel('AI ASSISTANCE LEVEL'),
+        _buildSectionLabel(localizations.settingsCreativityLevel),
         const SizedBox(height: 8),
         SliderTheme(
           data: SliderThemeData(
@@ -457,9 +481,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _aiLevelLabel('Precise', _aiLevel < 0.33),
-            _aiLevelLabel('Balanced', _aiLevel >= 0.33 && _aiLevel <= 0.66),
-            _aiLevelLabel('Creative', _aiLevel > 0.66),
+            _aiLevelLabel(localizations.settingsCreativityPrecise, _aiLevel < 0.33),
+            _aiLevelLabel(localizations.settingsCreativityBalanced, _aiLevel >= 0.33 && _aiLevel <= 0.66),
+            _aiLevelLabel(localizations.settingsCreativityCreative, _aiLevel > 0.66),
           ],
         ),
       ],
@@ -467,29 +491,31 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildNotifications() {
+    final localizations = AppLocalizations.of(context)!;
+
     return _buildBentoCard(
       icon: Icons.notifications_none_rounded,
-      title: 'Notifications',
+      title: localizations.accountSettingsNotifications,
       iconColor: AppColors.textSecondary,
       iconBgColor: AppColors.surfaceLight,
       children: [
         _buildToggleItem(
-          title: 'Email Notifications',
-          subtitle: 'Class alerts and messages',
+          title: localizations.accountSettingsEmailNotificationsTitle,
+          subtitle: localizations.accountSettingsEmailNotificationsSubtitle,
           value: _emailNotifications,
           onChanged: (v) => setState(() => _emailNotifications = v),
         ),
         const Divider(height: 32),
         _buildToggleItem(
-          title: 'Push Notifications',
-          subtitle: 'Real-time mobile updates',
+          title: localizations.accountSettingsPushNotificationsTitle,
+          subtitle: localizations.accountSettingsPushNotificationsSubtitle,
           value: _pushNotifications,
           onChanged: (v) => setState(() => _pushNotifications = v),
         ),
         const Divider(height: 32),
         _buildToggleItem(
-          title: 'Weekly Student Reports',
-          subtitle: 'Aggregated progress insights',
+          title: localizations.accountSettingsWeeklyReportsTitle,
+          subtitle: localizations.accountSettingsWeeklyReportsSubtitle,
           value: _weeklyReports,
           onChanged: (v) => setState(() => _weeklyReports = v),
         ),
@@ -498,23 +524,23 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildSecurity() {
+    final localizations = AppLocalizations.of(context)!;
+
     return _buildBentoCard(
       icon: Icons.shield_outlined,
-      title: 'Security',
+      title: localizations.accountSettingsSecurity,
       iconColor: AppColors.red,
       iconBgColor: AppColors.red.withAlpha(26),
       children: [
         _buildNavAction(
           icon: Icons.lock_outline_rounded,
-          label: 'Change Password',
+          label: localizations.commonChangePassword,
           onTap: () => FeatureComingSoon.show(
             context,
-            title: 'Security Settings',
-            description:
-                'We are enhancing our security features. You will soon be able to change your password, enable two-factor authentication, and manage active sessions.',
-            featureName: 'Two-Factor Auth',
-            featureDescription:
-                'Add an extra layer of protection to your account.',
+            title: localizations.accountSettingsSecuritySettingsTitle,
+            description: localizations.accountSettingsSecuritySettingsDescription,
+            featureName: localizations.accountSettingsSecuritySettingsFeatureName,
+            featureDescription: localizations.accountSettingsSecuritySettingsFeatureDescription,
             icon: Icons.security_rounded,
             previewIcon: Icons.phonelink_lock_rounded,
           ),
@@ -522,15 +548,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         const SizedBox(height: 12),
         _buildNavAction(
           icon: Icons.description_outlined,
-          label: 'Privacy Policy',
+          label: localizations.commonPrivacyPolicy,
           onTap: () => FeatureComingSoon.show(
             context,
-            title: 'Privacy & Legal',
-            description:
-                'Our legal team is finalizing the updated privacy policy and terms of service to ensure full compliance with the latest regulations.',
-            featureName: 'Data Export',
-            featureDescription:
-                'Download a complete copy of your personal data at any time.',
+            title: localizations.accountSettingsPrivacyLegalTitle,
+            description: localizations.accountSettingsPrivacyLegalDescription,
+            featureName: localizations.accountSettingsPrivacyLegalFeatureName,
+            featureDescription: localizations.accountSettingsPrivacyLegalFeatureDescription,
             icon: Icons.policy_rounded,
             previewIcon: Icons.download_rounded,
           ),
@@ -541,17 +565,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           child: OutlinedButton.icon(
             onPressed: () => FeatureComingSoon.show(
               context,
-              title: 'Account Management',
-              description:
-                  'We are working on a streamlined process for account deletion and data archival to respect your right to be forgotten.',
-              featureName: 'Data Archival',
-              featureDescription:
-                  'Archive your account instead of deleting it to preserve your work.',
+              title: localizations.accountSettingsAccountManagementTitle,
+              description: localizations.accountSettingsAccountManagementDescription,
+              featureName: localizations.accountSettingsAccountManagementFeatureName,
+              featureDescription: localizations.accountSettingsAccountManagementFeatureDescription,
               icon: Icons.person_remove_rounded,
               previewIcon: Icons.archive_rounded,
             ),
             icon: const Icon(Icons.delete_outline_rounded, size: 20),
-            label: const Text('Delete Account'),
+            label: Text(localizations.commonDeleteAccount),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.red,
               side: BorderSide(color: AppColors.red.withAlpha(77), width: 2),
@@ -566,9 +588,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        const Center(
+        Center(
           child: Text(
-            'This action is permanent and will remove all your class materials and student data.',
+            localizations.accountSettingsDeleteWarning,
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 11,
@@ -639,6 +661,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Widget _buildInputField({
     required String label,
+    required String hint,
     required TextEditingController controller,
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
@@ -672,7 +695,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           decoration: InputDecoration(
             filled: true,
             fillColor: AppColors.surfaceLight,
-            hintText: 'Enter your ${label.toLowerCase()}',
+            hintText: hint,
             hintStyle: TextStyle(
               color: AppColors.textMuted.withAlpha(128),
               fontSize: 14,
@@ -710,15 +733,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
   }
 
-  Widget _buildStyleChip(String label, IconData icon) {
-    final isSelected = _styles.contains(label);
+  Widget _buildStyleChip(String key, IconData icon) {
+    final isSelected = _styles.contains(key);
+    final localizations = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () {
         setState(() {
           if (isSelected) {
-            _styles.remove(label);
+            _styles.remove(key);
           } else {
-            _styles.add(label);
+            _styles.add(key);
           }
         });
       },
@@ -738,7 +762,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              label,
+              _styleLabel(localizations, key),
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 13,
@@ -750,6 +774,30 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ),
       ),
     );
+  }
+
+  String _complexityLabel(AppLocalizations localizations, String key) {
+    switch (key) {
+      case 'intermediate':
+        return localizations.settingsComplexityIntermediate;
+      case 'advanced':
+        return localizations.settingsComplexityAdvanced;
+      case 'beginner':
+      default:
+        return localizations.settingsComplexityBeginner;
+    }
+  }
+
+  String _styleLabel(AppLocalizations localizations, String key) {
+    switch (key) {
+      case 'hands_on':
+        return localizations.settingsLearningStyleHandsOn;
+      case 'reading':
+        return localizations.settingsLearningStyleReading;
+      case 'visual':
+      default:
+        return localizations.settingsLearningStyleVisual;
+    }
   }
 
   Widget _aiLevelLabel(String label, bool isActive) {

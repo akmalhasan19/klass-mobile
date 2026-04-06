@@ -73,26 +73,26 @@ Menyediakan Settings page yang dapat diakses dari ikon gear pada Home screen, me
 
 ### Phase 6 - Localize Priority Screens
 
-- [ ] Localize `frontend/lib/screens/login_screen.dart`
-- [ ] Localize `frontend/lib/screens/forgot_password_screen.dart`
-- [ ] Localize `frontend/lib/screens/home_screen.dart`
-- [ ] Localize `frontend/lib/screens/freelancer_home_screen.dart`
-- [ ] Localize `frontend/lib/screens/profile_screen.dart`
-- [ ] Localize `frontend/lib/screens/search_screen.dart`
-- [ ] Localize `frontend/lib/screens/bookmark_screen.dart`
-- [ ] Localize `frontend/lib/screens/freelancer_jobs_screen.dart`
-- [ ] Localize `frontend/lib/screens/freelancer_portfolio_screen.dart`
-- [ ] Localize `frontend/lib/screens/account_settings_screen.dart`
-- [ ] Localize `frontend/lib/screens/gallery_screen.dart`
-- [ ] Localize `frontend/lib/screens/help_screen.dart`
-- [ ] Localize `frontend/lib/screens/project_success_screen.dart`
+- [x] Localize `frontend/lib/screens/login_screen.dart`
+- [x] Localize `frontend/lib/screens/forgot_password_screen.dart`
+- [x] Localize `frontend/lib/screens/home_screen.dart`
+- [x] Localize `frontend/lib/screens/freelancer_home_screen.dart`
+- [x] Localize `frontend/lib/screens/profile_screen.dart`
+- [x] Localize `frontend/lib/screens/search_screen.dart`
+- [x] Localize `frontend/lib/screens/bookmark_screen.dart`
+- [x] Localize `frontend/lib/screens/freelancer_jobs_screen.dart`
+- [x] Localize `frontend/lib/screens/freelancer_portfolio_screen.dart`
+- [x] Localize `frontend/lib/screens/account_settings_screen.dart`
+- [x] Localize `frontend/lib/screens/gallery_screen.dart`
+- [x] Localize `frontend/lib/screens/help_screen.dart`
+- [x] Localize `frontend/lib/screens/project_success_screen.dart`
 
 ### Phase 7 - Handle Client-Owned vs Backend-Owned Text
 
-- [ ] Identifikasi string client-owned yang wajib dipindahkan ke resource localization
-- [ ] Biarkan konten dari backend tetap apa adanya kecuali sudah ada translated variant
-- [ ] Biarkan user-generated content tetap apa adanya
-- [ ] Review service messages yang muncul ke UI agar ikut localized bila memang client-owned
+- [x] Identifikasi string client-owned yang wajib dipindahkan ke resource localization
+- [x] Biarkan konten dari backend tetap apa adanya kecuali sudah ada translated variant
+- [x] Biarkan user-generated content tetap apa adanya
+- [x] Review service messages yang muncul ke UI agar ikut localized bila memang client-owned
 
 ### Phase 8 - Add Automated Tests
 
@@ -120,31 +120,31 @@ Menyediakan Settings page yang dapat diakses dari ikon gear pada Home screen, me
 - [ ] `frontend/lib/main.dart`
 - [ ] Helper/service preferensi bahasa baru atau file util terkait
 - [ ] `frontend/pubspec.yaml`
-- [ ] File localization config dan ARB resources baru
+- [x] File localization config dan ARB resources baru
 
 ### Screens
 
 - [ ] `frontend/lib/screens/settings_screen.dart`
-- [ ] `frontend/lib/screens/home_screen.dart`
-- [ ] `frontend/lib/screens/freelancer_home_screen.dart`
-- [ ] `frontend/lib/screens/login_screen.dart`
-- [ ] `frontend/lib/screens/forgot_password_screen.dart`
-- [ ] `frontend/lib/screens/profile_screen.dart`
-- [ ] `frontend/lib/screens/search_screen.dart`
-- [ ] `frontend/lib/screens/bookmark_screen.dart`
-- [ ] `frontend/lib/screens/freelancer_jobs_screen.dart`
-- [ ] `frontend/lib/screens/freelancer_portfolio_screen.dart`
-- [ ] `frontend/lib/screens/account_settings_screen.dart`
-- [ ] `frontend/lib/screens/gallery_screen.dart`
-- [ ] `frontend/lib/screens/help_screen.dart`
-- [ ] `frontend/lib/screens/project_success_screen.dart`
+- [x] `frontend/lib/screens/home_screen.dart`
+- [x] `frontend/lib/screens/freelancer_home_screen.dart`
+- [x] `frontend/lib/screens/login_screen.dart`
+- [x] `frontend/lib/screens/forgot_password_screen.dart`
+- [x] `frontend/lib/screens/profile_screen.dart`
+- [x] `frontend/lib/screens/search_screen.dart`
+- [x] `frontend/lib/screens/bookmark_screen.dart`
+- [x] `frontend/lib/screens/freelancer_jobs_screen.dart`
+- [x] `frontend/lib/screens/freelancer_portfolio_screen.dart`
+- [x] `frontend/lib/screens/account_settings_screen.dart`
+- [x] `frontend/lib/screens/gallery_screen.dart`
+- [x] `frontend/lib/screens/help_screen.dart`
+- [x] `frontend/lib/screens/project_success_screen.dart`
 
 ### Shared Widgets and Services
 
-- [ ] `frontend/lib/widgets/bottom_nav.dart`
-- [ ] `frontend/lib/widgets/feature_coming_soon.dart`
-- [ ] Widget/sheet reusable lain yang memiliki text hard-coded
-- [ ] Service file yang mengeluarkan message ke UI
+- [x] `frontend/lib/widgets/bottom_nav.dart`
+- [x] `frontend/lib/widgets/feature_coming_soon.dart`
+- [x] Widget/sheet reusable lain yang memiliki text hard-coded
+- [x] Service file yang mengeluarkan message ke UI
 
 ### Tests
 

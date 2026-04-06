@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'dart:ui';
 import '../config/app_colors.dart';
 import '../widgets/feature_coming_soon.dart';
 import '../services/project_service.dart';
+import '../utils/api_debug_info.dart';
 import '../utils/auth_guard.dart';
 
 class BookmarkScreen extends StatefulWidget {
@@ -21,8 +23,12 @@ class BookmarkScreen extends StatefulWidget {
 }
 
 class _BookmarkScreenState extends State<BookmarkScreen> {
-  String _selectedFilter = 'All';
+  String _selectedFilter = 'all';
   final ProjectService _projectService = ProjectService();
+
+  AppLocalizations _localizations() {
+    return AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
+  }
 
   @override
   void initState() {
@@ -47,10 +53,12 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Future<void> _copyDebugInfo(String message) async {
+    final localizations = _localizations();
+
     await Clipboard.setData(ClipboardData(text: message));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Debug info copied to clipboard')),
+      SnackBar(content: Text(localizations.commonDebugInfoCopied)),
     );
   }
 
@@ -102,6 +110,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildAppBar() {
+    final localizations = _localizations();
+
     return SliverAppBar(
       pinned: true,
       backgroundColor: AppColors.surfaceLight.withValues(alpha: 0.8),
@@ -113,8 +123,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           child: Container(color: Colors.transparent),
         ),
       ),
-      title: const Text(
-        'Workspace',
+      title: Text(
+        localizations.navWorkspace,
         style: TextStyle(
           fontFamily: 'Inter',
           fontSize: 20,
@@ -149,11 +159,13 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildHeaderAndSearch() {
+    final localizations = _localizations();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Kelola karya Anda.',
+        Text(
+          localizations.workspaceHeaderHeadline,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 36,
@@ -164,8 +176,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Kelola materi kurikulum, susun ide kuliah baru, dan atur ruang kerja digital Anda.',
+        Text(
+          localizations.workspaceHeaderDescription,
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 15,
@@ -179,7 +191,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildFilterChips() {
-    final filters = ['All', 'Drafts', 'Published', 'Student Materials'];
+    final localizations = _localizations();
+    final filters = ['all', 'drafts', 'published', 'student_materials'];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -216,7 +229,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   ],
                 ),
                 child: Text(
-                  filter,
+                  _filterLabel(localizations, filter),
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 14,
@@ -233,14 +246,19 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildMaterialsSection() {
+    final localizations = AppLocalizations.of(context);
+    final errorMessage = _projectService.error == null
+        ? null
+        : ApiDebugInfo.localize(_projectService.error!, localizations);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'My Teaching Materials',
+                localizations?.workspaceMaterialsTitle ?? 'My Teaching Materials',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 24,
@@ -256,7 +274,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                 GestureDetector(
                   onTap: widget.onViewGallery,
                   child: Text(
-                    'View Gallery',
+                    localizations?.workspaceViewGallery ?? 'View Gallery',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
@@ -291,7 +309,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 48),
                   const SizedBox(height: 12),
                   Text(
-                    _projectService.error ?? 'Failed to load materials',
+                    errorMessage ?? localizations?.workspaceLoadErrorFallback ?? 'Failed to load materials',
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 12,
@@ -302,14 +320,14 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   ),
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
-                    onPressed: () => _copyDebugInfo(_projectService.error ?? ''),
+                    onPressed: () => _copyDebugInfo(errorMessage ?? ''),
                     icon: const Icon(Icons.copy_rounded, size: 16),
-                    label: const Text('Copy Debug Info'),
+                    label: Text(localizations?.commonCopyDebugInfo ?? 'Copy Debug Info'),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => _projectService.fetchProjects(),
-                    child: const Text('Retry'),
+                    child: Text(localizations?.commonRetry ?? 'Retry'),
                   ),
                 ],
               ),
@@ -323,8 +341,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                 children: [
                   Icon(Icons.folder_open_rounded, color: AppColors.border, size: 64),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Belum ada material untuk ditampilkan',
+                  Text(
+                    localizations?.workspaceEmptyTitle ?? 'Belum ada material untuk ditampilkan',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,
@@ -333,8 +351,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Buat project terlebih dahulu.\nMaterial akan muncul di bagian ini setelah project dibuat.',
+                  Text(
+                    localizations?.workspaceEmptyDescription ?? 'Buat project terlebih dahulu.\nMaterial akan muncul di bagian ini setelah project dibuat.',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -351,7 +369,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                       }
                     },
                     icon: const Icon(Icons.add_rounded),
-                    label: const Text('Buat Project Pertama'),
+                    label: Text(localizations?.workspaceFirstProjectCta ?? 'Buat Project Pertama'),
                   ),
                 ],
               ),
@@ -363,8 +381,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             final String imagePath =
                 (project['cover_image'] ?? project['image'] ?? project['media_url'] ?? '')
                     .toString();
-            final String title = project['title'] ?? 'Untitled Project';
-            final String desc = project['description'] ?? 'No description provided.';
+            final String title = project['title'] ?? localizations?.homeUntitled ?? 'Untitled Project';
+            final String desc = project['description'] ?? localizations?.projectDetailsNoDescription ?? 'No description provided.';
             
             // For now everything assumes backend response struct
             return Padding(
@@ -373,9 +391,12 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                 imagePath: imagePath,
                 title: title,
                 desc: desc,
-                status: (project['status'] ?? 'draft').toString().toUpperCase(),
+                status: _projectStatusLabel(
+                  localizations ?? _localizations(),
+                  (project['status'] ?? 'draft').toString(),
+                ),
                 isPublished: project['status'] == 'PUBLISHED',
-                dateText: 'Updated recently',
+                dateText: localizations?.commonUpdatedRecently ?? 'Updated recently',
               ),
             );
           }),
@@ -423,8 +444,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                     child: const Icon(Icons.add_rounded, size: 32, color: AppColors.primary),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Create New Module',
+                  Text(
+                    localizations?.workspaceCreateNewModule ?? 'Create New Module',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,
@@ -434,7 +455,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Start building your next masterpiece',
+                    localizations?.workspaceCreateNewModuleSubtitle ?? 'Start building your next masterpiece',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -609,6 +630,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildDraftsSection() {
+    final localizations = _localizations();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -616,8 +639,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           children: [
             Icon(Icons.lightbulb_outline_rounded, color: AppColors.amber),
             const SizedBox(width: 12),
-            const Text(
-              'Drafts & Ideas',
+            Text(
+              localizations.workspaceDraftsTitle,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 20,
@@ -630,12 +653,12 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         const SizedBox(height: 20),
         
         _buildDraftItem(
-          text: 'Compare the ecological impact of traditional vs modern farming in Java...',
+          text: localizations.workspaceDraftSampleOne,
           tags: ['GEOGRAPHY', 'IDEA'],
         ),
         const SizedBox(height: 12),
         _buildDraftItem(
-          text: 'Vocabulary quiz for Semester 2 - Advanced Literature...',
+          text: localizations.workspaceDraftSampleTwo,
           tags: ['LIT', 'QUIZ'],
         ),
         
@@ -664,7 +687,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
               Icon(Icons.edit_note_rounded, color: AppColors.textMuted),
               const SizedBox(width: 8),
               Text(
-                'Quick Capture',
+                localizations.workspaceQuickCapture,
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 14,
@@ -736,6 +759,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildResourceLibrarySection() {
+    final localizations = _localizations();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -743,8 +768,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           children: [
             Icon(Icons.folder_special_rounded, color: AppColors.primary),
             const SizedBox(width: 12),
-            const Text(
-              'Resource Library',
+            Text(
+              localizations.workspaceResourceLibraryTitle,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 20,
@@ -765,10 +790,10 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           crossAxisSpacing: 16,
           childAspectRatio: 1.2,
           children: [
-            _buildResourceGridItem(Icons.description_rounded, 'Templates'),
-            _buildResourceGridItem(Icons.image_rounded, 'Assets'),
-            _buildResourceGridItem(Icons.video_library_rounded, 'Lectures'),
-            _buildResourceGridItem(Icons.upload_file_rounded, 'Upload'),
+            _buildResourceGridItem(Icons.description_rounded, localizations.workspaceResourceTemplates),
+            _buildResourceGridItem(Icons.image_rounded, localizations.workspaceResourceAssets),
+            _buildResourceGridItem(Icons.video_library_rounded, localizations.workspaceResourceLectures),
+            _buildResourceGridItem(Icons.upload_file_rounded, localizations.workspaceResourceUpload),
           ],
         ),
         
@@ -805,8 +830,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Storage 72% full',
+                    Text(
+                      localizations.workspaceStorageFull(72),
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 14,
@@ -844,6 +869,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildResourceGridItem(IconData icon, String label) {
+    final localizations = _localizations();
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background, // Match scaffold to allow shadow visibility
@@ -864,12 +891,10 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           borderRadius: BorderRadius.circular(20),
           onTap: () => FeatureComingSoon.show(
             context,
-            title: '$label Library',
-            description:
-                'The $label section of your Resource Library is currently under construction. Soon you will be able to manage all your educational assets in one place.',
-            featureName: 'Cloud Sync',
-            featureDescription:
-                'Access your $label from any device, anywhere.',
+            title: localizations.workspaceFeatureLibraryTitle(label),
+            description: localizations.workspaceFeatureLibraryDescription(label),
+            featureName: localizations.workspaceFeatureCloudSync,
+            featureDescription: localizations.workspaceFeatureCloudSyncDescription(label),
             icon: icon,
             previewIcon: Icons.cloud_sync_rounded,
           ),
@@ -893,5 +918,28 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         ),
       ),
     );
+  }
+
+  String _filterLabel(AppLocalizations localizations, String key) {
+    switch (key) {
+      case 'drafts':
+        return localizations.workspaceFilterDrafts;
+      case 'published':
+        return localizations.workspaceFilterPublished;
+      case 'student_materials':
+        return localizations.workspaceFilterStudentMaterials;
+      case 'all':
+      default:
+        return localizations.workspaceFilterAll;
+    }
+  }
+
+  String _projectStatusLabel(AppLocalizations localizations, String rawStatus) {
+    final normalized = rawStatus.toLowerCase();
+    if (normalized == 'published') {
+      return localizations.commonPublished.toUpperCase();
+    }
+
+    return localizations.commonDraft.toUpperCase();
   }
 }

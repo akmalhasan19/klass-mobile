@@ -27,8 +27,8 @@ class GalleryService {
         }
       }
       return [];
-    } catch (e) {
-      throw Exception('Failed to load gallery: $e');
+    } catch (_) {
+      rethrow;
     }
   }
 }

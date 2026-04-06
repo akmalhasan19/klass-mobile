@@ -6,6 +6,7 @@ import '../config/api_config.dart';
 import '../config/feature_flags.dart';
 import 'monitoring_service.dart';
 import 'cache_interceptor.dart';
+import '../utils/api_debug_info.dart';
 
 class ApiService {
   late Dio _dio;
@@ -124,7 +125,7 @@ class ApiService {
           stackTrace: e.stackTrace,
           message: buildDebugInfo(
             e,
-            operation: 'Network request failed',
+            operation: ApiDebugOperation.networkRequestFailed,
             endpoint: e.requestOptions.path,
           ),
         );
@@ -144,59 +145,14 @@ class ApiService {
 
   static String buildDebugInfo(
     Object error, {
-    required String operation,
+    required ApiDebugOperation operation,
     required String endpoint,
   }) {
-    if (error is DioException) {
-      final req = error.requestOptions;
-      final statusCode = error.response?.statusCode;
-      final responseData = error.response?.data;
-
-      String? backendMessage;
-      String? responseSnippet;
-
-      if (responseData is Map<String, dynamic>) {
-        final message = responseData['message'];
-        if (message is String && message.isNotEmpty) {
-          backendMessage = message;
-        }
-        responseSnippet = jsonEncode(responseData);
-      } else if (responseData != null) {
-        responseSnippet = responseData.toString();
-      }
-
-      if (responseSnippet != null && responseSnippet.length > 300) {
-        responseSnippet = '${responseSnippet.substring(0, 300)}...';
-      }
-
-      final technicalMessage = _extractTechnicalMessage(error.message);
-
-      final lines = <String>[
-        operation,
-        'Endpoint: $endpoint',
-        'Method: ${req.method}',
-        'URL: ${req.uri}',
-        'Status: ${statusCode ?? '-'}',
-        'Dio Type: ${error.type.name}',
-        'Error: $technicalMessage',
-      ];
-
-      if (backendMessage != null) {
-        lines.add('Backend Message: $backendMessage');
-      }
-
-      if (responseSnippet != null && responseSnippet.isNotEmpty) {
-        lines.add('Response: $responseSnippet');
-      }
-
-      return lines.join('\n');
-    }
-
-    return [
-      operation,
-      'Endpoint: $endpoint',
-      'Error: ${error.toString()}',
-    ].join('\n');
+    return ApiDebugInfo.build(
+      error,
+      operation: operation,
+      endpoint: endpoint,
+    );
   }
 
   static List<Map<String, dynamic>> normalizeRecommendationCollection(List data) {
@@ -216,28 +172,17 @@ class ApiService {
       normalized['imagePath'] = thumbnailUrl;
     }
 
-    // Set author/author_name based on source_type or fallback
-    if (normalized['source_type'] == 'admin_upload') {
-      normalized['author_name'] = 'Klass Curated';
-    } else if (normalized['source_type'] == 'system_topic') {
-      normalized['author_name'] = 'System Recommendation';
-    } else {
-      normalized['author_name'] = 'Klass App';
-    }
-
-    // Fallback module and tags
     if (normalized['modules'] == null) {
       normalized['modules'] = [];
     } else {
-      // Normalize array of strings into objects for the UI
       final rawModules = normalized['modules'] as List;
       normalized['modules'] = rawModules.map((mod) {
         if (mod is String) {
-          return {'title': mod, 'detail': 'Included module'};
+          return {'title': mod};
         } else if (mod is Map) {
-          return mod;
+          return Map<String, dynamic>.from(mod);
         }
-        return {'title': 'Unknown', 'detail': ''};
+        return {'title': mod.toString()};
       }).toList();
     }
     
@@ -269,30 +214,6 @@ class ApiService {
     }
 
     return normalized;
-  }
-
-  static String _extractTechnicalMessage(String? rawMessage) {
-    if (rawMessage == null || rawMessage.trim().isEmpty) {
-      return 'Unknown network error';
-    }
-
-    if (!rawMessage.contains('\n')) {
-      return rawMessage;
-    }
-
-    final lines = rawMessage
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-
-    for (final line in lines.reversed) {
-      if (line.startsWith('Error: ')) {
-        return line.substring('Error: '.length);
-      }
-    }
-
-    return lines.last;
   }
 
   Dio get dio => _dio;

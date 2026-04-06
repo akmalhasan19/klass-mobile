@@ -1,6 +1,7 @@
 import 'api_service.dart';
 import '../config/feature_flags.dart';
 import 'package:dio/dio.dart';
+import '../utils/api_debug_info.dart';
 
 class HomeService {
   final ApiService _apiService = ApiService();
@@ -26,9 +27,11 @@ class HomeService {
         }
 
         throw Exception(
-          'Gagal memuat projects\n'
-          'Endpoint: /homepage-recommendations\n'
-          'Error: Invalid response format. Expected data as List.',
+          ApiService.buildDebugInfo(
+            'Invalid response format. Expected data as List.',
+            operation: ApiDebugOperation.homeProjectsLoadFailed,
+            endpoint: '/homepage-recommendations',
+          ),
         );
       }
       return [];
@@ -36,15 +39,17 @@ class HomeService {
       throw Exception(
         ApiService.buildDebugInfo(
           e,
-          operation: 'Gagal memuat projects',
+          operation: ApiDebugOperation.homeProjectsLoadFailed,
           endpoint: '/homepage-recommendations',
         ),
       );
+    } on Exception {
+      rethrow;
     } catch (e) {
       throw Exception(
         ApiService.buildDebugInfo(
           e,
-          operation: 'Gagal memuat projects',
+          operation: ApiDebugOperation.homeProjectsLoadFailed,
           endpoint: '/homepage-recommendations',
         ),
       );
@@ -92,9 +97,11 @@ class HomeService {
         }
 
         throw Exception(
-          'Gagal memuat freelancers\n'
-          'Endpoint: /marketplace-tasks\n'
-          'Error: Invalid response format. Expected data as List.',
+          ApiService.buildDebugInfo(
+            'Invalid response format. Expected data as List.',
+            operation: ApiDebugOperation.homeFreelancersLoadFailed,
+            endpoint: '/marketplace-tasks',
+          ),
         );
       }
       return [];
@@ -102,15 +109,17 @@ class HomeService {
       throw Exception(
         ApiService.buildDebugInfo(
           e,
-          operation: 'Gagal memuat freelancers',
+          operation: ApiDebugOperation.homeFreelancersLoadFailed,
           endpoint: '/marketplace-tasks',
         ),
       );
+    } on Exception {
+      rethrow;
     } catch (e) {
       throw Exception(
         ApiService.buildDebugInfo(
           e,
-          operation: 'Gagal memuat freelancers',
+          operation: ApiDebugOperation.homeFreelancersLoadFailed,
           endpoint: '/marketplace-tasks',
         ),
       );

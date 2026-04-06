@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../services/project_service.dart';
 import '../main.dart';
@@ -85,6 +86,7 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final List<dynamic> modules = widget.project['modules'] ?? [];
     final double topPadding = MediaQuery.of(context).padding.top;
 
@@ -207,8 +209,8 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                     opacity: _contentFade,
                     child: Column(
                       children: [
-                        const Text(
-                          'Project Added Successfully!',
+                        Text(
+                          localizations.projectSuccessTitle,
                           style: TextStyle(
                             fontFamily: 'Mona_Sans',
                             fontSize: 32,
@@ -221,7 +223,9 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          '"${widget.project['title']}" has been successfully added to your educational materials. You can now start editing or sharing it with your students.',
+                          localizations.projectSuccessDescription(
+                            (widget.project['title'] ?? localizations.homeUntitled).toString(),
+                          ),
                           style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 16,
@@ -263,8 +267,8 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'PROJECT TITLE',
+                                        Text(
+                                          localizations.projectSuccessProjectTitleLabel,
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 10,
@@ -276,7 +280,7 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                                         const SizedBox(height: 8),
                                         Text(
                                           widget.project['title'] ??
-                                              'Botany 101',
+                                              localizations.projectConfirmationFallbackTitle,
                                           style: const TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 20,
@@ -294,8 +298,8 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                                       color: AppColors.primaryLight,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
-                                    child: const Text(
-                                      'NEW',
+                                    child: Text(
+                                      localizations.projectSuccessNewBadge,
                                       style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontSize: 10,
@@ -319,8 +323,8 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'MODULES',
+                                        Text(
+                                          localizations.projectSuccessModulesLabel,
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 10,
@@ -338,7 +342,7 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                                                 size: 20),
                                             const SizedBox(width: 8),
                                             Text(
-                                              '${modules.length} Units',
+                                              localizations.projectSuccessUnits(modules.length),
                                               style: const TextStyle(
                                                 fontFamily: 'Inter',
                                                 fontSize: 16,
@@ -356,8 +360,8 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'ACCESS',
+                                        Text(
+                                          localizations.projectSuccessAccessLabel,
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 10,
@@ -367,15 +371,15 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                                           ),
                                         ),
                                         const SizedBox(height: 8),
-                                        const Row(
+                                        Row(
                                           children: [
-                                            Icon(Icons.group_rounded,
+                                            const Icon(Icons.group_rounded,
                                                 color: AppColors.primary,
                                                 size: 20),
-                                            SizedBox(width: 8),
+                                            const SizedBox(width: 8),
                                             Text(
-                                              'Workspace',
-                                              style: TextStyle(
+                                              localizations.navWorkspace,
+                                              style: const TextStyle(
                                                 fontFamily: 'Inter',
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w700,
@@ -408,11 +412,11 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                             shadowColor:
                                 AppColors.primary.withValues(alpha: 0.3),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Go to Workspace',
+                                localizations.projectSuccessGoToWorkspace,
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 18,
@@ -437,8 +441,8 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                               ),
                             ),
                           ),
-                          child: const Text(
-                            'Explore More Projects',
+                          child: Text(
+                            localizations.projectSuccessExploreMoreProjects,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 16,
@@ -495,8 +499,8 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Klass',
+                          Text(
+                            localizations.appTitle,
                             style: TextStyle(
                               fontFamily: 'Mona_Sans',
                               fontSize: 24,

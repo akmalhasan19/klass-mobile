@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import '../services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -22,9 +23,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _questionFetched = false;
 
   Future<void> _fetchQuestion() async {
+    final localizations = AppLocalizations.of(context)!;
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your email address.');
+      setState(() => _errorMessage = localizations.forgotPasswordEnterEmailError);
       return;
     }
 
@@ -41,7 +43,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           _securityQuestion = question;
           _questionFetched = true;
         } else {
-          _errorMessage = 'No security question found for this user.';
+          _errorMessage = localizations.forgotPasswordNoQuestionFound;
         }
       });
     } catch (e) {
@@ -52,17 +54,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _resetPassword() async {
+    final localizations = AppLocalizations.of(context)!;
     final email = _emailController.text.trim();
     final answer = _answerController.text.trim();
     final newPassword = _newPasswordController.text;
 
     if (answer.isEmpty || newPassword.isEmpty) {
-      setState(() => _errorMessage = 'Please fill all fields.');
+      setState(() => _errorMessage = localizations.forgotPasswordFillAllFields);
       return;
     }
     
     if (newPassword.length < 6) {
-      setState(() => _errorMessage = 'Password must be at least 6 characters.');
+      setState(() => _errorMessage = localizations.forgotPasswordMinLengthError);
       return;
     }
 
@@ -76,7 +79,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final success = await _authService.verifyAndResetPassword(email, answer, newPassword);
       if (success) {
         setState(() {
-          _successMessage = 'Password reset successful. You can now login.';
+          _successMessage = localizations.forgotPasswordSuccess;
           _questionFetched = false;
           _emailController.clear();
           _answerController.clear();
@@ -145,6 +148,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -169,8 +174,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   color: Color(0xFF3B82F6),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Reset Password',
+                Text(
+                  localizations.forgotPasswordTitle,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'PlusJakartaSans',
@@ -183,8 +188,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _questionFetched 
-                      ? 'Answer your security question to reset your password.'
-                      : 'Enter your email to answer your security question.',
+                      ? localizations.forgotPasswordSubtitleAnswerQuestion
+                      : localizations.forgotPasswordSubtitleEnterEmail,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'Inter',
@@ -252,7 +257,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 if (!_questionFetched) ...[
                   _buildTextField(
                     controller: _emailController,
-                    hint: 'Email Address',
+                    hint: localizations.commonEmailAddress,
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                   ),
@@ -277,8 +282,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'Next',
+                        : Text(
+                          localizations.commonNext,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 16,
@@ -297,8 +302,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Security Question:',
+                        Text(
+                          localizations.forgotPasswordSecurityQuestionLabel,
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 13,
@@ -321,13 +326,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: 24),
                   _buildTextField(
                     controller: _answerController,
-                    hint: 'Your Answer',
+                    hint: localizations.forgotPasswordAnswerHint,
                     icon: Icons.question_answer_outlined,
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _newPasswordController,
-                    hint: 'New Password',
+                    hint: localizations.forgotPasswordNewPasswordHint,
                     icon: Icons.lock_outline,
                     isPassword: true,
                   ),
@@ -352,8 +357,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'Reset Password',
+                        : Text(
+                          localizations.forgotPasswordTitle,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 16,
@@ -370,8 +375,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         _successMessage = '';
                       });
                     },
-                    child: const Text(
-                      'Try another email',
+                    child: Text(
+                      localizations.forgotPasswordTryAnotherEmail,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         color: Color(0xFF3B82F6),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'dart:ui';
 import '../config/app_colors.dart';
 import '../widgets/filter_modal.dart';
@@ -41,7 +42,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load gallery';
+          _error = AppLocalizations.of(context)!.galleryLoadError;
           _isLoading = false;
         });
       }
@@ -56,6 +57,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: CustomScrollView(
@@ -83,7 +86,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _fetchGallery,
-                      child: const Text('Retry'),
+                      child: Text(localizations.commonRetry),
                     ),
                   ],
                 ),
@@ -97,8 +100,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   children: [
                     Icon(Icons.image_not_supported_rounded, color: AppColors.border, size: 64),
                     const SizedBox(height: 16),
-                    const Text(
-                      'No materials in Gallery',
+                    Text(
+                      localizations.galleryEmptyTitle,
                       style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                   ],
@@ -115,9 +118,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 
   List<Widget> _buildDynamicCategoryGrids() {
+    final localizations = AppLocalizations.of(context)!;
     final Map<String, List<Map<String, dynamic>>> grouped = {};
     for (var item in _galleryItems) {
-      final cat = (item['category'] ?? 'Miscellaneous').toString();
+      final cat = (item['category'] ?? localizations.galleryCategoryMiscellaneous).toString();
       grouped.putIfAbsent(cat, () => []).add(item);
     }
 
@@ -145,7 +149,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
             final item = items[index];
             final type = (item['type'] ?? 'IMAGE').toString().toUpperCase();
             final url = item['url'] ?? item['image_url'] ?? item['cover_image'] ?? '';
-            final title = item['title'] ?? 'Untitled';
+            final title = item['title'] ?? AppLocalizations.of(context)!.galleryUntitled;
 
             if (type == 'ARTICLE') {
               return _buildGradientItem(title, Icons.description_rounded, AppColors.primary, type);
@@ -163,6 +167,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 
   Widget _buildSearchHeader() {
+    final localizations = AppLocalizations.of(context)!;
+
     return SliverAppBar(
       pinned: true,
       floating: true,
@@ -196,7 +202,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search materials...',
+              hintText: localizations.commonSearchMaterials,
               hintStyle: TextStyle(
                 fontFamily: 'Inter',
                 color: AppColors.textMuted.withValues(alpha: 0.6),
@@ -228,9 +234,14 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 
   Widget _buildCategoryHeader(String title, {int? itemCount}) {
+    final localizations = AppLocalizations.of(context)!;
+
     return SliverPersistentHeader(
       pinned: true,
-      delegate: _CategoryHeaderDelegate(title: title, itemCount: itemCount),
+      delegate: _CategoryHeaderDelegate(
+        title: title,
+        itemCountText: itemCount == null ? null : localizations.commonItemsCount(itemCount),
+      ),
     );
   }
 
@@ -351,9 +362,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
 class _CategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String title;
-  final int? itemCount;
+  final String? itemCountText;
 
-  _CategoryHeaderDelegate({required this.title, this.itemCount});
+  _CategoryHeaderDelegate({required this.title, this.itemCountText});
 
   @override
   Widget build(
@@ -387,9 +398,9 @@ class _CategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
               color: AppColors.textMuted,
             ),
           ),
-          if (itemCount != null)
+          if (itemCountText != null)
             Text(
-              '$itemCount items',
+              itemCountText!,
               style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 12,
@@ -410,6 +421,6 @@ class _CategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _CategoryHeaderDelegate oldDelegate) {
-    return oldDelegate.title != title || oldDelegate.itemCount != itemCount;
+    return oldDelegate.title != title || oldDelegate.itemCountText != itemCountText;
   }
 }

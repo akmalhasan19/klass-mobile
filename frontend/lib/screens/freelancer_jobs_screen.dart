@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 
 
 /// Freelancer Jobs Screen — Placeholder untuk marketplace/job listings.
@@ -9,6 +10,8 @@ class FreelancerJobsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
@@ -35,8 +38,8 @@ class FreelancerJobsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Jobs',
+                      Text(
+                        localizations.jobsTitle,
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 28,
@@ -47,7 +50,7 @@ class FreelancerJobsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'MARKETPLACE',
+                        localizations.jobsSubtitle,
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 11,
@@ -77,7 +80,7 @@ class FreelancerJobsScreen extends StatelessWidget {
                         Icon(Icons.search_rounded, color: Colors.white.withValues(alpha: 0.3)),
                         const SizedBox(width: 12),
                         Text(
-                          'Cari proyek yang sesuai...',
+                          localizations.jobsSearchHint,
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 14,
@@ -97,16 +100,22 @@ class FreelancerJobsScreen extends StatelessWidget {
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: ['Semua', 'Desain', 'Konten', 'Video', 'Presentasi']
+                    children: [
+                      localizations.jobsCategoryAll,
+                      localizations.jobsCategoryDesign,
+                      localizations.jobsCategoryContent,
+                      localizations.jobsCategoryVideo,
+                      localizations.jobsCategoryPresentation,
+                    ]
                         .map((cat) => Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: cat == 'Semua'
+                                color: cat == localizations.jobsCategoryAll
                                     ? const Color(0xFF53C2B4).withValues(alpha: 0.2)
                                     : Colors.white.withValues(alpha: 0.06),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: cat == 'Semua'
+                                    color: cat == localizations.jobsCategoryAll
                                       ? const Color(0xFF53C2B4).withValues(alpha: 0.4)
                                       : Colors.white.withValues(alpha: 0.08),
                                 ),
@@ -117,7 +126,7 @@ class FreelancerJobsScreen extends StatelessWidget {
                                   fontFamily: 'Inter',
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: cat == 'Semua'
+                                    color: cat == localizations.jobsCategoryAll
                                       ? const Color(0xFF53C2B4)
                                       : Colors.white.withValues(alpha: 0.5),
                                 ),
@@ -148,8 +157,8 @@ class FreelancerJobsScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Marketplace Segera Hadir',
+                      Text(
+                        localizations.jobsComingSoonTitle,
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 22,
@@ -159,8 +168,7 @@ class FreelancerJobsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Anda akan dapat melihat dan melamar proyek dari teacher di sini. '
-                        'Fitur marketplace sedang dalam pengembangan aktif.',
+                        localizations.jobsComingSoonDescription,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'Inter',
