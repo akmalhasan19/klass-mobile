@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Subject;
 use App\Models\User;
 use App\Services\FileUploadService;
 use Illuminate\Database\Seeder;
@@ -22,6 +23,10 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $uploadService = app(FileUploadService::class);
+        $subjects = Subject::query()
+            ->whereIn('slug', ['science', 'history', 'mathematics'])
+            ->get()
+            ->keyBy('slug');
 
         $users = [
             [
@@ -29,6 +34,7 @@ class UserSeeder extends Seeder
                 'email' => 'admin@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => null,
+                'primary_subject_id' => null,
                 'role' => User::ROLE_ADMIN,
                 'security_question' => 'Siapa nama hewan peliharaan pertama Anda?',
                 'security_answer' => Hash::make('kucing'),
@@ -41,6 +47,7 @@ class UserSeeder extends Seeder
                 'email' => 'sarah.jenkins@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/ani.png'),
+                'primary_subject_id' => $subjects->get('science')?->id,
                 'role' => User::ROLE_TEACHER,
                 'security_question' => 'Apa nama sekolah pertama Anda?',
                 'security_answer' => Hash::make('sdn1'),
@@ -53,6 +60,7 @@ class UserSeeder extends Seeder
                 'email' => 'rina@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/susi.png'),
+                'primary_subject_id' => null,
                 'role' => User::ROLE_FREELANCER,
                 'security_question' => 'Apa warna favorit Anda?',
                 'security_answer' => Hash::make('biru'),
@@ -64,6 +72,7 @@ class UserSeeder extends Seeder
                 'email' => 'agus@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/agus.png'),
+                'primary_subject_id' => null,
                 'role' => User::ROLE_FREELANCER,
             ],
             [
@@ -71,6 +80,7 @@ class UserSeeder extends Seeder
                 'email' => 'ani@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/ani.png'),
+                'primary_subject_id' => null,
                 'role' => User::ROLE_FREELANCER,
             ],
             [
@@ -78,6 +88,7 @@ class UserSeeder extends Seeder
                 'email' => 'budi@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/budi.png'),
+                'primary_subject_id' => null,
                 'role' => User::ROLE_FREELANCER,
             ],
             [
@@ -85,6 +96,7 @@ class UserSeeder extends Seeder
                 'email' => 'susi@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => $uploadService->generatePublicUrl('avatars/susi.png'),
+                'primary_subject_id' => null,
                 'role' => User::ROLE_FREELANCER,
             ],
 
@@ -94,6 +106,7 @@ class UserSeeder extends Seeder
                 'email' => 'elena@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => null,
+                'primary_subject_id' => $subjects->get('history')?->id,
                 'role' => User::ROLE_TEACHER,
             ],
             [
@@ -101,6 +114,7 @@ class UserSeeder extends Seeder
                 'email' => 'marcus@klass.id',
                 'password' => Hash::make('password'),
                 'avatar_url' => null,
+                'primary_subject_id' => $subjects->get('mathematics')?->id,
                 'role' => User::ROLE_TEACHER,
             ],
         ];

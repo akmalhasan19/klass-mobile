@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,7 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'primary_subject_id' => null,
             'role' => User::ROLE_USER,
             'remember_token' => Str::random(10),
         ];
@@ -48,6 +50,27 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => User::ROLE_ADMIN,
+        ]);
+    }
+
+    public function teacher(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_TEACHER,
+        ]);
+    }
+
+    public function freelancer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_FREELANCER,
+        ]);
+    }
+
+    public function withPrimarySubject(Subject|int $subject): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'primary_subject_id' => $subject instanceof Subject ? $subject->id : $subject,
         ]);
     }
 }

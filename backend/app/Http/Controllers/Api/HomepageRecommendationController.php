@@ -23,7 +23,7 @@ class HomepageRecommendationController extends Controller
         ]);
 
         $section = HomepageSection::query()
-            ->where('key', 'project_recommendations')
+            ->where('key', $this->sectionKey())
             ->first();
 
         $requestedLimit = isset($validated['limit']) ? (int) $validated['limit'] : null;
@@ -36,6 +36,7 @@ class HomepageRecommendationController extends Controller
                         'requested' => $requestedLimit,
                         'applied' => 0,
                     ],
+                    'personalization' => $this->buildPersonalizationMeta($request),
                     'source_status' => $this->notEvaluatedSourceStatus(),
                 ]);
         }
@@ -54,6 +55,7 @@ class HomepageRecommendationController extends Controller
                     'requested' => $requestedLimit,
                     'applied' => $items->count(),
                 ],
+                'personalization' => $this->buildPersonalizationMeta($request),
                 'source_status' => $snapshot['source_status'],
             ]);
     }
@@ -61,11 +63,43 @@ class HomepageRecommendationController extends Controller
     protected function buildSectionMeta(?HomepageSection $section): array
     {
         return [
-            'key' => 'project_recommendations',
+            'key' => $this->sectionKey(),
             'label' => $section?->label,
             'enabled' => (bool) $section?->is_enabled,
             'position' => $section?->position,
+            'endpoint' => $this->feedEndpoint(),
+            'admin_configurator_path' => $this->adminConfiguratorPath(),
         ];
+    }
+
+    protected function buildPersonalizationMeta(Request $request): array
+    {
+        $user = auth('sanctum')->user() ?? $request->user();
+        $policyKey = $user ? 'authenticated_without_personalization' : 'guest';
+        $policy = (array) config("personalized_project_recommendations.fallbacks.{$policyKey}", []);
+
+        return [
+            'policy_version' => (string) config('personalized_project_recommendations.lock_version', 'phase_0_discovery_lock'),
+            'audience' => $user ? 'authenticated' : 'guest',
+            'mode' => (string) ($policy['mode'] ?? 'default_global_feed'),
+            'tracks_assignments' => (bool) ($policy['tracks_assignments'] ?? false),
+            'description' => (string) ($policy['description'] ?? ''),
+        ];
+    }
+
+    protected function sectionKey(): string
+    {
+        return (string) config('personalized_project_recommendations.homepage.section_key', 'project_recommendations');
+    }
+
+    protected function feedEndpoint(): string
+    {
+        return (string) config('personalized_project_recommendations.homepage.feed_endpoint', '/api/homepage-recommendations');
+    }
+
+    protected function adminConfiguratorPath(): string
+    {
+        return (string) config('personalized_project_recommendations.homepage.admin_configurator_path', '/admin/homepage-sections');
     }
 
     /**

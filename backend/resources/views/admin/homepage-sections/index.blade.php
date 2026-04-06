@@ -7,9 +7,85 @@
 @section('content')
 <div class="w-full p-6 space-y-6">
 
+    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Section Ordering</h2>
+                <p class="text-sm text-gray-500">Update labels, ordering, and visibility for the mobile homepage sections.</p>
+            </div>
+            <button type="submit" form="sectionOrderingForm" class="inline-flex w-fit items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+                Save Sections
+            </button>
+        </div>
+
+        <form action="{{ route('admin.homepage-sections.update') }}" method="POST" id="sectionOrderingForm" class="mt-6 overflow-hidden rounded-lg border border-gray-200">
+            @csrf
+            @method('PATCH')
+
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Section</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Position</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Data Source</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Enabled</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 bg-white">
+                    @forelse($homepageSections as $index => $section)
+                    <tr>
+                        <td class="px-6 py-4 align-top">
+                            <input type="hidden" name="sections[{{ $index }}][id]" value="{{ $section->id }}">
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Label</label>
+                            <input
+                                type="text"
+                                name="sections[{{ $index }}][label]"
+                                value="{{ $section->label }}"
+                                class="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-slate-900 focus:outline-none focus:ring-0"
+                            >
+                            <p class="mt-2 text-xs text-gray-500">Key: <span class="font-mono">{{ $section->key }}</span></p>
+                        </td>
+                        <td class="px-6 py-4 align-top">
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Position</label>
+                            <input
+                                type="number"
+                                min="1"
+                                name="sections[{{ $index }}][position]"
+                                value="{{ $section->position }}"
+                                class="mt-2 w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-slate-900 focus:outline-none focus:ring-0"
+                            >
+                        </td>
+                        <td class="px-6 py-4 align-top text-sm text-gray-600">
+                            <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 font-mono text-xs text-slate-700">{{ $section->data_source }}</span>
+                        </td>
+                        <td class="px-6 py-4 align-top">
+                            <label class="inline-flex items-center gap-3 text-sm text-gray-700">
+                                <input
+                                    type="checkbox"
+                                    name="sections[{{ $index }}][is_enabled]"
+                                    value="1"
+                                    @checked($section->is_enabled)
+                                    class="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-0"
+                                >
+                                Enabled
+                            </label>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                            No homepage sections found.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </form>
+    </div>
+
     <div class="space-y-6 block">
         <div class="flex justify-between items-center">
-            <h2 class="text-lg font-bold text-gray-900">Recommended Projects (Admin Curated)</h2>
+            <h2 class="text-lg font-bold text-gray-900">{{ $discoveryLock['curated_title'] }}</h2>
             <button onclick="document.getElementById('createProjectModal').classList.remove('hidden')" class="bg-[#529F60] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-[#43834F]">
                 + Add Project
             </button>
@@ -108,6 +184,70 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="space-y-4">
+        <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">{{ $discoveryLock['system_section_title'] }}</h2>
+                <p class="text-sm text-gray-500">{{ $discoveryLock['system_section_description'] }}</p>
+            </div>
+            <span class="inline-flex w-fit items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+                Phase 0 Locked
+            </span>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <h3 class="text-sm font-semibold text-gray-900">Discovery Lock Contract</h3>
+                <dl class="mt-4 space-y-3 text-sm text-gray-600">
+                    <div>
+                        <dt class="font-medium text-gray-900">Mobile feed endpoint</dt>
+                        <dd class="mt-1 font-mono text-xs text-gray-500">GET {{ $discoveryLock['feed_endpoint'] }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-900">Admin workspace</dt>
+                        <dd class="mt-1 font-mono text-xs text-gray-500">{{ $discoveryLock['admin_configurator_path'] }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-900">Counted system sources</dt>
+                        <dd class="mt-1 text-xs text-gray-500">{{ implode(', ', $discoveryLock['eligible_source_types']) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-900">Eligibility</dt>
+                        <dd class="mt-1 text-xs text-gray-500">Only items with distinct_user_count &gt; 1 are eligible.</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-900">Selection rule</dt>
+                        <dd class="mt-1 text-xs text-gray-500">Exactly {{ $discoveryLock['maximum_items_per_sub_subject'] }} item is selected for each sub-subject.</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-900">Deterministic tie-breaker</dt>
+                        <dd class="mt-1 text-xs text-gray-500">{{ implode(' -> ', $discoveryLock['tie_breakers']) }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                <h3 class="text-sm font-semibold text-slate-900">Fallback Behavior</h3>
+                <div class="mt-4 space-y-4 text-sm text-slate-600">
+                    <div>
+                        <p class="font-medium text-slate-900">Authenticated without enough personalization data</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ $discoveryLock['authenticated_fallback'] }}</p>
+                    </div>
+                    <div>
+                        <p class="font-medium text-slate-900">Guest requests</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ $discoveryLock['guest_fallback'] }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-10 text-center shadow-sm">
+            <p class="text-sm font-medium text-gray-900">{{ $discoveryLock['system_section_empty_state'] }}</p>
+            <p class="mt-2 text-xs text-gray-500">The read-only summary table will start rendering after distribution tracking and aggregation are implemented in the next phases.</p>
+        </div>
+    </div>
 </div>
 
 <!-- Create Project Modal -->

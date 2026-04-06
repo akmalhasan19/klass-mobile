@@ -11,6 +11,7 @@ class RegisterRequest extends ApiFormRequest
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'sometimes|string|in:teacher,freelancer',
+            'primary_subject_id' => 'nullable|integer|exists:subjects,id',
         ];
     }
 

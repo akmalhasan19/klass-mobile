@@ -120,6 +120,8 @@ class RecommendationAggregationService
                 'id',
                 'title',
                 'teacher_id',
+                'owner_user_id',
+                'ownership_status',
                 'thumbnail_url',
                 'is_published',
                 'order',
@@ -209,6 +211,8 @@ class RecommendationAggregationService
             'source_payload' => [
                 'topic_id' => $topic->id,
                 'teacher_id' => $topic->teacher_id,
+                'owner_user_id' => $topic->owner_user_id,
+                'ownership_status' => $topic->ownership_status,
                 'topic_order' => $topic->order,
                 'contents_count' => count($modules),
             ],

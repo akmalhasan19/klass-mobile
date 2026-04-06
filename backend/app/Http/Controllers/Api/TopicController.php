@@ -32,12 +32,16 @@ class TopicController extends Controller
                 'id',
                 'title',
                 'teacher_id',
+                'sub_subject_id',
+                'owner_user_id',
+                'ownership_status',
                 'thumbnail_url',
                 'is_published',
                 'order',
                 'created_at',
                 'updated_at',
-            ]);
+            ])
+            ->with('subSubject.subject');
 
         if ($includeContents) {
             $query->with([
@@ -100,7 +104,7 @@ class TopicController extends Controller
      */
     public function show(Topic $topic): JsonResponse
     {
-        $topic->load('contents.tasks');
+        $topic->load(['contents.tasks', 'subSubject.subject']);
 
         return $this->success(
             new TopicResource($topic),

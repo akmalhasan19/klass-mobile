@@ -6,9 +6,11 @@ use App\Models\Content;
 use App\Models\HomepageSection;
 use App\Models\RecommendedProject;
 use App\Models\Topic;
+use App\Models\User;
 use App\Services\RecommendationAggregationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Laravel\Sanctum\Sanctum;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -57,6 +59,11 @@ class HomepageRecommendationApiTest extends TestCase
             ->assertJsonPath('meta.total', 2)
             ->assertJsonPath('meta.section.key', 'project_recommendations')
             ->assertJsonPath('meta.section.enabled', true)
+            ->assertJsonPath('meta.section.endpoint', '/api/homepage-recommendations')
+            ->assertJsonPath('meta.section.admin_configurator_path', '/admin/homepage-sections')
+            ->assertJsonPath('meta.personalization.policy_version', 'phase_0_discovery_lock')
+            ->assertJsonPath('meta.personalization.audience', 'guest')
+            ->assertJsonPath('meta.personalization.mode', 'default_global_feed')
             ->assertJsonPath('meta.source_breakdown.admin_upload', 1)
             ->assertJsonPath('meta.source_breakdown.system_topic', 1)
             ->assertJsonPath('meta.source_status.admin_upload.state', 'ok')
@@ -161,8 +168,35 @@ class HomepageRecommendationApiTest extends TestCase
             ->assertJsonCount(0, 'data')
             ->assertJsonPath('meta.total', 0)
             ->assertJsonPath('meta.section.enabled', false)
+            ->assertJsonPath('meta.personalization.audience', 'guest')
             ->assertJsonPath('meta.source_status.admin_upload.state', 'not_evaluated')
             ->assertJsonPath('meta.source_status.system_topic.state', 'not_evaluated');
+    }
+
+    public function test_public_endpoint_reports_phase_zero_fallback_policy_for_authenticated_requests(): void
+    {
+        HomepageSection::create([
+            'key' => 'project_recommendations',
+            'label' => 'Project Recommendations',
+            'position' => 1,
+            'is_enabled' => true,
+            'data_source' => 'recommended_projects',
+        ]);
+
+        $user = User::factory()->create();
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/homepage-recommendations')
+            ->assertOk()
+            ->assertJsonPath('meta.personalization.policy_version', 'phase_0_discovery_lock')
+            ->assertJsonPath('meta.personalization.audience', 'authenticated')
+            ->assertJsonPath('meta.personalization.mode', 'default_global_feed')
+            ->assertJsonPath('meta.personalization.tracks_assignments', false)
+            ->assertJsonPath(
+                'meta.personalization.description',
+                'Serve the current safe mixed homepage feed when subject profile or authored-topic signals are still insufficient.'
+            );
     }
 
     public function test_public_endpoint_stays_safe_when_non_admin_source_normalization_fails(): void

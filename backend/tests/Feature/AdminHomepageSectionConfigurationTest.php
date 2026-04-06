@@ -44,7 +44,10 @@ class AdminHomepageSectionConfigurationTest extends TestCase
             ->assertOk()
             ->assertSeeText('Homepage Configurator')
             ->assertSeeText('Curate the mobile experience: manage sections and recommended projects.')
-            ->assertSeeText('Recommended Projects')
+            ->assertSeeText('Recommended Projects (Admin Curated)')
+            ->assertSeeText('Top Distributed System Recommendations by Sub-Subject')
+            ->assertSeeText('GET /api/homepage-recommendations')
+            ->assertSeeText('No system recommendation has been distributed to more than one user yet.')
             ->assertSeeText('Section Ordering');
 
         $this->actingAs($admin)

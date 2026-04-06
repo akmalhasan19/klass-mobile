@@ -39,7 +39,7 @@ class BackfillMediaFiles extends Command
         Topic::whereNotNull('thumbnail_url')->chunk(100, function ($topics) {
             foreach ($topics as $topic) {
                 MediaFile::firstOrCreate(['file_path' => $topic->thumbnail_url], [
-                    'uploader_id' => $topic->teacher_id,
+                    'uploader_id' => $topic->owner_user_id,
                     'file_name' => basename($topic->thumbnail_url) ?: 'thumbnail',
                     'category' => 'thumbnail',
                     'disk' => 'supabase',
@@ -52,7 +52,7 @@ class BackfillMediaFiles extends Command
         Content::with('topic')->whereNotNull('media_url')->chunk(100, function ($contents) {
             foreach ($contents as $content) {
                 MediaFile::firstOrCreate(['file_path' => $content->media_url], [
-                    'uploader_id' => $content->topic ? $content->topic->teacher_id : null,
+                    'uploader_id' => $content->topic ? $content->topic->owner_user_id : null,
                     'file_name' => basename($content->media_url) ?: 'content_media',
                     'category' => 'content_media',
                     'disk' => 'supabase',

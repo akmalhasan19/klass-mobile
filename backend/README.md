@@ -15,6 +15,17 @@
 - Recommended project CRUD routes are under `/admin/homepage-sections/recommended-projects/*` and every create, update, toggle, and delete action writes an `activity_logs` row.
 - Thumbnail uploads from Homepage Configurator reuse `FileUploadService` with the `gallery` upload category on the `supabase` disk.
 - Public mobile feed for mixed recommendations is served by `GET /api/homepage-recommendations` and stays gated by the `homepage_sections` visibility config for `project_recommendations`.
+- Phase 0 discovery-lock decisions for personalized recommendations now live in `config/personalized_project_recommendations.php`, including the admin section terminology, summary eligibility rules, deterministic tie-breakers, and guest/authenticated fallback policy.
+
+### Topic Taxonomy / Ownership Normalization
+
+- Subject taxonomy now lives in `subjects` and `sub_subjects`, seeded via `SubjectTaxonomySeeder` for future personalization and admin aggregation work.
+- Topics now point to taxonomy through `topics.sub_subject_id`; `subject_id` is derived from the chosen sub-subject instead of being duplicated on the topics table.
+- Topic ownership is now normalized through `topics.owner_user_id` plus `topics.ownership_status`, while legacy `topics.teacher_id` remains for backward compatibility.
+- User profile anchors now live in `users.primary_subject_id`, and the personalization subject should resolve from profile first, then fall back to authored-topic activity when no profile subject is set.
+- Existing topic rows are backfilled during migration by mapping numeric `teacher_id` values to `users.id` and email-like `teacher_id` values to `users.email`.
+- Legacy topics that still cannot be mapped remain marked as `legacy_unresolved` and must be excluded from personalization signals until corrected.
+- Manual rerun command: `php artisan app:backfill-topic-ownership`
 
 ### Relevant Test Commands
 
