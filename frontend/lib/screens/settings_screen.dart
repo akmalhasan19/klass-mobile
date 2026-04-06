@@ -212,11 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Container(
                             width: 48,
                             height: 48,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceLight,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.border),
-                            ),
+                            color: Colors.transparent,
                             child: const Icon(
                               Icons.arrow_back_rounded,
                               size: 20,
@@ -525,16 +521,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 20, color: AppColors.primary),
-          ),
-          const SizedBox(width: 10),
+          Icon(icon, size: 24, color: AppColors.primary),
+          const SizedBox(width: 12),
           Text(
             title,
             style: const TextStyle(
