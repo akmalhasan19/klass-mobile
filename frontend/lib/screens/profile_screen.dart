@@ -105,6 +105,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await KlassApp.mainShellKey.currentState?.reloadRole();
   }
 
+  double _currentScrollOffset() {
+    final positions = _scrollController.positions.toList(growable: false);
+    if (positions.isEmpty) {
+      return 0.0;
+    }
+
+    return positions.last.pixels;
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -242,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: AnimatedBuilder(
                   animation: _scrollController,
                   builder: (context, child) {
-                    final offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+                    final offset = _currentScrollOffset();
                     final headerOpacity = (offset / 80).clamp(0.0, 1.0);
                     return _buildAppBarOverlayContent(headerOpacity, titleText);
                   },
@@ -268,7 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       flexibleSpace: AnimatedBuilder(
         animation: _scrollController,
         builder: (context, child) {
-          final offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+          final offset = _currentScrollOffset();
           final headerOpacity = (offset / 80).clamp(0.0, 1.0);
           return _buildAppBarOverlayContent(headerOpacity, titleText);
         },

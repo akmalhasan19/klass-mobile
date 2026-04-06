@@ -83,6 +83,7 @@ Future<_MainShellAdapter> _pumpMainShell(
   Map<String, Object>? prefsData,
   MainShell shell = const MainShell(),
   Duration meDelay = Duration.zero,
+  Locale locale = const Locale('en'),
 }) async {
   SharedPreferences.setMockInitialValues(
     prefsData ??
@@ -97,8 +98,9 @@ Future<_MainShellAdapter> _pumpMainShell(
   api.dio.httpClientAdapter = adapter;
 
   await tester.pumpWidget(
-    MaterialApp(
-      home: shell,
+    KlassApp(
+      initialLocale: locale,
+      homeOverride: shell,
     ),
   );
 
@@ -122,12 +124,13 @@ void main() {
         'email': 'rina@klass.id',
         'role': 'freelancer',
       },
+      locale: const Locale('id'),
     );
 
-    expect(find.text('Jobs'), findsOneWidget);
-    expect(find.text('Search'), findsNothing);
+    expect(find.text('Pekerjaan'), findsOneWidget);
+    expect(find.text('Pencarian'), findsNothing);
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.text('Profil'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1200));
 
@@ -144,17 +147,18 @@ void main() {
         'email': 'sarah@klass.id',
         'role': 'teacher',
       },
+      locale: const Locale('id'),
     );
 
-    expect(find.text('Search'), findsOneWidget);
-    expect(find.text('Workspace'), findsOneWidget);
-    expect(find.text('Jobs'), findsNothing);
+    expect(find.text('Pencarian'), findsOneWidget);
+    expect(find.text('Ruang Kerja'), findsOneWidget);
+    expect(find.text('Pekerjaan'), findsNothing);
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.text('Profil'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1200));
 
-    expect(find.text('TEACHER'), findsOneWidget);
+    expect(find.text('GURU'), findsOneWidget);
     expect(find.text('Sarah Jenkins'), findsOneWidget);
   });
 
@@ -250,6 +254,7 @@ void main() {
         initialIsGuest: true,
       ),
       prefsData: const {},
+      locale: const Locale('id'),
     );
 
     expect(find.byKey(HomeScreen.settingsButtonKey), findsOneWidget);
@@ -259,6 +264,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1200));
 
     expect(find.byKey(SettingsScreen.screenKey), findsOneWidget);
+    expect(find.text('Pengaturan'), findsOneWidget);
     expect(find.byKey(SettingsScreen.languageControlKey), findsOneWidget);
   });
 }

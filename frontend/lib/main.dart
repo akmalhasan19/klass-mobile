@@ -21,7 +21,7 @@ import 'config/animations.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final initialAppState = await _loadInitialAppState();
+  final initialAppState = await loadInitialAppState();
 
   // Membuat status bar transparan — konten extend di belakang status bar
   SystemChrome.setSystemUIOverlayStyle(
@@ -44,7 +44,7 @@ Future<void> main() async {
   );
 }
 
-Future<_InitialAppState> _loadInitialAppState() async {
+Future<AppBootstrapState> loadInitialAppState() async {
   final prefs = await SharedPreferences.getInstance();
   final hasAuthToken = prefs.getString('auth_token') != null;
   final cachedRole = await AuthService().getUserRole();
@@ -52,15 +52,15 @@ Future<_InitialAppState> _loadInitialAppState() async {
     supportedLocales: KlassApp.supportedLocales,
   );
 
-  return _InitialAppState(
+  return AppBootstrapState(
     role: hasAuthToken ? AuthService.resolveAppRole(cachedRole) : 'teacher',
     isGuest: !hasAuthToken,
     locale: savedLocale,
   );
 }
 
-class _InitialAppState {
-  const _InitialAppState({
+class AppBootstrapState {
+  const AppBootstrapState({
     required this.role,
     required this.isGuest,
     required this.locale,

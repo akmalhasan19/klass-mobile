@@ -16,12 +16,12 @@ Menyediakan Settings page yang dapat diakses dari ikon gear pada Home screen, me
 
 ## Success Criteria
 
-- [ ] Ikon gear pada Home screen membuka Settings screen
-- [ ] Settings screen memiliki language selector yang aktif
-- [ ] Perubahan bahasa meng-update seluruh UI Flutter yang dikelola client
-- [ ] Bahasa terpilih tersimpan di local storage dan dipulihkan saat cold start
-- [ ] Guest, Teacher/Guru, dan Freelancer mendapatkan perilaku yang sama
-- [ ] Logout tidak menghapus preferensi bahasa
+- [x] Ikon gear pada Home screen membuka Settings screen
+- [x] Settings screen memiliki language selector yang aktif
+- [x] Perubahan bahasa meng-update seluruh UI Flutter yang dikelola client
+- [x] Bahasa terpilih tersimpan di local storage dan dipulihkan saat cold start
+- [x] Guest, Teacher/Guru, dan Freelancer mendapatkan perilaku yang sama
+- [x] Logout tidak menghapus preferensi bahasa
 
 ## Implementation Checklist
 
@@ -96,35 +96,35 @@ Menyediakan Settings page yang dapat diakses dari ikon gear pada Home screen, me
 
 ### Phase 8 - Add Automated Tests
 
-- [ ] Extend startup/state tests untuk memuat locale dari SharedPreferences
-- [ ] Tambahkan widget test untuk Settings language selector
-- [ ] Tambahkan widget test untuk runtime locale switching
-- [ ] Tambahkan widget test untuk cold-start locale restore
-- [ ] Verifikasi role-based shell tetap benar setelah locale ditambahkan
-- [ ] Jalankan `flutter test -r expanded` di folder `frontend/`
-- [ ] Pertimbangkan integration test tambahan bila coverage widget belum cukup
+- [x] Extend startup/state tests untuk memuat locale dari SharedPreferences
+- [x] Tambahkan widget test untuk Settings language selector
+- [x] Tambahkan widget test untuk runtime locale switching
+- [x] Tambahkan widget test untuk cold-start locale restore
+- [x] Verifikasi role-based shell tetap benar setelah locale ditambahkan
+- [x] Jalankan `flutter test -r expanded` di folder `frontend/`
+- [x] Pertimbangkan integration test tambahan bila coverage widget belum cukup
 
 ### Phase 9 - Manual Regression Validation
 
-- [ ] Uji flow Guest: Home -> Settings -> ganti bahasa -> restart app
-- [ ] Uji flow Teacher/Guru: Home -> Settings -> ganti bahasa -> restart app
-- [ ] Uji flow Freelancer: Home -> Settings -> ganti bahasa -> restart app
-- [ ] Verifikasi label UI berubah tanpa full reinstall app
-- [ ] Verifikasi bahasa terakhir tetap aktif setelah cold start
-- [ ] Verifikasi logout tidak me-reset bahasa
+- [x] Uji flow Guest: Home -> Settings -> ganti bahasa -> restart app
+- [x] Uji flow Teacher/Guru: Home -> Settings -> ganti bahasa -> restart app
+- [x] Uji flow Freelancer: Home -> Settings -> ganti bahasa -> restart app
+- [x] Verifikasi label UI berubah tanpa full reinstall app
+- [x] Verifikasi bahasa terakhir tetap aktif setelah cold start
+- [x] Verifikasi logout tidak me-reset bahasa
 
 ## Target Files
 
 ### Core App State
 
-- [ ] `frontend/lib/main.dart`
-- [ ] Helper/service preferensi bahasa baru atau file util terkait
-- [ ] `frontend/pubspec.yaml`
+- [x] `frontend/lib/main.dart`
+- [x] Helper/service preferensi bahasa baru atau file util terkait
+- [x] `frontend/pubspec.yaml`
 - [x] File localization config dan ARB resources baru
 
 ### Screens
 
-- [ ] `frontend/lib/screens/settings_screen.dart`
+- [x] `frontend/lib/screens/settings_screen.dart`
 - [x] `frontend/lib/screens/home_screen.dart`
 - [x] `frontend/lib/screens/freelancer_home_screen.dart`
 - [x] `frontend/lib/screens/login_screen.dart`
@@ -148,8 +148,9 @@ Menyediakan Settings page yang dapat diakses dari ikon gear pada Home screen, me
 
 ### Tests
 
-- [ ] `frontend/test/screens/main_shell_role_test.dart`
-- [ ] Test widget baru untuk settings/localization bila diperlukan
+- [x] `frontend/test/screens/main_shell_role_test.dart`
+- [x] Test widget baru untuk settings/localization bila diperlukan
+- [x] `frontend/integration_test/language_settings_regression_test.dart`
 - [ ] `frontend/integration_test/login_role_flow_test.dart` bila diputuskan untuk diperluas
 
 ## Notes and Constraints
@@ -166,6 +167,6 @@ Menyediakan Settings page yang dapat diakses dari ikon gear pada Home screen, me
 - [x] Localization infrastructure selesai
 - [x] Settings language selector selesai
 - [x] App-wide string migration selesai
-- [ ] Automated test coverage selesai
-- [ ] Manual QA selesai
-- [ ] Feature siap direview / merge
+- [x] Automated test coverage selesai
+- [x] Manual QA selesai
+- [x] Feature siap direview / merge
