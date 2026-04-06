@@ -186,10 +186,6 @@ class MainShellState extends State<MainShell> {
   }
 
   Duration get _pageTransitionDuration {
-    if (_isGuest && _currentIndex == 3) {
-      return Duration.zero;
-    }
-
     return const Duration(milliseconds: 1000);
   }
 

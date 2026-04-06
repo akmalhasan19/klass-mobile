@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
 import '../config/app_colors.dart';
 
 import 'account_settings_screen.dart';
@@ -143,8 +144,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return _buildGuestView();
     }
 
-    final topPadding = MediaQuery.of(context).padding.top;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
@@ -167,17 +166,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
                 slivers: [
+                  _buildAppBar(),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.only(
-                        left: 24.0,
-                        right: 24.0,
-                        bottom: 16.0,
-                        top: 16.0 + topPadding,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 16),
                           _buildProfileHeader(),
                           if (_user != null) ...[
                             const SizedBox(height: 24),
@@ -208,40 +204,140 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGuestView() {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: Column(
-            children: [
-              _buildGuestHero(),
-              const SizedBox(height: 48),
-              _buildGuestBentoGrid(),
-              const SizedBox(height: 48),
-              _buildGuestAuthPrompt(),
-              const SizedBox(height: 64),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Opacity(
-                  opacity: 0.4,
-                  child: Text(
-                    '"Knowledge is a curated gallery of the mind; begin your exhibition today."',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Mona_Sans',
-                      fontSize: 18,
-                      fontStyle: FontStyle.italic,
-                      color: AppColors.primary,
-                      height: 1.5,
+    final topPadding = MediaQuery.of(context).padding.top;
+    final String titleText = _getAppBarTitle();
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        body: Stack(
+          children: [
+            // Layer 1: Content (Full height, starting from top)
+            Positioned.fill(
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Removed _buildAppBar() sliver to allow content to start higher under the app bar area
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(24, topPadding + 16.0, 24, 32),
+                      child: Column(
+                        children: [
+                          _buildGuestHero(),
+                          const SizedBox(height: 32),
+                          _buildGuestBentoGrid(),
+                          const SizedBox(height: 32),
+                          _buildGuestAuthPrompt(),
+                          const SizedBox(height: 64),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 24),
+                            child: Opacity(
+                              opacity: 0.4,
+                              child: Text(
+                                '"Knowledge is a curated gallery of the mind; begin your exhibition today."',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Mona_Sans',
+                                  fontSize: 18,
+                                  fontStyle: FontStyle.italic,
+                                  color: AppColors.primary,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 120),
+                        ],
+                      ),
                     ),
                   ),
+                ],
+              ),
+            ),
+
+            // Layer 2: Overlay Top Bar
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: topPadding + 56.0,
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _scrollController,
+                  builder: (context, child) {
+                    final offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+                    final headerOpacity = (offset / 80).clamp(0.0, 1.0);
+                    return _buildAppBarOverlayContent(headerOpacity, titleText);
+                  },
                 ),
               ),
-              const SizedBox(height: 120),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    final String titleText = _getAppBarTitle();
+
+    return SliverAppBar(
+      pinned: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      automaticallyImplyLeading: false,
+      flexibleSpace: AnimatedBuilder(
+        animation: _scrollController,
+        builder: (context, child) {
+          final offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+          final headerOpacity = (offset / 80).clamp(0.0, 1.0);
+          return _buildAppBarOverlayContent(headerOpacity, titleText);
+        },
+      ),
+    );
+  }
+
+  String _getAppBarTitle() {
+    if (widget.isGuest || (_user == null && !_isLoading)) {
+      return 'Guest User';
+    } else if (widget.role == 'freelancer') {
+      return 'Freelancer';
+    } else {
+      return 'Teacher';
+    }
+  }
+
+  Widget _buildAppBarOverlayContent(double headerOpacity, String titleText) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: headerOpacity * 10,
+          sigmaY: headerOpacity * 10,
+        ),
+        child: Container(
+          color: AppColors.background.withValues(
+            alpha: headerOpacity * 0.9,
+          ),
+          alignment: Alignment.bottomLeft,
+          padding: const EdgeInsets.only(bottom: 12, left: 24.0),
+          child: Opacity(
+            opacity: headerOpacity,
+            child: Text(
+              titleText,
+              style: const TextStyle(
+                fontFamily: 'Mona_Sans',
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.primary,
+                letterSpacing: -0.5,
+              ),
+            ),
           ),
         ),
       ),
@@ -295,7 +391,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         const Text(
           'Guest User',
           style: TextStyle(
