@@ -7,6 +7,8 @@ import 'dart:convert';
 /// Freelancer Home Screen — Dashboard utama untuk akun Freelancer.
 /// Menampilkan welcome message dan overview placeholder.
 class FreelancerHomeScreen extends StatefulWidget {
+  static const Key settingsButtonKey = Key('freelancer_home_settings_button');
+
   final VoidCallback? onSettingsTap;
 
   const FreelancerHomeScreen({super.key, this.onSettingsTap});
@@ -129,6 +131,7 @@ class _FreelancerHomeScreenState extends State<FreelancerHomeScreen> {
                         ),
                         if (widget.onSettingsTap != null)
                           GestureDetector(
+                            key: FreelancerHomeScreen.settingsButtonKey,
                             onTap: widget.onSettingsTap,
                             child: Container(
                               width: 42,

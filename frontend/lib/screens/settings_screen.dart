@@ -12,6 +12,8 @@ import '../main.dart';
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
 /// Creator Tools (BROWN), Request New Club (BROWN), Logout.
 class SettingsScreen extends StatefulWidget {
+  static const Key screenKey = Key('settings_screen');
+
   const SettingsScreen({super.key});
 
   @override
@@ -27,7 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _authService = AuthService();
 
   void _handleLogout() async {
-    // 1. Clear server session + all persisted data (tokens, cache, etc.)
+    // 1. Clear auth/session data while keeping app preferences such as locale.
     await _authService.logout();
 
     if (!mounted) return;
@@ -50,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
+        key: SettingsScreen.screenKey,
         backgroundColor: Colors.transparent,
         body: Stack(
           children: [

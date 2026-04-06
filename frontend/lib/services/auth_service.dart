@@ -129,7 +129,8 @@ class AuthService {
       await prefs.remove('auth_token');
       await prefs.remove('user_data');
 
-      // Clear all cached API responses so stale user data doesn't survive logout
+      // Clear auth-scoped API cache so stale user data doesn't survive logout.
+      // App preferences such as locale are intentionally preserved.
       final allKeys = prefs.getKeys().toList();
       for (final key in allKeys) {
         if (key.startsWith('api_cache_')) {

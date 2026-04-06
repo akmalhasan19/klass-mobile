@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config/theme.dart';
 import 'screens/home_screen.dart';
@@ -12,13 +14,14 @@ import 'screens/freelancer_jobs_screen.dart';
 import 'screens/freelancer_portfolio_screen.dart';
 import 'screens/freelancer_home_screen.dart';
 import 'services/auth_service.dart';
+import 'services/locale_preferences_service.dart';
 import 'widgets/bottom_nav.dart';
 import 'config/animations.dart'; 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final initialShellState = await _loadInitialShellState();
+  final initialAppState = await _loadInitialAppState();
 
   // Membuat status bar transparan — konten extend di belakang status bar
   SystemChrome.setSystemUIOverlayStyle(
@@ -34,56 +37,142 @@ Future<void> main() async {
 
   runApp(
     KlassApp(
-      initialRole: initialShellState.role,
-      initialIsGuest: initialShellState.isGuest,
+      initialRole: initialAppState.role,
+      initialIsGuest: initialAppState.isGuest,
+      initialLocale: initialAppState.locale,
     ),
   );
 }
 
-Future<_InitialShellState> _loadInitialShellState() async {
+Future<_InitialAppState> _loadInitialAppState() async {
   final prefs = await SharedPreferences.getInstance();
   final hasAuthToken = prefs.getString('auth_token') != null;
   final cachedRole = await AuthService().getUserRole();
+  final savedLocale = await const LocalePreferencesService().loadSavedLocale(
+    supportedLocales: KlassApp.supportedLocales,
+  );
 
-  return _InitialShellState(
+  return _InitialAppState(
     role: hasAuthToken ? AuthService.resolveAppRole(cachedRole) : 'teacher',
     isGuest: !hasAuthToken,
+    locale: savedLocale,
   );
 }
 
-class _InitialShellState {
-  const _InitialShellState({
+class _InitialAppState {
+  const _InitialAppState({
     required this.role,
     required this.isGuest,
+    required this.locale,
   });
 
   final String role;
   final bool isGuest;
+  final Locale? locale;
 }
 
 /// Root widget aplikasi Klass.
-class KlassApp extends StatelessWidget {
+class KlassApp extends StatefulWidget {
   const KlassApp({
     super.key,
     this.initialRole = 'teacher',
     this.initialIsGuest = false,
+    this.initialLocale,
+    this.homeOverride,
   });
 
   static final GlobalKey<MainShellState> mainShellKey = GlobalKey<MainShellState>();
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('id'),
+  ];
+
   final String initialRole;
   final bool initialIsGuest;
+  final Locale? initialLocale;
+  final Widget? homeOverride;
+
+  static KlassAppState of(BuildContext context) {
+    final state = maybeOf(context);
+    assert(state != null, 'No KlassApp found in context');
+    return state!;
+  }
+
+  static KlassAppState? maybeOf(BuildContext context) {
+    return context.findAncestorStateOfType<KlassAppState>();
+  }
+
+  @override
+  State<KlassApp> createState() => KlassAppState();
+}
+
+class KlassAppState extends State<KlassApp> {
+  final LocalePreferencesService _localePreferencesService = const LocalePreferencesService();
+  late Locale? _locale;
+
+  Locale? get currentLocale => _locale;
+
+  @override
+  void initState() {
+    super.initState();
+    _locale = widget.initialLocale;
+  }
+
+  @override
+  void didUpdateWidget(covariant KlassApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialLocale != widget.initialLocale) {
+      _locale = widget.initialLocale;
+    }
+  }
+
+  Future<void> updateLocale(Locale? locale) async {
+    if (locale != null) {
+      final matchedLocale = LocalePreferencesService.matchSupportedLocale(
+        locale,
+        supportedLocales: KlassApp.supportedLocales,
+      );
+      if (matchedLocale == null) {
+        throw ArgumentError.value(locale, 'locale', 'Unsupported locale');
+      }
+      locale = matchedLocale;
+    }
+
+    if (locale == null) {
+      await _localePreferencesService.clearSavedLocale();
+    } else {
+      await _localePreferencesService.saveLocale(locale);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _locale = locale;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Klass',
+      onGenerateTitle: (context) => AppLocalizations.of(context)?.appTitle ?? 'Klass',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: MainShell(
-        key: mainShellKey,
-        initialRole: initialRole,
-        initialIsGuest: initialIsGuest,
-      ),
+      locale: _locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: KlassApp.supportedLocales,
+      home: widget.homeOverride ??
+          MainShell(
+            key: KlassApp.mainShellKey,
+            initialRole: widget.initialRole,
+            initialIsGuest: widget.initialIsGuest,
+          ),
     );
   }
 }

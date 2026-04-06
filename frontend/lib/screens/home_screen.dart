@@ -17,6 +17,8 @@ import '../widgets/skeleton_loaders.dart';
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
 /// project recommendations (bleed), top freelancers (bleed).
 class HomeScreen extends StatefulWidget {
+  static const Key settingsButtonKey = Key('home_settings_button');
+
   final VoidCallback? onSettingsTap;
   final bool shouldFocusPrompt;
   final String role;
@@ -613,6 +615,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                         child: GestureDetector(
+                          key: HomeScreen.settingsButtonKey,
                           onTap: widget.onSettingsTap,
                           child: Container(
                             width: 42,

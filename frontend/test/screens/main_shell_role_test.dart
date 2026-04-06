@@ -6,6 +6,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/main.dart';
+import 'package:klass_app/screens/freelancer_home_screen.dart';
+import 'package:klass_app/screens/home_screen.dart';
+import 'package:klass_app/screens/settings_screen.dart';
 import 'package:klass_app/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -172,7 +175,7 @@ void main() {
     expect(find.text('Join as Teacher'), findsOneWidget);
     expect(find.text('Join as Freelancer'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text('Guest User'), findsOneWidget);
+    expect(find.text('Guest User'), findsWidgets);
     expect(find.text('You are currently browsing as a guest'), findsOneWidget);
     expect(find.text('Return to your journey'), findsOneWidget);
     expect(find.text('Log In'), findsOneWidget);
@@ -185,11 +188,55 @@ void main() {
     expect(find.text('Join as Teacher'), findsOneWidget);
     expect(find.text('Join as Freelancer'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text('Guest User'), findsOneWidget);
+    expect(find.text('Guest User'), findsWidgets);
     expect(find.text('You are currently browsing as a guest'), findsOneWidget);
     expect(find.text('Return to your journey'), findsOneWidget);
     expect(find.text('Log In'), findsOneWidget);
     expect(find.text('Sign Up'), findsOneWidget);
     expect(find.text('Account Settings'), findsNothing);
+  });
+
+  testWidgets('Teacher home settings entry opens shared SettingsScreen through MainShell', (tester) async {
+    await _pumpMainShell(
+      tester,
+      user: {
+        'id': 1,
+        'name': 'Sarah Jenkins',
+        'email': 'sarah@klass.id',
+        'role': 'teacher',
+      },
+    );
+
+    expect(find.byKey(HomeScreen.settingsButtonKey), findsOneWidget);
+    expect(find.byKey(FreelancerHomeScreen.settingsButtonKey), findsNothing);
+    expect(find.byKey(SettingsScreen.screenKey), findsNothing);
+
+    await tester.tap(find.byKey(HomeScreen.settingsButtonKey));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    expect(find.byKey(SettingsScreen.screenKey), findsOneWidget);
+  });
+
+  testWidgets('Freelancer home settings entry opens shared SettingsScreen through MainShell', (tester) async {
+    await _pumpMainShell(
+      tester,
+      user: {
+        'id': 3,
+        'name': 'Rina Freelancer',
+        'email': 'rina@klass.id',
+        'role': 'freelancer',
+      },
+    );
+
+    expect(find.byKey(FreelancerHomeScreen.settingsButtonKey), findsOneWidget);
+    expect(find.byKey(HomeScreen.settingsButtonKey), findsNothing);
+    expect(find.byKey(SettingsScreen.screenKey), findsNothing);
+
+    await tester.tap(find.byKey(FreelancerHomeScreen.settingsButtonKey));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    expect(find.byKey(SettingsScreen.screenKey), findsOneWidget);
   });
 }
