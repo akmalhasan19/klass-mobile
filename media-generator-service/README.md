@@ -16,6 +16,7 @@ Current capabilities:
 - Routes rendering by `generation_spec.export_format` without redoing business decisions.
 - Generates `.docx` with `python-docx`.
 - Generates `.pdf` with `reportlab` from a shared intermediate document model.
+- Generates `.pptx` with `python-pptx` using title, section, and optional assessment slides.
 - Exposes `GET /health` and `GET /v1/health` for smoke tests.
 
 This service is prepared to be deployed as a Docker-based Hugging Face Space.
@@ -64,3 +65,42 @@ Rendering stays deterministic on the Python side:
 - Python only validates the signed contract, routes by `export_format`, and renders the artifact.
 - `.docx` uses `python-docx`.
 - `.pdf` uses `reportlab` from a shared intermediate document model defined in `app/document_model.py`.
+- `.pptx` uses `python-pptx` and keeps one opening slide, one content slide per section, plus an optional closing assessment slide.
+
+## Response Contract
+
+`POST /v1/generate` returns a structured envelope with schema version `media_generator_response.v1`.
+
+Success shape:
+
+- `request_id`
+- `status=completed`
+- `data.generation_id`
+- `data.artifact_delivery` with the chosen transport strategy
+- `data.artifact_metadata` with the validated metadata contract consumed by Laravel
+- `data.contracts.artifact_metadata`
+
+Failure shape:
+
+- `request_id`
+- `status=failed`
+- `error.code`
+- `error.message`
+- `error.retryable`
+- `error.laravel_error_code_hint`
+- `error.details`
+
+Current artifact delivery strategy is `temporary_path`, exposed through both `data.artifact_delivery` and `data.artifact_metadata.artifact_locator`.
+
+Laravel currently depends on these metadata fields being present and valid:
+
+- `title`
+- `filename`
+- `extension`
+- `mime_type`
+- `size_bytes`
+- `checksum_sha256`
+- `artifact_locator.kind`
+- `artifact_locator.value`
+- `page_count` for paged artifacts when available
+- `slide_count` for `.pptx`

@@ -9,6 +9,12 @@ final class MediaArtifactMetadataContract
 {
     public const VERSION = 'media_generator_output_metadata.v1';
 
+    private const CANONICAL_MIME_TYPES = [
+        'pdf' => 'application/pdf',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ];
+
     public static function validate(array $payload): array
     {
         self::assertAllowedKeys($payload, self::topLevelKeys(), 'payload');
@@ -103,6 +109,26 @@ final class MediaArtifactMetadataContract
                 'Artifact extension must match export format.',
                 'artifact_invalid',
                 ['extension' => $payload['extension'], 'export_format' => $payload['export_format']]
+            );
+        }
+
+        $filenameExtension = strtolower(pathinfo($payload['filename'], PATHINFO_EXTENSION));
+
+        if ($filenameExtension !== $payload['extension']) {
+            throw new MediaGenerationContractException(
+                'Artifact filename must match the declared extension.',
+                'artifact_invalid',
+                ['filename' => $payload['filename'], 'extension' => $payload['extension']]
+            );
+        }
+
+        $expectedMimeType = self::CANONICAL_MIME_TYPES[$payload['export_format']] ?? null;
+
+        if ($expectedMimeType === null || $payload['mime_type'] !== $expectedMimeType) {
+            throw new MediaGenerationContractException(
+                'Artifact mime type must match the declared export format.',
+                'artifact_invalid',
+                ['mime_type' => $payload['mime_type'], 'export_format' => $payload['export_format']]
             );
         }
 

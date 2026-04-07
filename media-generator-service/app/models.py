@@ -8,6 +8,7 @@ from app.contracts import (
     ARTIFACT_METADATA_VERSION,
     GENERATION_SPEC_VERSION,
     INTERPRETATION_SCHEMA_VERSION,
+    RESPONSE_SCHEMA_VERSION,
     SUPPORTED_EXPORT_FORMATS,
 )
 
@@ -169,8 +170,34 @@ class ArtifactMetadata(StrictModel):
         return self
 
 
-class GenerateResponse(StrictModel):
-    request_id: str = Field(min_length=1, max_length=100)
+class ResponseContracts(StrictModel):
+    artifact_metadata: Literal[ARTIFACT_METADATA_VERSION]
+
+
+class GenerateResponseData(StrictModel):
     generation_id: str = Field(min_length=1, max_length=100)
-    status: Literal["completed"]
+    artifact_delivery: ArtifactLocator
     artifact_metadata: ArtifactMetadata
+    contracts: ResponseContracts
+
+
+class GenerateSuccessResponse(StrictModel):
+    schema_version: Literal[RESPONSE_SCHEMA_VERSION]
+    request_id: str = Field(min_length=1, max_length=100)
+    status: Literal["completed"]
+    data: GenerateResponseData
+
+
+class ResponseError(StrictModel):
+    code: str = Field(min_length=1, max_length=100)
+    message: str = Field(min_length=1, max_length=500)
+    retryable: bool
+    laravel_error_code_hint: str = Field(min_length=1, max_length=100)
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class GenerateErrorResponse(StrictModel):
+    schema_version: Literal[RESPONSE_SCHEMA_VERSION]
+    request_id: str = Field(min_length=1, max_length=100)
+    status: Literal["failed"]
+    error: ResponseError

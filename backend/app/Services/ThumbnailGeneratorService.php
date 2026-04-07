@@ -91,6 +91,40 @@ class ThumbnailGeneratorService
         }
     }
 
+    public function generateFallbackVisual(string $documentType, ?string $title = null): ?string
+    {
+        $palette = $this->fallbackPalette($documentType);
+        $label = strtoupper(trim($documentType) !== '' ? $documentType : 'file');
+        $titleText = $this->escapeSvgText($this->truncateText($title ?: 'Generated learning material', 56));
+        $tempOutput = sys_get_temp_dir() . '/thumb_fallback_' . Str::random(12) . '.svg';
+
+        $svg = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" fill="none">
+  <rect width="1280" height="720" fill="{$palette['background']}"/>
+  <rect x="56" y="56" width="1168" height="608" rx="36" fill="{$palette['surface']}" stroke="{$palette['border']}" stroke-width="4"/>
+  <rect x="112" y="112" width="168" height="56" rx="28" fill="{$palette['accent']}"/>
+  <text x="196" y="148" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle">{$label}</text>
+  <text x="112" y="252" fill="#102A43" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700">{$titleText}</text>
+  <text x="112" y="316" fill="#52606D" font-family="Segoe UI, Arial, sans-serif" font-size="28">Preview is unavailable, but the generated file is ready to open.</text>
+  <text x="112" y="380" fill="#52606D" font-family="Segoe UI, Arial, sans-serif" font-size="24">Use this card as a fallback visual in Workspace and Homepage surfaces.</text>
+  <rect x="112" y="452" width="1056" height="132" rx="24" fill="{$palette['panel']}"/>
+  <text x="152" y="512" fill="#102A43" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600">Fallback thumbnail</text>
+  <text x="152" y="558" fill="#486581" font-family="Segoe UI, Arial, sans-serif" font-size="22">Generated automatically because the original document preview could not be extracted.</text>
+</svg>
+SVG;
+
+        try {
+            file_put_contents($tempOutput, $svg);
+
+            return $tempOutput;
+        } catch (Throwable $e) {
+            report($e);
+            @unlink($tempOutput);
+
+            return null;
+        }
+    }
+
     /**
      * PDF → Thumbnail menggunakan Imagick.
      * Render halaman pertama sebagai PNG 800x600.
@@ -246,5 +280,51 @@ class ThumbnailGeneratorService
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
         return in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'emf', 'wmf']);
+    }
+
+    /**
+     * @return array{background: string, surface: string, border: string, accent: string, panel: string}
+     */
+    protected function fallbackPalette(string $documentType): array
+    {
+        return match (strtolower(trim($documentType))) {
+            'pdf' => [
+                'background' => '#FFF4F2',
+                'surface' => '#FFFFFF',
+                'border' => '#F7C9C3',
+                'accent' => '#C0392B',
+                'panel' => '#FDECE8',
+            ],
+            'pptx' => [
+                'background' => '#FFF7ED',
+                'surface' => '#FFFFFF',
+                'border' => '#FBD38D',
+                'accent' => '#DD6B20',
+                'panel' => '#FEEBC8',
+            ],
+            default => [
+                'background' => '#F4F7FB',
+                'surface' => '#FFFFFF',
+                'border' => '#D9E2EC',
+                'accent' => '#1F5F8B',
+                'panel' => '#EAF2F8',
+            ],
+        };
+    }
+
+    protected function truncateText(string $value, int $limit): string
+    {
+        $normalized = trim($value);
+
+        if (mb_strlen($normalized) <= $limit) {
+            return $normalized;
+        }
+
+        return rtrim(mb_substr($normalized, 0, $limit - 1)) . '...';
+    }
+
+    protected function escapeSvgText(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
 }

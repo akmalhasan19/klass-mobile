@@ -4,6 +4,7 @@ from app.contracts import IMPLEMENTED_EXPORT_FORMATS
 from app.errors import UnsupportedFormatError
 from app.generators.docx_generator import DocxGenerator
 from app.generators.pdf_generator import PdfGenerator
+from app.generators.pptx_generator import PptxGenerator
 
 
 class GeneratorRegistry:
@@ -11,6 +12,7 @@ class GeneratorRegistry:
         self._generators = {
             "docx": DocxGenerator(),
             "pdf": PdfGenerator(),
+            "pptx": PptxGenerator(),
         }
 
     def get(self, export_format: str):

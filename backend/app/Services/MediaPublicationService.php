@@ -95,15 +95,20 @@ class MediaPublicationService
 
         try {
             $artifactMetadata = $this->resolveArtifactMetadata($generation);
-            $artifactSource = $this->resolveArtifactSource($generation, $artifactMetadata);
-            $cleanupPaths = array_merge($cleanupPaths, $artifactSource['cleanup_paths']);
-
             $storagePath = $generation->storage_path;
             $fileUrl = $generation->file_url;
             $thumbnailUrl = $generation->thumbnail_url;
             $mimeType = $generation->mime_type ?: data_get($artifactMetadata, 'mime_type');
+            $artifactSource = [
+                'local_path' => null,
+                'cleanup_paths' => [],
+            ];
 
             if (! $this->hasStoredArtifact($generation)) {
+                $artifactSource = $this->resolveArtifactSource($generation, $artifactMetadata);
+                $cleanupPaths = array_merge($cleanupPaths, $artifactSource['cleanup_paths']);
+                $this->validateArtifactForPublication($artifactMetadata, $artifactSource);
+
                 $upload = $this->uploadArtifact($artifactMetadata, $artifactSource);
                 $uploadedPaths[] = $upload['path'];
                 $storagePath = $upload['path'];
@@ -114,6 +119,8 @@ class MediaPublicationService
                 $thumbnailLocalPath = $this->generateThumbnail(
                     localArtifactPath: $artifactSource['local_path'],
                     fileUrl: $fileUrl,
+                    outputType: (string) ($generation->resolved_output_type ?: data_get($artifactMetadata, 'extension', 'file')),
+                    title: (string) (data_get($artifactMetadata, 'title') ?: $this->resolvePublicationTitle($generation)),
                 );
 
                 if ($thumbnailLocalPath !== null) {
@@ -293,21 +300,276 @@ class MediaPublicationService
         return $this->fileUploadService()->uploadFromPath($localPath, $originalName, 'materials');
     }
 
-    protected function generateThumbnail(?string $localArtifactPath, ?string $fileUrl): ?string
+    protected function validateArtifactForPublication(?array $artifactMetadata, array $artifactSource): void
+    {
+        if (! is_array($artifactMetadata)) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact metadata is required before publication.'
+            );
+        }
+
+        $locatorKind = (string) data_get($artifactMetadata, 'artifact_locator.kind', '');
+
+        if ($locatorKind === 'storage_object') {
+            $storagePath = trim((string) data_get($artifactMetadata, 'artifact_locator.value', ''));
+
+            if ($storagePath === '' || ! $this->fileUploadService()->exists($storagePath)) {
+                throw MediaGenerationServiceException::artifactInvalid(
+                    'Stored artifact reference does not exist.',
+                    ['storage_path' => $storagePath]
+                );
+            }
+
+            return;
+        }
+
+        $localPath = $artifactSource['local_path'] ?? null;
+
+        if (! is_string($localPath) || trim($localPath) === '' || ! is_file($localPath)) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact file is not available for validation.'
+            );
+        }
+
+        $expectedExtension = strtolower((string) data_get($artifactMetadata, 'extension', ''));
+        $pathExtension = strtolower(pathinfo($localPath, PATHINFO_EXTENSION));
+
+        if ($expectedExtension === '' || $pathExtension !== $expectedExtension) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact file extension does not match the expected format.',
+                [
+                    'expected_extension' => $expectedExtension,
+                    'actual_extension' => $pathExtension,
+                    'path' => $localPath,
+                ]
+            );
+        }
+
+        $actualSize = filesize($localPath);
+        $expectedSize = (int) data_get($artifactMetadata, 'size_bytes', 0);
+
+        if (! is_int($actualSize) || $actualSize < 1) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact file is empty.',
+                ['path' => $localPath]
+            );
+        }
+
+        if ($actualSize !== $expectedSize) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact file size does not match generator metadata.',
+                [
+                    'expected_size_bytes' => $expectedSize,
+                    'actual_size_bytes' => $actualSize,
+                    'path' => $localPath,
+                ]
+            );
+        }
+
+        $actualChecksum = hash_file('sha256', $localPath);
+        $expectedChecksum = strtolower((string) data_get($artifactMetadata, 'checksum_sha256', ''));
+
+        if (! is_string($actualChecksum) || strtolower($actualChecksum) !== $expectedChecksum) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact checksum does not match generator metadata.',
+                ['path' => $localPath]
+            );
+        }
+
+        $this->validateArtifactMimeType($artifactMetadata, $localPath);
+        $this->validateArtifactStructure($expectedExtension, $localPath);
+    }
+
+    protected function validateArtifactMimeType(array $artifactMetadata, string $localPath): void
+    {
+        $expectedExtension = strtolower((string) data_get($artifactMetadata, 'extension', ''));
+        $expectedMimeType = $this->canonicalMimeTypeForExtension($expectedExtension);
+        $declaredMimeType = strtolower((string) data_get($artifactMetadata, 'mime_type', ''));
+
+        if ($expectedMimeType === null || $declaredMimeType !== $expectedMimeType) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact mime type does not match the expected format.',
+                [
+                    'expected_mime_type' => $expectedMimeType,
+                    'declared_mime_type' => $declaredMimeType,
+                ]
+            );
+        }
+
+        $detectedMimeType = mime_content_type($localPath);
+
+        if (is_string($detectedMimeType)
+            && trim($detectedMimeType) !== ''
+            && ! in_array(strtolower($detectedMimeType), $this->allowedDetectedMimeTypes($expectedExtension), true)) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact mime type detection failed for the expected format.',
+                [
+                    'expected_extension' => $expectedExtension,
+                    'detected_mime_type' => $detectedMimeType,
+                    'path' => $localPath,
+                ]
+            );
+        }
+    }
+
+    protected function validateArtifactStructure(string $extension, string $localPath): void
+    {
+        match ($extension) {
+            'pdf' => $this->assertPdfArtifactIsReadable($localPath),
+            'docx' => $this->assertOfficeArtifactEntries($localPath, ['[Content_Types].xml', 'word/document.xml']),
+            'pptx' => $this->assertOfficeArtifactEntries($localPath, ['[Content_Types].xml', 'ppt/presentation.xml']),
+            default => throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact format is not supported for publication validation.',
+                ['extension' => $extension]
+            ),
+        };
+    }
+
+    /**
+     * @param  string[]  $requiredEntries
+     */
+    protected function assertOfficeArtifactEntries(string $localPath, array $requiredEntries): void
+    {
+        if (! class_exists(\ZipArchive::class)) {
+            $signature = file_get_contents($localPath, false, null, 0, 2);
+
+            if ($signature !== 'PK') {
+                throw MediaGenerationServiceException::artifactInvalid(
+                    'Office artifact is corrupt and cannot be opened as an archive.',
+                    ['path' => $localPath]
+                );
+            }
+
+            return;
+        }
+
+        $zip = new \ZipArchive();
+        $result = $zip->open($localPath);
+
+        if ($result !== true) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Office artifact is corrupt and cannot be opened as an archive.',
+                ['path' => $localPath, 'zip_result' => $result]
+            );
+        }
+
+        try {
+            foreach ($requiredEntries as $requiredEntry) {
+                if ($zip->locateName($requiredEntry) === false) {
+                    throw MediaGenerationServiceException::artifactInvalid(
+                        'Office artifact is missing required package entries.',
+                        ['path' => $localPath, 'missing_entry' => $requiredEntry]
+                    );
+                }
+            }
+        } finally {
+            $zip->close();
+        }
+    }
+
+    protected function assertPdfArtifactIsReadable(string $localPath): void
+    {
+        $header = file_get_contents($localPath, false, null, 0, 5);
+        $tail = $this->tailContents($localPath, 1024);
+
+        if (! is_string($header) || ! str_starts_with($header, '%PDF-')) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'PDF artifact does not contain a valid header.',
+                ['path' => $localPath]
+            );
+        }
+
+        if ($tail === null || ! str_contains($tail, '%%EOF')) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'PDF artifact appears truncated or corrupt.',
+                ['path' => $localPath]
+            );
+        }
+    }
+
+    protected function tailContents(string $localPath, int $length): ?string
+    {
+        $handle = @fopen($localPath, 'rb');
+
+        if ($handle === false) {
+            return null;
+        }
+
+        try {
+            $size = filesize($localPath);
+
+            if (! is_int($size) || $size < 1) {
+                return null;
+            }
+
+            $offset = max(0, $size - $length);
+            fseek($handle, $offset);
+
+            $contents = stream_get_contents($handle);
+
+            return is_string($contents) ? $contents : null;
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    protected function canonicalMimeTypeForExtension(string $extension): ?string
+    {
+        return match ($extension) {
+            'pdf' => 'application/pdf',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            default => null,
+        };
+    }
+
+    /**
+     * @return string[]
+     */
+    protected function allowedDetectedMimeTypes(string $extension): array
+    {
+        return match ($extension) {
+            'pdf' => ['application/pdf', 'application/x-pdf'],
+            'docx', 'pptx' => [
+                'application/octet-stream',
+                'application/zip',
+                'application/x-zip',
+                'application/x-zip-compressed',
+                $this->canonicalMimeTypeForExtension($extension),
+            ],
+            default => [],
+        };
+    }
+
+    protected function generateThumbnail(?string $localArtifactPath, ?string $fileUrl, string $outputType, string $title): ?string
     {
         try {
             if (is_string($localArtifactPath) && trim($localArtifactPath) !== '' && is_file($localArtifactPath)) {
-                return $this->thumbnailGeneratorService()->generateFromFile($localArtifactPath);
+                $thumbnailPath = $this->thumbnailGeneratorService()->generateFromFile($localArtifactPath);
+
+                if ($thumbnailPath !== null) {
+                    return $thumbnailPath;
+                }
             }
 
             if (is_string($fileUrl) && trim($fileUrl) !== '') {
-                return $this->thumbnailGeneratorService()->generateFromUrl($fileUrl);
+                $thumbnailPath = $this->thumbnailGeneratorService()->generateFromUrl($fileUrl);
+
+                if ($thumbnailPath !== null) {
+                    return $thumbnailPath;
+                }
             }
         } catch (Throwable $throwable) {
             report($throwable);
         }
 
-        return null;
+        try {
+            return $this->thumbnailGeneratorService()->generateFallbackVisual($outputType, $title);
+        } catch (Throwable $throwable) {
+            report($throwable);
+
+            return null;
+        }
     }
 
     /**

@@ -132,6 +132,54 @@ class MediaGenerationContractTest extends TestCase
         ]);
     }
 
+    public function test_python_metadata_contract_rejects_filename_extension_mismatch(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        MediaArtifactMetadataContract::validate([
+            'schema_version' => MediaArtifactMetadataContract::VERSION,
+            'export_format' => 'pdf',
+            'title' => 'Handout Pecahan',
+            'filename' => 'handout-pecahan.docx',
+            'extension' => 'pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 12000,
+            'checksum_sha256' => str_repeat('b', 64),
+            'artifact_locator' => [
+                'kind' => 'temporary_path',
+                'value' => '/tmp/handout-pecahan.pdf',
+            ],
+            'generator' => [
+                'name' => 'klass-media-generator',
+                'version' => '0.1.0',
+            ],
+        ]);
+    }
+
+    public function test_python_metadata_contract_rejects_non_canonical_mime_type(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        MediaArtifactMetadataContract::validate([
+            'schema_version' => MediaArtifactMetadataContract::VERSION,
+            'export_format' => 'docx',
+            'title' => 'Handout Pecahan',
+            'filename' => 'handout-pecahan.docx',
+            'extension' => 'docx',
+            'mime_type' => 'application/zip',
+            'size_bytes' => 12000,
+            'checksum_sha256' => str_repeat('c', 64),
+            'artifact_locator' => [
+                'kind' => 'temporary_path',
+                'value' => '/tmp/handout-pecahan.docx',
+            ],
+            'generator' => [
+                'name' => 'klass-media-generator',
+                'version' => '0.1.0',
+            ],
+        ]);
+    }
+
     private function validInterpretationPayload(): array
     {
         return [

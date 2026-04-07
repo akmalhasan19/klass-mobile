@@ -187,8 +187,20 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
 
         Http::fake([
             'https://python.example/*' => Http::response([
+                'schema_version' => 'media_generator_response.v1',
                 'request_id' => 'render-123',
-                'artifact_metadata' => $this->validArtifactMetadata(),
+                'status' => 'completed',
+                'data' => [
+                    'generation_id' => $generation->id,
+                    'artifact_delivery' => [
+                        'kind' => 'temporary_path',
+                        'value' => '/tmp/handout-pecahan-kelas-5.pdf',
+                    ],
+                    'artifact_metadata' => $this->validArtifactMetadata(),
+                    'contracts' => [
+                        'artifact_metadata' => MediaArtifactMetadataContract::VERSION,
+                    ],
+                ],
             ], 200),
         ]);
 
@@ -201,6 +213,10 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
         $this->assertSame(
             MediaArtifactMetadataContract::VERSION,
             data_get($result->generator_service_response, 'response.artifact_metadata.schema_version')
+        );
+        $this->assertSame(
+            'temporary_path',
+            data_get($result->generator_service_response, 'response.raw_payload.data.artifact_delivery.kind')
         );
 
         Http::assertSent(function (Request $request) use ($generation): bool {
@@ -243,6 +259,49 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
             $this->fail('Expected PythonMediaGeneratorClient to throw MediaGenerationServiceException.');
         } catch (MediaGenerationServiceException $exception) {
             $this->assertSame(MediaGenerationErrorCode::PYTHON_SERVICE_UNAVAILABLE, $exception->errorCode());
+        }
+    }
+
+    public function test_python_media_generator_client_maps_structured_error_hint_to_artifact_invalid(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'raw_prompt' => 'Buatkan slide pecahan untuk kelas 5.',
+            'preferred_output_type' => 'pptx',
+            'resolved_output_type' => 'pptx',
+            'status' => MediaGenerationLifecycle::GENERATING,
+            'generation_spec_payload' => MediaGenerationSpecContract::fromInterpretation($this->validInterpretationPayload(), 'pptx'),
+        ]);
+
+        config([
+            'services.media_generation.python.base_url' => 'https://python.example',
+            'services.media_generation.python.shared_secret' => 'shared-secret',
+        ]);
+
+        Http::fake([
+            'https://python.example/*' => Http::response([
+                'schema_version' => 'media_generator_response.v1',
+                'request_id' => 'render-error-123',
+                'status' => 'failed',
+                'error' => [
+                    'code' => 'request_contract_invalid',
+                    'message' => 'Incoming request payload failed validation.',
+                    'retryable' => true,
+                    'laravel_error_code_hint' => MediaGenerationErrorCode::ARTIFACT_INVALID,
+                    'details' => [
+                        'errors' => ['generation_spec.export_format' => ['Unsupported format.']],
+                    ],
+                ],
+            ], 422),
+        ]);
+
+        try {
+            (new PythonMediaGeneratorClient())->generate($generation);
+            $this->fail('Expected PythonMediaGeneratorClient to throw MediaGenerationServiceException.');
+        } catch (MediaGenerationServiceException $exception) {
+            $this->assertSame(MediaGenerationErrorCode::ARTIFACT_INVALID, $exception->errorCode());
+            $this->assertSame('request_contract_invalid', data_get($exception->context(), 'python_error_code'));
         }
     }
 

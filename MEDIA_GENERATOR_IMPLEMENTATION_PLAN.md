@@ -197,63 +197,63 @@ Target akhir implementasi:
 
 ### 6.4 PPTX Generator
 
-- [ ] Buat file Python khusus untuk generator `.pptx`.
-- [ ] Pastikan generator mendukung struktur slide yang berasal dari generation spec.
-- [ ] Definisikan pendekatan layout, title slide, content slide, dan optional assessment slide.
-- [ ] Kembalikan metadata minimal termasuk jumlah slide.
+- [x] Buat file Python khusus untuk generator `.pptx`.
+- [x] Pastikan generator mendukung struktur slide yang berasal dari generation spec.
+- [x] Definisikan pendekatan layout, title slide, content slide, dan optional assessment slide.
+- [x] Kembalikan metadata minimal termasuk jumlah slide.
 
 ### 6.5 Response Contract ke Laravel
 
-- [ ] Definisikan response sukses dari Python service.
-- [ ] Definisikan response gagal yang terstruktur dan mudah dipetakan ke error code Laravel.
-- [ ] Tentukan bagaimana artifact dikirim balik: path lokal sementara, byte stream, atau upload token.
-- [ ] Finalisasi format metadata yang wajib dikonsumsi backend Laravel.
+- [x] Definisikan response sukses dari Python service.
+- [x] Definisikan response gagal yang terstruktur dan mudah dipetakan ke error code Laravel.
+- [x] Tentukan bagaimana artifact dikirim balik: path lokal sementara, byte stream, atau upload token.
+- [x] Finalisasi format metadata yang wajib dikonsumsi backend Laravel.
 
 ## Phase 7 - Storage, File Validation, dan Thumbnailing
 
 ### 7.1 Artifact Storage
 
-- [ ] Upload artifact final ke storage Supabase via `FileUploadService`.
-- [ ] Gunakan kategori `materials` untuk file generator.
-- [ ] Pastikan filename strategy aman terhadap collision.
-- [ ] Simpan public URL hasil upload di `media_generations`, `contents`, dan `recommended_projects`.
+- [x] Upload artifact final ke storage Supabase via `FileUploadService`.
+- [x] Gunakan kategori `materials` untuk file generator.
+- [x] Pastikan filename strategy aman terhadap collision.
+- [x] Simpan public URL hasil upload di `media_generations`, `contents`, dan `recommended_projects`.
 
 ### 7.2 Artifact Validation
 
-- [ ] Validasi bahwa file final benar-benar sesuai dengan extension yang diharapkan.
-- [ ] Validasi mime type hasil generator sebelum upload.
-- [ ] Pastikan file tidak kosong atau corrupt sebelum dipublikasikan.
-- [ ] Tentukan fallback jika artifact valid untuk disimpan tetapi gagal dipreview.
+- [x] Validasi bahwa file final benar-benar sesuai dengan extension yang diharapkan.
+- [x] Validasi mime type hasil generator sebelum upload.
+- [x] Pastikan file tidak kosong atau corrupt sebelum dipublikasikan.
+- [x] Tentukan fallback jika artifact valid untuk disimpan tetapi gagal dipreview.
 
 ### 7.3 Thumbnail Strategy
 
-- [ ] Reuse `ThumbnailGeneratorService` untuk `.pdf`, `.docx`, dan `.pptx`.
-- [ ] Pastikan temp file dibersihkan setelah thumbnail berhasil/gagal dibuat.
-- [ ] Simpan thumbnail URL untuk kebutuhan Workspace card dan Homepage feed bila tersedia.
-- [ ] Tentukan fallback visual saat thumbnail tidak bisa dihasilkan.
+- [x] Reuse `ThumbnailGeneratorService` untuk `.pdf`, `.docx`, dan `.pptx`.
+- [x] Pastikan temp file dibersihkan setelah thumbnail berhasil/gagal dibuat.
+- [x] Simpan thumbnail URL untuk kebutuhan Workspace card dan Homepage feed bila tersedia.
+- [x] Tentukan fallback visual saat thumbnail tidak bisa dihasilkan.
 
 ## Phase 8 - Frontend Teacher Flow
 
 ### 8.1 Submit Flow dari Home Hero
 
-- [ ] Ganti stub `debugPrint('Prompt submitted: ...')` pada hero prompt dengan call ke API media generation.
-- [ ] Pertahankan `PromptInputWidget` sebagai input utama.
-- [ ] Pastikan teacher harus login sebelum submit generation request.
-- [ ] Disable submit selama request awal sedang diproses bila diperlukan.
+- [x] Ganti stub `debugPrint('Prompt submitted: ...')` pada hero prompt dengan call ke API media generation.
+- [x] Pertahankan `PromptInputWidget` sebagai input utama.
+- [x] Pastikan teacher harus login sebelum submit generation request.
+- [x] Disable submit selama request awal sedang diproses bila diperlukan.
 
 ### 8.2 Frontend State Management
 
-- [ ] Tambahkan service atau provider khusus untuk media generation.
-- [ ] Pisahkan state generation dari `ProjectService` dan `HomeService` agar tanggung jawab tetap jelas.
-- [ ] Simpan generation ID untuk keperluan polling.
-- [ ] Tambahkan state untuk `loading`, `in_progress`, `success`, dan `error`.
+- [x] Tambahkan service atau provider khusus untuk media generation.
+- [x] Pisahkan state generation dari `ProjectService` dan `HomeService` agar tanggung jawab tetap jelas.
+- [x] Simpan generation ID untuk keperluan polling.
+- [x] Tambahkan state untuk `loading`, `in_progress`, `success`, dan `error`.
 
 ### 8.3 Polling dan Result Hydration
 
-- [ ] Tambahkan polling status generation sampai terminal state.
-- [ ] Tentukan interval polling yang aman terhadap backend load.
-- [ ] Hentikan polling saat screen dibuang atau status sudah terminal.
-- [ ] Hydrate result card dengan delivery payload final dari backend.
+- [x] Tambahkan polling status generation sampai terminal state.
+- [x] Tentukan interval polling yang aman terhadap backend load.
+- [x] Hentikan polling saat screen dibuang atau status sudah terminal.
+- [x] Hydrate result card dengan delivery payload final dari backend.
 
 ### 8.4 Teacher Result Card UX
 

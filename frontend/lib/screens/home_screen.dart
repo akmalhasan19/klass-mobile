@@ -8,10 +8,13 @@ import '../widgets/bleeding_horizontal_list.dart';
 import '../widgets/layer2_white_clipper.dart';
 import '../widgets/project_details_bottom_sheet.dart';
 import '../widgets/freelancer_details_bottom_sheet.dart';
+import '../widgets/media_generation_status_card.dart';
 import '../config/animations.dart';
 import '../services/home_service.dart';
+import '../services/media_generation_service.dart';
 import '../utils/api_debug_info.dart';
 import '../utils/auth_guard.dart';
+import '../utils/role_guard.dart';
 
 import '../widgets/skeleton_loaders.dart';
 
@@ -42,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final FocusNode _promptFocusNode = FocusNode();
 
   final _homeService = HomeService();
+  final MediaGenerationService _mediaGenerationService = MediaGenerationService();
   List<Map<String, dynamic>> projects = [];
   List<Map<String, dynamic>> freelancers = [];
   List<Map<String, dynamic>> _sections = [];
@@ -54,6 +58,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _mediaGenerationService.addListener(_onMediaGenerationChanged);
+
+    if (widget.role == 'guest') {
+      _mediaGenerationService.reset(notify: false);
+    } else {
+      _mediaGenerationService.resumePollingIfNeeded();
+    }
+
     if (widget.shouldFocusPrompt) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _promptFocusNode.requestFocus();
@@ -180,10 +192,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _mediaGenerationService.stopPolling();
+    _mediaGenerationService.removeListener(_onMediaGenerationChanged);
     _promptController.dispose();
     _scrollController.dispose();
     _promptFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onMediaGenerationChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _submitPrompt(String text) async {
+    final isAuthenticated = await requireAuth(context);
+
+    if (!isAuthenticated || !mounted) {
+      return;
+    }
+
+    final isTeacher = await requireRole(context, 'teacher');
+
+    if (!isTeacher || !mounted) {
+      return;
+    }
+
+    final submitted = await _mediaGenerationService.submitPrompt(prompt: text);
+
+    if (!mounted || !submitted) {
+      return;
+    }
+
+    _promptController.clear();
+    _promptFocusNode.unfocus();
   }
 
   List<Widget> _buildDynamicSections() {
@@ -605,12 +648,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               PromptInputWidget(
                                 controller: _promptController,
                                 focusNode: _promptFocusNode,
-                                onSubmit: (text) async {
-                                  if (await requireAuth(context)) {
-                                    debugPrint('Prompt submitted: $text');
-                                  }
-                                },
+                                isSubmitting: _mediaGenerationService.isLoading,
+                                onSubmit: _submitPrompt,
                               ),
+                              if (_mediaGenerationService.hasVisibleState) ...[
+                                const SizedBox(height: 18),
+                                MediaGenerationStatusCard(
+                                  service: _mediaGenerationService,
+                                  onRefreshStatus: _mediaGenerationService.canRefreshStatus
+                                      ? _mediaGenerationService.pollNow
+                                      : null,
+                                ),
+                              ],
                             ],
                           ],
                         ),

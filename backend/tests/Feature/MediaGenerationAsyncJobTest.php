@@ -23,11 +23,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Tests\Concerns\CreatesMediaGenerationArtifacts;
 use Tests\TestCase;
 
 class MediaGenerationAsyncJobTest extends TestCase
 {
+    use CreatesMediaGenerationArtifacts;
     use RefreshDatabase;
 
     public function test_process_media_generation_job_runs_full_async_workflow_and_records_audit_trail(): void
@@ -224,14 +225,6 @@ class MediaGenerationAsyncJobTest extends TestCase
                 ->values()
                 ->all()
         );
-    }
-
-    private function createTempArtifactFile(string $extension): string
-    {
-        $path = sys_get_temp_dir() . '/media_generation_async_' . Str::random(12) . '.' . $extension;
-        file_put_contents($path, 'temporary generated artifact for async workflow testing');
-
-        return $path;
     }
 
     private function fakeThumbnailGeneratorService(): ThumbnailGeneratorService

@@ -10,6 +10,7 @@ class PromptInputWidget extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
   final String? hintText;
+  final bool isSubmitting;
 
   const PromptInputWidget({
     super.key,
@@ -18,6 +19,7 @@ class PromptInputWidget extends StatefulWidget {
     this.controller,
     this.focusNode,
     this.hintText,
+    this.isSubmitting = false,
   });
 
   @override
@@ -28,6 +30,12 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
   late final TextEditingController _controller;
   bool _isLocalController = false;
 
+  void _handleTextChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -37,10 +45,14 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
       _controller = TextEditingController(text: widget.initialValue);
       _isLocalController = true;
     }
+
+    _controller.addListener(_handleTextChanged);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_handleTextChanged);
+
     if (_isLocalController) {
       _controller.dispose();
     }
@@ -77,8 +89,10 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
             child: TextField(
               controller: _controller,
               focusNode: widget.focusNode,
+              readOnly: widget.isSubmitting,
               maxLines: 6,
               minLines: 1,
+              onSubmitted: (_) => _handleSubmit(),
               style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 15,
@@ -107,33 +121,49 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
   }
 
   Widget _buildSubmitButton() {
+    final canSubmit = !widget.isSubmitting && _controller.text.trim().isNotEmpty;
+
     return GestureDetector(
-      onTap: () {
-        if (_controller.text.isNotEmpty) {
-          widget.onSubmit?.call(_controller.text);
-        }
-      },
+      onTap: canSubmit ? _handleSubmit : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: canSubmit ? AppColors.primary : AppColors.border,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.3),
+              color: (canSubmit ? AppColors.primary : AppColors.border).withValues(alpha: 0.24),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: const Icon(
-          Icons.arrow_forward_rounded,
-          color: Colors.white,
-          size: 22,
-        ),
+        child: widget.isSubmitting
+            ? const Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Icon(
+                Icons.arrow_forward_rounded,
+                color: canSubmit ? Colors.white : AppColors.textMuted,
+                size: 22,
+              ),
       ),
     );
+  }
+
+  void _handleSubmit() {
+    final text = _controller.text.trim();
+
+    if (text.isEmpty || widget.isSubmitting) {
+      return;
+    }
+
+    widget.onSubmit?.call(text);
   }
 }

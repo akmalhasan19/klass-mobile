@@ -14,16 +14,36 @@ from app.contracts import (
     GENERATION_SPEC_VERSION,
     HEALTH_SCHEMA_VERSION,
     IMPLEMENTED_EXPORT_FORMATS,
+    RESPONSE_SCHEMA_VERSION,
     SIGNATURE_ALGORITHM,
 )
 from app.document_model import build_render_document
 from app.errors import ContractValidationError, MediaGeneratorError
 from app.generators.registry import GeneratorRegistry
-from app.models import GenerateRequest, GenerateResponse
+from app.models import GenerateErrorResponse, GenerateRequest, GenerateSuccessResponse
 from app.settings import Settings, get_settings
 
 logger = logging.getLogger("klass-media-generator")
 registry = GeneratorRegistry()
+
+
+def build_error_response(request: Request, exc: MediaGeneratorError) -> JSONResponse:
+    response_payload = GenerateErrorResponse.model_validate(
+        {
+            "schema_version": RESPONSE_SCHEMA_VERSION,
+            "request_id": getattr(request.state, "request_id", str(uuid4())),
+            "status": "failed",
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "retryable": exc.retryable,
+                "laravel_error_code_hint": exc.laravel_error_code_hint,
+                "details": exc.details,
+            },
+        }
+    )
+
+    return JSONResponse(status_code=exc.status_code, content=response_payload.model_dump(mode="python"))
 
 
 def configure_logging(settings: Settings) -> None:
@@ -57,17 +77,7 @@ async def attach_request_id(request: Request, call_next):
 
 @app.exception_handler(MediaGeneratorError)
 async def media_generator_error_handler(request: Request, exc: MediaGeneratorError) -> JSONResponse:
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "request_id": getattr(request.state, "request_id", str(uuid4())),
-            "error": {
-                "code": exc.code,
-                "message": exc.message,
-                "details": exc.details,
-            },
-        },
-    )
+    return build_error_response(request, exc)
 
 
 @app.exception_handler(RequestValidationError)
@@ -83,16 +93,16 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
 @app.exception_handler(Exception)
 async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled media generator exception", exc_info=exc)
-    return JSONResponse(
-        status_code=500,
-        content={
-            "request_id": getattr(request.state, "request_id", str(uuid4())),
-            "error": {
-                "code": "internal_error",
-                "message": "An unexpected error occurred while generating the artifact.",
-                "details": {},
-            },
-        },
+    return build_error_response(
+        request,
+        MediaGeneratorError(
+            status_code=500,
+            code="internal_error",
+            message="An unexpected error occurred while generating the artifact.",
+            details={},
+            retryable=True,
+            laravel_error_code_hint="python_service_unavailable",
+        ),
     )
 
 
@@ -106,6 +116,7 @@ def health_payload(settings: Settings) -> dict[str, object]:
         "contracts": {
             "generation_spec": GENERATION_SPEC_VERSION,
             "artifact_metadata": ARTIFACT_METADATA_VERSION,
+            "response": RESPONSE_SCHEMA_VERSION,
         },
         "auth": {
             "signature_algorithm": SIGNATURE_ALGORITHM,
@@ -147,12 +158,19 @@ async def generate_artifact(
     generator = registry.get(payload.generation_spec.export_format)
     artifact_metadata = generator.generate(payload, render_document, settings)
 
-    response = GenerateResponse.model_validate(
+    response = GenerateSuccessResponse.model_validate(
         {
+            "schema_version": RESPONSE_SCHEMA_VERSION,
             "request_id": request.state.request_id,
-            "generation_id": payload.generation_id,
             "status": "completed",
-            "artifact_metadata": artifact_metadata,
+            "data": {
+                "generation_id": payload.generation_id,
+                "artifact_delivery": artifact_metadata["artifact_locator"],
+                "artifact_metadata": artifact_metadata,
+                "contracts": {
+                    "artifact_metadata": ARTIFACT_METADATA_VERSION,
+                },
+            },
         }
     )
 

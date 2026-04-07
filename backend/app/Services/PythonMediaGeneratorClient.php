@@ -169,9 +169,12 @@ class PythonMediaGeneratorClient
 
     protected function throwFailedGenerationRequest(Response $response): never
     {
-        $errorCode = $response->status() >= 500 || $response->status() === 429
-            ? MediaGenerationErrorCode::PYTHON_SERVICE_UNAVAILABLE
-            : MediaGenerationErrorCode::ARTIFACT_INVALID;
+        $decodedPayload = $response->json();
+        $pythonErrorCode = is_array($decodedPayload) ? data_get($decodedPayload, 'error.code') : null;
+        $pythonErrorMessage = is_array($decodedPayload) ? data_get($decodedPayload, 'error.message') : null;
+        $laravelErrorCodeHint = is_array($decodedPayload) ? data_get($decodedPayload, 'error.laravel_error_code_hint') : null;
+
+        $errorCode = $this->mapErrorCodeFromFailedResponse($response, $laravelErrorCodeHint);
 
         $message = $errorCode === MediaGenerationErrorCode::PYTHON_SERVICE_UNAVAILABLE
             ? 'Python media generator service rejected the request.'
@@ -180,7 +183,23 @@ class PythonMediaGeneratorClient
         throw new MediaGenerationServiceException($message, $errorCode, [
             'http_status' => $response->status(),
             'response_body' => trim($response->body()),
+            'python_error_code' => is_string($pythonErrorCode) ? trim($pythonErrorCode) : null,
+            'python_error_message' => is_string($pythonErrorMessage) ? trim($pythonErrorMessage) : null,
+            'python_error_details' => is_array(data_get($decodedPayload, 'error.details'))
+                ? data_get($decodedPayload, 'error.details')
+                : null,
         ]);
+    }
+
+    protected function mapErrorCodeFromFailedResponse(Response $response, mixed $laravelErrorCodeHint): string
+    {
+        if (is_string($laravelErrorCodeHint) && MediaGenerationErrorCode::isKnown(trim($laravelErrorCodeHint))) {
+            return trim($laravelErrorCodeHint);
+        }
+
+        return $response->status() >= 500 || $response->status() === 429
+            ? MediaGenerationErrorCode::PYTHON_SERVICE_UNAVAILABLE
+            : MediaGenerationErrorCode::ARTIFACT_INVALID;
     }
 
     protected function encodePayload(array $payload): string

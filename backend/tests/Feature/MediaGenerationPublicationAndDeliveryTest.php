@@ -24,10 +24,12 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Tests\Concerns\CreatesMediaGenerationArtifacts;
 use Tests\TestCase;
 
 class MediaGenerationPublicationAndDeliveryTest extends TestCase
 {
+    use CreatesMediaGenerationArtifacts;
     use RefreshDatabase;
 
     public function test_media_publication_service_uploads_artifact_generates_thumbnail_and_publishes_entities(): void
@@ -188,6 +190,147 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
         $this->assertSame(0, Topic::query()->count());
         $this->assertSame(0, Content::query()->count());
         $this->assertSame(0, RecommendedProject::query()->count());
+
+        @unlink($artifactPath);
+    }
+
+    public function test_media_publication_service_rejects_corrupt_office_artifact_before_upload(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+        Storage::fake('supabase');
+
+        $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+        $artifactPath = sys_get_temp_dir() . '/media_generation_corrupt_' . Str::random(12) . '.docx';
+        file_put_contents($artifactPath, 'not a valid office package');
+
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'subject_id' => $subSubject->subject_id,
+            'sub_subject_id' => $subSubject->id,
+            'raw_prompt' => 'Buatkan handout aljabar dasar untuk kelas 8.',
+            'preferred_output_type' => 'docx',
+            'resolved_output_type' => 'docx',
+            'status' => MediaGenerationLifecycle::PUBLISHING,
+            'interpretation_payload' => $this->interpretationPayload(),
+            'generation_spec_payload' => [
+                'title' => 'Handout Aljabar Kelas 8',
+                'summary' => 'Handout singkat aljabar dasar untuk penguatan konsep.',
+                'export_format' => 'docx',
+                'sections' => [['title' => 'Konsep Dasar']],
+            ],
+            'generator_service_response' => [
+                'response' => [
+                    'artifact_metadata' => [
+                        'schema_version' => MediaArtifactMetadataContract::VERSION,
+                        'export_format' => 'docx',
+                        'title' => 'Handout Aljabar Kelas 8',
+                        'filename' => 'handout-aljabar-kelas-8.docx',
+                        'extension' => 'docx',
+                        'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'size_bytes' => filesize($artifactPath),
+                        'checksum_sha256' => hash_file('sha256', $artifactPath),
+                        'page_count' => 4,
+                        'artifact_locator' => [
+                            'kind' => 'temporary_path',
+                            'value' => $artifactPath,
+                        ],
+                        'generator' => [
+                            'name' => 'klass-media-generator',
+                            'version' => '0.1.0',
+                        ],
+                        'warnings' => [],
+                    ],
+                ],
+            ],
+        ]);
+
+        try {
+            (new MediaPublicationService(app(FileUploadService::class), $this->fakeThumbnailGeneratorService()))->publish($generation);
+            $this->fail('Expected publication to reject corrupt artifact.');
+        } catch (MediaGenerationServiceException $exception) {
+            $this->assertSame(MediaGenerationErrorCode::ARTIFACT_INVALID, $exception->errorCode());
+        }
+
+        $this->assertSame([], Storage::disk('supabase')->allFiles());
+
+        @unlink($artifactPath);
+    }
+
+    public function test_media_publication_service_uses_fallback_thumbnail_visual_when_preview_generation_fails(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+        Storage::fake('supabase');
+        putenv('SUPABASE_URL=https://supabase.example');
+
+        $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+        $artifactPath = $this->createTempArtifactFile('docx');
+        $thumbnailService = new class extends ThumbnailGeneratorService
+        {
+            public function generateFromFile(string $filePath): ?string
+            {
+                return null;
+            }
+
+            public function generateFromUrl(string $storageUrl): ?string
+            {
+                return null;
+            }
+        };
+
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'subject_id' => $subSubject->subject_id,
+            'sub_subject_id' => $subSubject->id,
+            'raw_prompt' => 'Buatkan handout aljabar dasar untuk kelas 8.',
+            'preferred_output_type' => 'docx',
+            'resolved_output_type' => 'docx',
+            'status' => MediaGenerationLifecycle::PUBLISHING,
+            'interpretation_payload' => $this->interpretationPayload(),
+            'generation_spec_payload' => [
+                'title' => 'Handout Aljabar Kelas 8',
+                'summary' => 'Handout singkat aljabar dasar untuk penguatan konsep.',
+                'export_format' => 'docx',
+                'sections' => [['title' => 'Konsep Dasar']],
+            ],
+            'generator_service_response' => [
+                'response' => [
+                    'artifact_metadata' => [
+                        'schema_version' => MediaArtifactMetadataContract::VERSION,
+                        'export_format' => 'docx',
+                        'title' => 'Handout Aljabar Kelas 8',
+                        'filename' => 'handout-aljabar-kelas-8.docx',
+                        'extension' => 'docx',
+                        'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'size_bytes' => filesize($artifactPath),
+                        'checksum_sha256' => hash_file('sha256', $artifactPath),
+                        'page_count' => 4,
+                        'artifact_locator' => [
+                            'kind' => 'temporary_path',
+                            'value' => $artifactPath,
+                        ],
+                        'generator' => [
+                            'name' => 'klass-media-generator',
+                            'version' => '0.1.0',
+                        ],
+                        'warnings' => [],
+                    ],
+                ],
+            ],
+        ]);
+
+        $publishedGeneration = (new MediaPublicationService(app(FileUploadService::class), $thumbnailService))->publish($generation);
+        $galleryFiles = Storage::disk('supabase')->allFiles('gallery');
+
+        $this->assertNotNull($publishedGeneration->thumbnail_url);
+        $this->assertCount(1, $galleryFiles);
+        $this->assertStringEndsWith('.svg', $galleryFiles[0]);
+        $this->assertStringContainsString('<svg', Storage::disk('supabase')->get($galleryFiles[0]));
+        $this->assertSame(
+            $publishedGeneration->thumbnail_url,
+            RecommendedProject::query()->findOrFail($publishedGeneration->recommended_project_id)->thumbnail_url
+        );
 
         @unlink($artifactPath);
     }
@@ -364,14 +507,6 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
         $this->assertTrue((bool) data_get($result->delivery_payload, 'fallback.triggered'));
         $this->assertFalse((bool) data_get($result->delivery_payload, 'response_meta.llm_used'));
         $this->assertSame('https://example.com/materials/handout-aljabar.pdf', data_get($result->delivery_payload, 'artifact.file_url'));
-    }
-
-    private function createTempArtifactFile(string $extension): string
-    {
-        $path = sys_get_temp_dir() . '/media_generation_' . Str::random(12) . '.' . $extension;
-        file_put_contents($path, 'temporary generated artifact for testing');
-
-        return $path;
     }
 
     private function fakeThumbnailGeneratorService(): ThumbnailGeneratorService
