@@ -6,15 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\RecommendedProjectRecommendationCollection;
 use App\Models\HomepageSection;
 use App\Models\RecommendedProject;
+use App\Models\User;
 use App\Services\RecommendationAggregationService;
 use App\Services\RecommendationPersonalizationService;
+use App\Services\SystemRecommendationAssignmentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Throwable;
 
 class HomepageRecommendationController extends Controller
 {
     public function __construct(
         protected RecommendationAggregationService $recommendationAggregationService,
         protected RecommendationPersonalizationService $recommendationPersonalizationService,
+        protected SystemRecommendationAssignmentService $systemRecommendationAssignmentService,
     ) {
     }
 
@@ -52,6 +57,10 @@ class HomepageRecommendationController extends Controller
 
         if ($requestedLimit !== null) {
             $items = $items->take($requestedLimit)->values();
+        }
+
+        if ($user instanceof User) {
+            $this->trackSystemRecommendationAssignments($user, $items);
         }
 
         return (new RecommendedProjectRecommendationCollection($items))
@@ -120,6 +129,18 @@ class HomepageRecommendationController extends Controller
     protected function adminConfiguratorPath(): string
     {
         return (string) config('personalized_project_recommendations.homepage.admin_configurator_path', '/admin/homepage-sections');
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $items
+     */
+    protected function trackSystemRecommendationAssignments(User $user, Collection $items): void
+    {
+        try {
+            $this->systemRecommendationAssignmentService->trackServedRecommendations($user, $items);
+        } catch (Throwable $throwable) {
+            report($throwable);
+        }
     }
 
     /**

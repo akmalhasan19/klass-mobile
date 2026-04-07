@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\RecommendedProject;
+use App\Models\SubSubject;
+use App\Models\SystemRecommendationAssignment;
 use App\Models\Topic;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -17,6 +19,59 @@ class RecommendationAggregationService
     public function buildFeed(?CarbonInterface $moment = null, ?array $personalizationContext = null): Collection
     {
         return $this->buildFeedSnapshot($moment, $personalizationContext)['items'];
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function buildSystemDistributionSummary(?int $minimumDistinctUserCount = null): Collection
+    {
+        $candidates = $this->getSystemDistributionSummaryCandidates($minimumDistinctUserCount);
+
+        if ($candidates->isEmpty()) {
+            return collect();
+        }
+
+        $maximumItemsPerSubSubject = max(
+            (int) config('personalized_project_recommendations.distribution_summary.maximum_items_per_sub_subject', 1),
+            1,
+        );
+
+        return $candidates
+            ->groupBy(fn (array $item) => (int) data_get($item, 'sub_subject_id', 0))
+            ->map(fn (Collection $items) => $items
+                ->sort(fn (array $left, array $right) => $this->compareSystemDistributionCandidates($left, $right))
+                ->take($maximumItemsPerSubSubject)
+                ->values())
+            ->collapse()
+            ->sort(fn (array $left, array $right) => ((int) data_get($left, 'subject.id', data_get($left, 'subject_id', 0))
+                    <=> (int) data_get($right, 'subject.id', data_get($right, 'subject_id', 0)))
+                ?: ((int) data_get($left, 'sub_subject.id', data_get($left, 'sub_subject_id', 0))
+                    <=> (int) data_get($right, 'sub_subject.id', data_get($right, 'sub_subject_id', 0)))
+                ?: $this->compareSystemDistributionCandidates($left, $right))
+            ->values();
+    }
+
+    /**
+     * @return array{items: array<int, array<string, mixed>>, empty_state: array<string, mixed>}
+     */
+    public function buildAdminSystemDistributionSummaryPayload(?int $minimumDistinctUserCount = null): array
+    {
+        $items = $this->buildSystemDistributionSummary($minimumDistinctUserCount)
+            ->map(fn (array $item): array => $this->normalizeAdminSystemDistributionSummaryItem($item))
+            ->values()
+            ->all();
+
+        return [
+            'items' => $items,
+            'empty_state' => [
+                'is_empty' => $items === [],
+                'message' => (string) config(
+                    'personalized_project_recommendations.homepage.admin_sections.system_distribution_empty_state',
+                    'No system recommendation has been distributed to more than one user yet.',
+                ),
+            ],
+        ];
     }
 
     /**
@@ -668,5 +723,277 @@ class RecommendationAggregationService
     protected function resolveStateFromCount(int $count): string
     {
         return $count > 0 ? 'ok' : 'empty';
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    protected function getSystemDistributionSummaryCandidates(?int $minimumDistinctUserCount = null): Collection
+    {
+        $minimumDistinctUserCount = max(
+            $minimumDistinctUserCount ?? (int) config('personalized_project_recommendations.distribution_summary.minimum_distinct_user_count', 2),
+            1,
+        );
+        $eligibleSourceTypes = collect((array) config('personalized_project_recommendations.distribution_summary.eligible_source_types', []))
+            ->map(fn (mixed $value): string => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($eligibleSourceTypes === []) {
+            return collect();
+        }
+
+        $rows = SystemRecommendationAssignment::query()
+            ->selectRaw('source_type, source_reference, subject_id, sub_subject_id, COUNT(DISTINCT user_id) as distinct_user_count, MAX(last_distributed_at) as latest_distribution_at')
+            ->whereIn('source_type', $eligibleSourceTypes)
+            ->whereNotNull('source_reference')
+            ->whereNotNull('sub_subject_id')
+            ->groupBy('source_type', 'source_reference', 'subject_id', 'sub_subject_id')
+            ->havingRaw('COUNT(DISTINCT user_id) >= ?', [$minimumDistinctUserCount])
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return collect();
+        }
+
+        $subSubjectLookup = SubSubject::query()
+            ->with('subject')
+            ->whereIn(
+                'id',
+                $rows
+                    ->pluck('sub_subject_id')
+                    ->filter()
+                    ->map(fn (mixed $id): int => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all(),
+            )
+            ->get()
+            ->keyBy('id');
+        $sourceMetadataLookup = $this->buildSystemDistributionSourceMetadataLookup($rows);
+
+        return $rows
+            ->map(function (SystemRecommendationAssignment $row) use ($subSubjectLookup, $sourceMetadataLookup): array {
+                $subSubject = $subSubjectLookup->get((int) $row->sub_subject_id);
+                $subject = $subSubject?->subject;
+                $sourceType = (string) $row->source_type;
+                $sourceReference = (string) $row->source_reference;
+                $sourceMetadata = $this->resolveSystemDistributionSourceMetadata(
+                    $sourceType,
+                    $sourceReference,
+                    $sourceMetadataLookup,
+                );
+
+                return [
+                    'recommendation_key' => $this->makeSourceKey($sourceType, $sourceReference),
+                    'recommendation_item_id' => $sourceMetadata['recommendation_item_id'],
+                    'title' => $sourceMetadata['title'] ?? ($sourceType . ':' . $sourceReference),
+                    'source_type' => $sourceType,
+                    'source_reference' => $sourceReference,
+                    'subject_id' => $subject?->id ?? (is_numeric($row->subject_id) ? (int) $row->subject_id : null),
+                    'sub_subject_id' => (int) $row->sub_subject_id,
+                    'subject' => $subject ? [
+                        'id' => $subject->id,
+                        'name' => $subject->name,
+                        'slug' => $subject->slug,
+                    ] : null,
+                    'sub_subject' => $subSubject ? [
+                        'id' => $subSubject->id,
+                        'subject_id' => $subSubject->subject_id,
+                        'name' => $subSubject->name,
+                        'slug' => $subSubject->slug,
+                    ] : null,
+                    'distinct_user_count' => (int) $row->distinct_user_count,
+                    'latest_distribution_at' => $this->normalizeTimestampValue($row->latest_distribution_at),
+                    'source_created_at' => $sourceMetadata['source_created_at'],
+                ];
+            })
+            ->filter(fn (array $row) => $row['sub_subject'] !== null)
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, SystemRecommendationAssignment>  $rows
+     * @return array<string, array<string, mixed>>
+     */
+    protected function buildSystemDistributionSourceMetadataLookup(Collection $rows): array
+    {
+        $aiGeneratedReferences = $rows
+            ->where('source_type', RecommendedProject::SOURCE_AI_GENERATED)
+            ->pluck('source_reference')
+            ->filter()
+            ->map(fn (mixed $value): string => (string) $value)
+            ->unique()
+            ->values()
+            ->all();
+        $systemTopicReferences = $rows
+            ->where('source_type', RecommendedProject::SOURCE_SYSTEM_TOPIC)
+            ->pluck('source_reference')
+            ->filter()
+            ->map(fn (mixed $value): string => (string) $value)
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            RecommendedProject::SOURCE_AI_GENERATED => RecommendedProject::query()
+                ->where('source_type', RecommendedProject::SOURCE_AI_GENERATED)
+                ->whereIn('id', $aiGeneratedReferences)
+                ->get()
+                ->keyBy(fn (RecommendedProject $project): string => (string) $project->id)
+                ->all(),
+            'system_topic_overrides' => RecommendedProject::query()
+                ->where('source_type', RecommendedProject::SOURCE_SYSTEM_TOPIC)
+                ->whereIn('source_reference', $systemTopicReferences)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy(fn (RecommendedProject $project): string => (string) $project->source_reference)
+                ->map(fn (Collection $items): ?RecommendedProject => $items->first())
+                ->all(),
+            RecommendedProject::SOURCE_SYSTEM_TOPIC => Topic::query()
+                ->select(['id', 'title', 'created_at'])
+                ->whereIn('id', $systemTopicReferences)
+                ->get()
+                ->keyBy(fn (Topic $topic): string => (string) $topic->id)
+                ->all(),
+        ];
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $sourceMetadataLookup
+     * @return array{recommendation_item_id: string, title: string|null, source_created_at: CarbonInterface|string|null}
+     */
+    protected function resolveSystemDistributionSourceMetadata(
+        string $sourceType,
+        string $sourceReference,
+        array $sourceMetadataLookup,
+    ): array {
+        if ($sourceType === RecommendedProject::SOURCE_AI_GENERATED) {
+            /** @var RecommendedProject|null $project */
+            $project = data_get($sourceMetadataLookup, RecommendedProject::SOURCE_AI_GENERATED . '.' . $sourceReference);
+
+            return [
+                'recommendation_item_id' => $project ? (string) $project->id : $sourceReference,
+                'title' => $project?->title,
+                'source_created_at' => $project?->created_at,
+            ];
+        }
+
+        if ($sourceType === RecommendedProject::SOURCE_SYSTEM_TOPIC) {
+            /** @var RecommendedProject|null $override */
+            $override = data_get($sourceMetadataLookup, 'system_topic_overrides.' . $sourceReference);
+
+            if ($override) {
+                return [
+                    'recommendation_item_id' => (string) $override->id,
+                    'title' => $override->title,
+                    'source_created_at' => $override->created_at,
+                ];
+            }
+
+            /** @var Topic|null $topic */
+            $topic = data_get($sourceMetadataLookup, RecommendedProject::SOURCE_SYSTEM_TOPIC . '.' . $sourceReference);
+
+            return [
+                'recommendation_item_id' => $topic ? 'system_topic_' . $topic->id : 'system_topic_' . $sourceReference,
+                'title' => $topic?->title,
+                'source_created_at' => $topic?->created_at,
+            ];
+        }
+
+        return [
+            'recommendation_item_id' => $sourceReference,
+            'title' => null,
+            'source_created_at' => null,
+        ];
+    }
+
+    protected function compareSystemDistributionCandidates(array $left, array $right): int
+    {
+        $tieBreakers = (array) config('personalized_project_recommendations.distribution_summary.tie_breakers', [
+            'distinct_user_count' => 'desc',
+            'latest_distribution_at' => 'desc',
+            'source_created_at' => 'desc',
+            'source_reference' => 'asc',
+        ]);
+
+        foreach ($tieBreakers as $field => $direction) {
+            $comparison = $this->compareSystemDistributionField($left, $right, (string) $field, (string) $direction);
+
+            if ($comparison !== 0) {
+                return $comparison;
+            }
+        }
+
+        return strcmp((string) data_get($left, 'source_type'), (string) data_get($right, 'source_type'))
+            ?: strcmp((string) data_get($left, 'source_reference'), (string) data_get($right, 'source_reference'))
+            ?: strcmp((string) data_get($left, 'title'), (string) data_get($right, 'title'));
+    }
+
+    protected function compareSystemDistributionField(array $left, array $right, string $field, string $direction): int
+    {
+        $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
+
+        $comparison = match ($field) {
+            'distinct_user_count' => ((int) data_get($left, $field, 0)) <=> ((int) data_get($right, $field, 0)),
+            'latest_distribution_at', 'source_created_at' => $this->timestampValue(data_get($left, $field))
+                <=> $this->timestampValue(data_get($right, $field)),
+            default => strcmp((string) data_get($left, $field, ''), (string) data_get($right, $field, '')),
+        };
+
+        return $direction === 'asc' ? $comparison : ($comparison * -1);
+    }
+
+    protected function normalizeTimestampValue(mixed $value): CarbonInterface|string|null
+    {
+        if ($value instanceof CarbonInterface) {
+            return $value;
+        }
+
+        return is_string($value) && $value !== ''
+            ? CarbonImmutable::parse($value)
+            : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    protected function normalizeAdminSystemDistributionSummaryItem(array $item): array
+    {
+        return [
+            'title' => (string) data_get($item, 'title', ''),
+            'subject' => [
+                'id' => data_get($item, 'subject.id'),
+                'name' => data_get($item, 'subject.name'),
+                'slug' => data_get($item, 'subject.slug'),
+            ],
+            'sub_subject' => [
+                'id' => data_get($item, 'sub_subject.id'),
+                'subject_id' => data_get($item, 'sub_subject.subject_id'),
+                'name' => data_get($item, 'sub_subject.name'),
+                'slug' => data_get($item, 'sub_subject.slug'),
+            ],
+            'source_type' => (string) data_get($item, 'source_type', ''),
+            'source_reference' => data_get($item, 'source_reference'),
+            'distinct_user_count' => (int) data_get($item, 'distinct_user_count', 0),
+            'latest_distribution_at' => $this->serializeTimestampForAdminUi(data_get($item, 'latest_distribution_at')),
+        ];
+    }
+
+    protected function serializeTimestampForAdminUi(mixed $value): ?string
+    {
+        if ($value instanceof CarbonInterface) {
+            return $value->toISOString();
+        }
+
+        if (is_string($value) && $value !== '') {
+            return CarbonImmutable::parse($value)->toISOString();
+        }
+
+        return null;
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Resources\RecommendedProjectRecommendationCollection;
 use App\Models\Content;
 use App\Models\RecommendedProject;
 use App\Models\SubSubject;
+use App\Models\SystemRecommendationAssignment;
 use App\Models\Topic;
 use App\Models\User;
 use App\Services\RecommendationAggregationService;
@@ -378,5 +379,321 @@ class RecommendationAggregationServiceTest extends TestCase
         $this->assertNotContains('Raw Algebra Topic', $snapshot['items']->pluck('title')->all());
         $this->assertTrue($snapshot['personalization']['applied']);
         $this->assertSame(1, $snapshot['personalization']['matched_system_topic_count']);
+    }
+
+    public function test_service_builds_summary_with_one_top_item_per_sub_subject(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $service = new RecommendationAggregationService();
+        $science = \App\Models\Subject::query()->where('slug', 'science')->firstOrFail();
+        $mathematics = \App\Models\Subject::query()->where('slug', 'mathematics')->firstOrFail();
+        $thermodynamics = SubSubject::query()->where('slug', 'thermodynamics')->firstOrFail();
+        $algebra = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+
+        $thermoOlder = RecommendedProject::factory()->create([
+            'title' => 'Thermodynamics Older Candidate',
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'subject_id' => $science->id,
+                'sub_subject_id' => $thermodynamics->id,
+            ],
+        ]);
+        $thermoWinner = RecommendedProject::factory()->create([
+            'title' => 'Thermodynamics Winner Candidate',
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'subject_id' => $science->id,
+                'sub_subject_id' => $thermodynamics->id,
+            ],
+        ]);
+
+        $algebraWinner = Topic::unguarded(fn () => Topic::create([
+            'id' => 'topic-algebra-winner',
+            'title' => 'Algebra Winner Topic',
+            'teacher_id' => 'teacher-algebra-winner',
+            'sub_subject_id' => $algebra->id,
+            'is_published' => true,
+            'order' => 1,
+        ]));
+        $algebraLoser = Topic::unguarded(fn () => Topic::create([
+            'id' => 'topic-algebra-loser',
+            'title' => 'Algebra Loser Topic',
+            'teacher_id' => 'teacher-algebra-loser',
+            'sub_subject_id' => $algebra->id,
+            'is_published' => true,
+            'order' => 2,
+        ]));
+
+        foreach (range(1, 2) as $index) {
+            $user = User::factory()->create();
+
+            $this->createSystemRecommendationAssignment(
+                $user,
+                RecommendedProject::SOURCE_AI_GENERATED,
+                (string) $thermoOlder->id,
+                $science->id,
+                $thermodynamics->id,
+                CarbonImmutable::parse('2026-04-07 09:00:00'),
+            );
+        }
+
+        foreach (range(1, 2) as $index) {
+            $user = User::factory()->create();
+
+            $this->createSystemRecommendationAssignment(
+                $user,
+                RecommendedProject::SOURCE_AI_GENERATED,
+                (string) $thermoWinner->id,
+                $science->id,
+                $thermodynamics->id,
+                CarbonImmutable::parse('2026-04-07 10:00:00'),
+            );
+        }
+
+        foreach (range(1, 3) as $index) {
+            $user = User::factory()->create();
+
+            $this->createSystemRecommendationAssignment(
+                $user,
+                RecommendedProject::SOURCE_SYSTEM_TOPIC,
+                $algebraWinner->id,
+                $mathematics->id,
+                $algebra->id,
+                CarbonImmutable::parse('2026-04-07 11:00:00'),
+            );
+        }
+
+        foreach (range(1, 2) as $index) {
+            $user = User::factory()->create();
+
+            $this->createSystemRecommendationAssignment(
+                $user,
+                RecommendedProject::SOURCE_SYSTEM_TOPIC,
+                $algebraLoser->id,
+                $mathematics->id,
+                $algebra->id,
+                CarbonImmutable::parse('2026-04-07 12:00:00'),
+            );
+        }
+
+        $summary = $service->buildSystemDistributionSummary();
+
+        $this->assertCount(2, $summary);
+        $this->assertSame($summary->count(), $summary->pluck('sub_subject_id')->unique()->count());
+
+        $algebraSummary = $summary->firstWhere('sub_subject_id', $algebra->id);
+        $thermodynamicsSummary = $summary->firstWhere('sub_subject_id', $thermodynamics->id);
+
+        $this->assertNotNull($algebraSummary);
+        $this->assertNotNull($thermodynamicsSummary);
+        $this->assertSame('Algebra Winner Topic', $algebraSummary['title']);
+        $this->assertSame(3, $algebraSummary['distinct_user_count']);
+        $this->assertSame(RecommendedProject::SOURCE_SYSTEM_TOPIC, $algebraSummary['source_type']);
+        $this->assertSame('Thermodynamics Winner Candidate', $thermodynamicsSummary['title']);
+        $this->assertSame(2, $thermodynamicsSummary['distinct_user_count']);
+        $this->assertSame(RecommendedProject::SOURCE_AI_GENERATED, $thermodynamicsSummary['source_type']);
+        $this->assertSame('mathematics', data_get($algebraSummary, 'subject.slug'));
+        $this->assertSame('science', data_get($thermodynamicsSummary, 'subject.slug'));
+    }
+
+    public function test_service_excludes_summary_candidates_below_minimum_distinct_user_threshold(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $service = new RecommendationAggregationService();
+        $mathematics = \App\Models\Subject::query()->where('slug', 'mathematics')->firstOrFail();
+        $geometry = SubSubject::query()->where('slug', 'geometry')->firstOrFail();
+        $arithmetic = SubSubject::query()->where('slug', 'arithmetic')->firstOrFail();
+
+        $belowThreshold = RecommendedProject::factory()->create([
+            'title' => 'Geometry Single Distribution',
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'subject_id' => $mathematics->id,
+                'sub_subject_id' => $geometry->id,
+            ],
+        ]);
+        $eligible = RecommendedProject::factory()->create([
+            'title' => 'Arithmetic Eligible Distribution',
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'subject_id' => $mathematics->id,
+                'sub_subject_id' => $arithmetic->id,
+            ],
+        ]);
+
+        $this->createSystemRecommendationAssignment(
+            User::factory()->create(),
+            RecommendedProject::SOURCE_AI_GENERATED,
+            (string) $belowThreshold->id,
+            $mathematics->id,
+            $geometry->id,
+            CarbonImmutable::parse('2026-04-07 08:00:00'),
+        );
+
+        foreach (range(1, 2) as $index) {
+            $this->createSystemRecommendationAssignment(
+                User::factory()->create(),
+                RecommendedProject::SOURCE_AI_GENERATED,
+                (string) $eligible->id,
+                $mathematics->id,
+                $arithmetic->id,
+                CarbonImmutable::parse('2026-04-07 09:00:00'),
+            );
+        }
+
+        $summary = $service->buildSystemDistributionSummary();
+
+        $this->assertCount(1, $summary);
+        $this->assertSame('Arithmetic Eligible Distribution', $summary[0]['title']);
+        $this->assertNotContains($geometry->id, $summary->pluck('sub_subject_id')->all());
+    }
+
+    public function test_service_uses_source_created_at_to_break_remaining_summary_ties(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $service = new RecommendationAggregationService();
+        $mathematics = \App\Models\Subject::query()->where('slug', 'mathematics')->firstOrFail();
+        $geometry = SubSubject::query()->where('slug', 'geometry')->firstOrFail();
+
+        $olderSource = RecommendedProject::factory()->create([
+            'title' => 'Geometry Older Source',
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'subject_id' => $mathematics->id,
+                'sub_subject_id' => $geometry->id,
+            ],
+        ]);
+        $newerSource = RecommendedProject::factory()->create([
+            'title' => 'Geometry Newer Source',
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'subject_id' => $mathematics->id,
+                'sub_subject_id' => $geometry->id,
+            ],
+        ]);
+
+        DB::table('recommended_projects')->where('id', $olderSource->id)->update([
+            'created_at' => CarbonImmutable::parse('2026-04-07 07:00:00'),
+            'updated_at' => CarbonImmutable::parse('2026-04-07 07:00:00'),
+        ]);
+        DB::table('recommended_projects')->where('id', $newerSource->id)->update([
+            'created_at' => CarbonImmutable::parse('2026-04-07 08:00:00'),
+            'updated_at' => CarbonImmutable::parse('2026-04-07 08:00:00'),
+        ]);
+
+        foreach (range(1, 2) as $index) {
+            $user = User::factory()->create();
+
+            $this->createSystemRecommendationAssignment(
+                $user,
+                RecommendedProject::SOURCE_AI_GENERATED,
+                (string) $olderSource->id,
+                $mathematics->id,
+                $geometry->id,
+                CarbonImmutable::parse('2026-04-07 10:00:00'),
+            );
+        }
+
+        foreach (range(1, 2) as $index) {
+            $user = User::factory()->create();
+
+            $this->createSystemRecommendationAssignment(
+                $user,
+                RecommendedProject::SOURCE_AI_GENERATED,
+                (string) $newerSource->id,
+                $mathematics->id,
+                $geometry->id,
+                CarbonImmutable::parse('2026-04-07 10:00:00'),
+            );
+        }
+
+        $summary = $service->buildSystemDistributionSummary();
+
+        $this->assertCount(1, $summary);
+        $this->assertSame('Geometry Newer Source', $summary[0]['title']);
+    }
+
+    public function test_service_falls_back_to_source_reference_for_stable_summary_ties(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $service = new RecommendationAggregationService();
+        $science = \App\Models\Subject::query()->where('slug', 'science')->firstOrFail();
+        $physics = SubSubject::query()->where('slug', 'physics')->firstOrFail();
+
+        $topicAlpha = Topic::unguarded(fn () => Topic::create([
+            'id' => 'topic-alpha',
+            'title' => 'Physics Alpha Topic',
+            'teacher_id' => 'teacher-alpha',
+            'sub_subject_id' => $physics->id,
+            'is_published' => true,
+            'order' => 1,
+        ]));
+        $topicBeta = Topic::unguarded(fn () => Topic::create([
+            'id' => 'topic-beta',
+            'title' => 'Physics Beta Topic',
+            'teacher_id' => 'teacher-beta',
+            'sub_subject_id' => $physics->id,
+            'is_published' => true,
+            'order' => 2,
+        ]));
+
+        DB::table('topics')->whereIn('id', [$topicAlpha->id, $topicBeta->id])->update([
+            'created_at' => CarbonImmutable::parse('2026-04-07 06:00:00'),
+            'updated_at' => CarbonImmutable::parse('2026-04-07 06:00:00'),
+        ]);
+
+        foreach (range(1, 2) as $index) {
+            $this->createSystemRecommendationAssignment(
+                User::factory()->create(),
+                RecommendedProject::SOURCE_SYSTEM_TOPIC,
+                $topicAlpha->id,
+                $science->id,
+                $physics->id,
+                CarbonImmutable::parse('2026-04-07 11:00:00'),
+            );
+            $this->createSystemRecommendationAssignment(
+                User::factory()->create(),
+                RecommendedProject::SOURCE_SYSTEM_TOPIC,
+                $topicBeta->id,
+                $science->id,
+                $physics->id,
+                CarbonImmutable::parse('2026-04-07 11:00:00'),
+            );
+        }
+
+        $firstSummary = $service->buildSystemDistributionSummary();
+        $secondSummary = $service->buildSystemDistributionSummary();
+
+        $this->assertCount(1, $firstSummary);
+        $this->assertSame('topic-alpha', $firstSummary[0]['source_reference']);
+        $this->assertSame('Physics Alpha Topic', $firstSummary[0]['title']);
+        $this->assertEquals($firstSummary->toArray(), $secondSummary->toArray());
+    }
+
+    protected function createSystemRecommendationAssignment(
+        User $user,
+        string $sourceType,
+        string $sourceReference,
+        int $subjectId,
+        int $subSubjectId,
+        CarbonImmutable $distributedAt,
+    ): void {
+        SystemRecommendationAssignment::create([
+            'user_id' => $user->id,
+            'recommendation_key' => $sourceType . ':' . $sourceReference,
+            'recommendation_item_id' => $sourceType === RecommendedProject::SOURCE_SYSTEM_TOPIC
+                ? 'system_topic_' . $sourceReference
+                : $sourceReference,
+            'source_type' => $sourceType,
+            'source_reference' => $sourceReference,
+            'subject_id' => $subjectId,
+            'sub_subject_id' => $subSubjectId,
+            'first_distributed_at' => $distributedAt,
+            'last_distributed_at' => $distributedAt,
+        ]);
     }
 }

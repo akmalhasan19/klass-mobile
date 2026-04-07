@@ -117,51 +117,51 @@ Target akhir implementasi:
 
 ### 4.1 Assignment Tracking Model
 
-- [ ] Tambahkan tabel persistence untuk assignment system recommendation ke user.
-- [ ] Simpan relasi user, recommendation item, source reference, subject, dan sub-subject yang relevan.
-- [ ] Simpan timestamp distribusi pertama dan distribusi terakhir.
-- [ ] Simpan counter atau metadata tambahan hanya bila memang diperlukan.
+- [x] Tambahkan tabel persistence untuk assignment system recommendation ke user.
+- [x] Simpan relasi user, recommendation item, source reference, subject, dan sub-subject yang relevan.
+- [x] Simpan timestamp distribusi pertama dan distribusi terakhir.
+- [x] Simpan counter atau metadata tambahan hanya bila memang diperlukan.
 
 ### 4.2 Upsert dan Deduplikasi
 
-- [ ] Pastikan satu user dan satu recommendation item tidak membuat distinct count ganda.
-- [ ] Gunakan mekanisme upsert atau unique key yang sesuai.
-- [ ] Pastikan repeated homepage refresh tidak menaikkan distinct user count.
-- [ ] Tentukan apakah last served timestamp tetap diperbarui pada refresh berikutnya.
+- [x] Pastikan satu user dan satu recommendation item tidak membuat distinct count ganda.
+- [x] Gunakan mekanisme upsert atau unique key yang sesuai.
+- [x] Pastikan repeated homepage refresh tidak menaikkan distinct user count.
+- [x] Tentukan apakah last served timestamp tetap diperbarui pada refresh berikutnya.
 
 ### 4.3 Tracking Trigger
 
-- [ ] Rekam assignment ketika homepage recommendation endpoint mengembalikan system-generated items ke authenticated user.
-- [ ] Jangan rekam assignment untuk guest request.
-- [ ] Jangan ganggu delivery curated admin items dengan tracking baru ini.
-- [ ] Pastikan tracking error tidak menjatuhkan homepage response utama.
+- [x] Rekam assignment ketika homepage recommendation endpoint mengembalikan system-generated items ke authenticated user.
+- [x] Jangan rekam assignment untuk guest request.
+- [x] Jangan ganggu delivery curated admin items dengan tracking baru ini.
+- [x] Pastikan tracking error tidak menjatuhkan homepage response utama.
 
 ## Phase 5 - Aggregation Logic untuk Admin Panel
 
 ### 5.1 Summary Rules
 
-- [ ] Buat query/service khusus untuk summary system recommendation per sub-subject.
-- [ ] Group data berdasarkan sub-subject.
-- [ ] Hitung `distinct_user_count` untuk tiap item di dalam satu sub-subject.
-- [ ] Exclude item dengan `distinct_user_count <= 1`.
-- [ ] Pilih hanya item dengan distribusi user tertinggi pada tiap sub-subject.
+- [x] Buat query/service khusus untuk summary system recommendation per sub-subject.
+- [x] Group data berdasarkan sub-subject.
+- [x] Hitung `distinct_user_count` untuk tiap item di dalam satu sub-subject.
+- [x] Exclude item dengan `distinct_user_count <= 1`.
+- [x] Pilih hanya item dengan distribusi user tertinggi pada tiap sub-subject.
 
 ### 5.2 Deterministic Tie-Breaking
 
-- [ ] Finalisasi tie-breaker pertama, misalnya `latest_distribution_at`.
-- [ ] Finalisasi tie-breaker kedua, misalnya source item terbaru atau urutan ID.
-- [ ] Pastikan hasil summary stabil antara request yang identik.
+- [x] Finalisasi tie-breaker pertama, misalnya `latest_distribution_at`.
+- [x] Finalisasi tie-breaker kedua, misalnya source item terbaru atau urutan ID.
+- [x] Pastikan hasil summary stabil antara request yang identik.
 
 ### 5.3 Output Contract untuk Admin UI
 
-- [ ] Definisikan payload summary yang minimal memuat:
-  - [ ] Title item.
-  - [ ] Subject.
-  - [ ] Sub-subject.
-  - [ ] Source type/source reference.
-  - [ ] Distinct user count.
-  - [ ] Latest distribution timestamp.
-- [ ] Tambahkan empty state contract bila belum ada item eligible.
+- [x] Definisikan payload summary yang minimal memuat:
+  - [x] Title item.
+  - [x] Subject.
+  - [x] Sub-subject.
+  - [x] Source type/source reference.
+  - [x] Distinct user count.
+  - [x] Latest distribution timestamp.
+- [x] Tambahkan empty state contract bila belum ada item eligible.
 
 ## Phase 6 - Admin Panel Homepage Configurator
 
@@ -193,9 +193,9 @@ Target akhir implementasi:
 - [ ] Tambahkan test untuk taxonomy dan normalized ownership migration/backfill.
 - [x] Tambahkan test untuk personalized homepage feed pada authenticated teacher.
 - [x] Tambahkan test untuk guest fallback behavior.
-- [ ] Tambahkan test untuk assignment upsert/deduplication.
-- [ ] Tambahkan test untuk aggregation selection satu item per sub-subject.
-- [ ] Tambahkan test untuk exclusion rule `distinct_user_count <= 1`.
+- [x] Tambahkan test untuk assignment upsert/deduplication.
+- [x] Tambahkan test untuk aggregation selection satu item per sub-subject.
+- [x] Tambahkan test untuk exclusion rule `distinct_user_count <= 1`.
 - [x] Pastikan existing curated recommendation tests tetap hijau.
 
 ### 7.2 Admin Feature Tests
@@ -249,7 +249,7 @@ Target akhir implementasi:
 - [x] Taxonomy subject/sub-subject harus explicit, bukan hasil parsing judul.
 - [x] Personalization harus mengambil signal dari profile user dan authored-topic activity.
 - [x] Topic ownership harus dinormalisasi ke relasi user yang valid.
-- [ ] Distibusi dihitung sebagai jumlah distinct users.
+- [x] Distibusi dihitung sebagai jumlah distinct users.
 - [x] Existing admin-curated recommendation section harus tetap utuh.
 
 ## Catatan Implementasi Penting

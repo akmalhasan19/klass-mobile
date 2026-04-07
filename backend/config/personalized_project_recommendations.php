@@ -3,7 +3,7 @@
 use App\Models\RecommendedProject;
 
 return [
-    'lock_version' => 'phase_3_3_system_recommendation_candidate_selection',
+    'lock_version' => 'phase_4_2_assignment_tracking_deduplication',
 
     'files' => [
         'config' => 'config/personalized_project_recommendations.php',
@@ -43,7 +43,7 @@ return [
         'authenticated_without_personalization' => [
             'mode' => 'default_global_feed',
             'description' => 'Serve the current safe mixed homepage feed when subject profile or authored-topic signals are still insufficient.',
-            'tracks_assignments' => false,
+            'tracks_assignments' => true,
         ],
         'guest' => [
             'mode' => 'default_global_feed',

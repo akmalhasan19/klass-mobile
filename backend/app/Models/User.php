@@ -50,6 +50,11 @@ class User extends Authenticatable
         return $this->hasMany(Topic::class, 'owner_user_id');
     }
 
+    public function systemRecommendationAssignments(): HasMany
+    {
+        return $this->hasMany(SystemRecommendationAssignment::class);
+    }
+
     public function primarySubject(): BelongsTo
     {
         return $this->belongsTo(Subject::class, 'primary_subject_id');

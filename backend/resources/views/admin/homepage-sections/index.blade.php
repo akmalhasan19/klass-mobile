@@ -244,7 +244,7 @@
         </div>
 
         <div class="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-10 text-center shadow-sm">
-            <p class="text-sm font-medium text-gray-900">{{ $discoveryLock['system_section_empty_state'] }}</p>
+            <p class="text-sm font-medium text-gray-900">{{ $systemDistributionSummary['empty_state']['message'] }}</p>
             <p class="mt-2 text-xs text-gray-500">The read-only summary table will start rendering after distribution tracking and aggregation are implemented in the next phases.</p>
         </div>
     </div>

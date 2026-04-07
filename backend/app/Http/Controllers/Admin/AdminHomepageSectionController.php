@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\HomepageSection;
+use App\Services\RecommendationAggregationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,11 @@ use Illuminate\View\View;
 
 class AdminHomepageSectionController extends Controller
 {
+    public function __construct(
+        protected RecommendationAggregationService $recommendationAggregationService,
+    ) {
+    }
+
     /**
      * Tampilkan konfigurasi homepage sections.
      */
@@ -53,8 +59,9 @@ class AdminHomepageSectionController extends Controller
             ->get();
         $recommendedProjects = $query->orderBy('display_priority', 'desc')->get();
         $discoveryLock = $this->buildDiscoveryLock();
+        $systemDistributionSummary = $this->recommendationAggregationService->buildAdminSystemDistributionSummaryPayload();
 
-        return view('admin.homepage-sections.index', compact('homepageSections', 'recommendedProjects', 'discoveryLock'));
+        return view('admin.homepage-sections.index', compact('homepageSections', 'recommendedProjects', 'discoveryLock', 'systemDistributionSummary'));
     }
 
     public function update(Request $request): RedirectResponse
