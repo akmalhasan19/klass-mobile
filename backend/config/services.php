@@ -50,6 +50,7 @@ return [
         'python' => [
             'base_url' => env('MEDIA_GENERATION_PYTHON_BASE_URL'),
             'generate_path' => env('MEDIA_GENERATION_PYTHON_GENERATE_PATH', '/v1/generate'),
+            'health_path' => env('MEDIA_GENERATION_PYTHON_HEALTH_PATH', '/v1/health'),
             'provider' => env('MEDIA_GENERATION_PYTHON_PROVIDER', 'klass-python'),
             'model' => env('MEDIA_GENERATION_PYTHON_MODEL', 'renderer-v1'),
             'shared_secret' => env('MEDIA_GENERATION_PYTHON_SHARED_SECRET'),

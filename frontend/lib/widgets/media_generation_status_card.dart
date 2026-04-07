@@ -8,10 +8,16 @@ class MediaGenerationStatusCard extends StatelessWidget {
     super.key,
     required this.service,
     this.onRefreshStatus,
+    this.onDownload,
+    this.onOpen,
+    this.onShare,
   });
 
   final MediaGenerationService service;
   final Future<void> Function()? onRefreshStatus;
+  final Future<void> Function()? onDownload;
+  final Future<void> Function()? onOpen;
+  final Future<void> Function()? onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +57,8 @@ class MediaGenerationStatusCard extends StatelessWidget {
     final recommendedNextSteps = _stringListAt(deliveryPayload, ['recommended_next_steps']);
     final teacherMessage = _stringAt(deliveryPayload, ['teacher_message']);
     final fallbackTriggered = _boolAt(deliveryPayload, ['fallback', 'triggered']) ?? false;
+    final artifactUrl = _stringAt(deliveryPayload, ['artifact', 'file_url']) ?? _stringAt(artifact, ['file_url']);
+    final actionSummary = _stringAt(deliveryPayload, ['preview_summary']) ?? teacherMessage;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
@@ -151,12 +159,31 @@ class MediaGenerationStatusCard extends StatelessWidget {
           ],
           if (service.isSuccess) ...[
             const SizedBox(height: 18),
+            _CompletionHeroPanel(
+              icon: Icons.check_circle_rounded,
+              iconColor: AppColors.primary,
+              iconBackground: AppColors.primaryLight,
+              eyebrow: isIndonesian ? 'HASIL BARU' : 'NEW RESULT',
+              title: isIndonesian ? 'Artifact berhasil dipublikasikan' : 'Artifact published successfully',
+              subtitle: isIndonesian
+                  ? 'Pola visual kartu ini mengikuti success treatment yang sudah dipakai di flow proyek agar hasil terasa konsisten.'
+                  : 'This card reuses the existing success treatment pattern so the result feels consistent with the project success flow.',
+            ),
+            const SizedBox(height: 14),
             _DetailPanel(
               icon: Icons.description_rounded,
               title: isIndonesian ? 'Artifact final' : 'Final artifact',
               description: filename != null
                   ? '$filename${_stringAt(deliveryPayload, ['artifact', 'mime_type']) != null ? ' • ${_stringAt(deliveryPayload, ['artifact', 'mime_type'])}' : ''}'
                   : (_stringAt(deliveryPayload, ['artifact', 'file_url']) ?? _stringAt(artifact, ['file_url']) ?? (isIndonesian ? 'File siap dibuka dari hasil akhir backend.' : 'The file is ready from the final backend payload.')),
+            ),
+            const SizedBox(height: 14),
+            _ActionCluster(
+              isIndonesian: isIndonesian,
+              canAct: artifactUrl != null && artifactUrl.isNotEmpty,
+              onDownload: onDownload,
+              onOpen: onOpen,
+              onShare: onShare,
             ),
             if (teacherMessage != null && teacherMessage.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -183,9 +210,33 @@ class MediaGenerationStatusCard extends StatelessWidget {
                     : 'The backend used a fallback delivery response, but the final artifact was still hydrated successfully.',
               ),
             ],
+            if (actionSummary != null && actionSummary.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                actionSummary,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                  height: 1.5,
+                ),
+              ),
+            ],
           ],
           if (service.isError) ...[
             const SizedBox(height: 18),
+            _CompletionHeroPanel(
+              icon: Icons.error_rounded,
+              iconColor: AppColors.red,
+              iconBackground: const Color(0xFFFEE2E2),
+              eyebrow: isIndonesian ? 'PERLU TINJAUAN' : 'NEEDS REVIEW',
+              title: isIndonesian ? 'Generation belum selesai dengan sukses' : 'Generation did not finish successfully',
+              subtitle: isIndonesian
+                  ? 'Status gagal ditampilkan dengan payload aman dari backend agar guru tahu apa yang perlu dilakukan selanjutnya.'
+                  : 'The failed state is rendered from the backend-safe payload so teachers know what to do next.',
+            ),
+            const SizedBox(height: 12),
             _NoticeBanner(
               color: AppColors.red,
               message: service.errorMessage ?? (isIndonesian ? 'Terjadi kegagalan pada media generation.' : 'Media generation failed.'),
@@ -713,6 +764,173 @@ class _NoticeBanner extends StatelessWidget {
           height: 1.5,
         ),
       ),
+    );
+  }
+}
+
+class _CompletionHeroPanel extends StatelessWidget {
+  const _CompletionHeroPanel({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBackground,
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBackground;
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: iconBackground,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(icon, color: iconColor, size: 32),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  eyebrow,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.8,
+                    color: iconColor,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCluster extends StatelessWidget {
+  const _ActionCluster({
+    required this.isIndonesian,
+    required this.canAct,
+    required this.onDownload,
+    required this.onOpen,
+    required this.onShare,
+  });
+
+  final bool isIndonesian;
+  final bool canAct;
+  final Future<void> Function()? onDownload;
+  final Future<void> Function()? onOpen;
+  final Future<void> Function()? onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: canAct && onDownload != null ? () async => onDownload?.call() : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: 8,
+              shadowColor: AppColors.primary.withValues(alpha: 0.25),
+            ),
+            icon: const Icon(Icons.download_rounded),
+            label: Text(
+              isIndonesian ? 'Unduh File' : 'Download File',
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: canAct && onOpen != null ? () async => onOpen?.call() : null,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2), width: 1.6),
+                  minimumSize: const Size(double.infinity, 52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                ),
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: Text(isIndonesian ? 'Buka' : 'Open'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: canAct && onShare != null ? () async => onShare?.call() : null,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: const BorderSide(color: AppColors.border, width: 1.6),
+                  minimumSize: const Size(double.infinity, 52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                ),
+                icon: const Icon(Icons.share_rounded),
+                label: Text(isIndonesian ? 'Bagikan' : 'Share'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

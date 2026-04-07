@@ -35,6 +35,7 @@ Deploy this folder as a Docker Space.
 Required Space secrets/variables:
 
 - `MEDIA_GENERATION_PYTHON_SHARED_SECRET`
+- `MEDIA_GENERATION_PYTHON_SHARED_SECRET_PREVIOUS` optional comma-separated grace-period secrets during rotation
 - `MEDIA_GENERATION_PYTHON_REQUEST_MAX_AGE_SECONDS=300`
 - `MEDIA_GENERATION_PYTHON_SERVICE_NAME=klass-media-generator`
 - `MEDIA_GENERATION_PYTHON_SERVICE_VERSION=0.1.0`
@@ -52,10 +53,22 @@ Smoke test endpoints:
 ## Environment Variables
 
 - `MEDIA_GENERATION_PYTHON_SHARED_SECRET`: shared HMAC secret used by Laravel and the Python service.
+- `MEDIA_GENERATION_PYTHON_SHARED_SECRET_PREVIOUS`: optional comma-separated previous shared secrets accepted during zero-downtime rotation.
 - `MEDIA_GENERATION_PYTHON_REQUEST_MAX_AGE_SECONDS`: allowed timestamp skew for signed requests. Default `300`.
 - `MEDIA_GENERATION_PYTHON_SERVICE_NAME`: metadata value returned in artifact responses. Default `klass-media-generator`.
 - `MEDIA_GENERATION_PYTHON_SERVICE_VERSION`: metadata value returned in artifact responses. Default `0.1.0`.
 - `MEDIA_GENERATION_PYTHON_LOG_LEVEL`: application log level. Default `info`.
+
+## Credential Rotation
+
+Use a two-step rollout for inter-service HMAC rotation:
+
+1. Deploy the Python service with the new secret in `MEDIA_GENERATION_PYTHON_SHARED_SECRET` and keep the old secret in `MEDIA_GENERATION_PYTHON_SHARED_SECRET_PREVIOUS`.
+2. Deploy Laravel with the same new value in `MEDIA_GENERATION_PYTHON_SHARED_SECRET`.
+3. Run `php artisan media-generation:smoke-python-service` from Laravel to confirm reachability and auth readiness.
+4. Remove the previous secret from the Python service after the rollout stabilizes.
+
+The health payload reports `auth.rotation_enabled` and `auth.accepted_secret_count` so Laravel smoke checks can confirm whether a grace-period secret is still active.
 
 ## Render Model
 

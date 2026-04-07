@@ -121,6 +121,8 @@ def health_payload(settings: Settings) -> dict[str, object]:
         "auth": {
             "signature_algorithm": SIGNATURE_ALGORITHM,
             "configured": settings.shared_secret != "",
+            "rotation_enabled": settings.rotation_enabled,
+            "accepted_secret_count": len(settings.accepted_shared_secrets),
             "max_request_age_seconds": settings.request_max_age_seconds,
         },
     }

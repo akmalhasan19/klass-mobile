@@ -16,6 +16,9 @@ def test_health_endpoint_reports_supported_formats(client) -> None:
     assert response.json()["supported_formats"] == ["docx", "pdf", "pptx"]
     assert response.json()["contracts"]["generation_spec"] == "media_generation_spec.v1"
     assert response.json()["contracts"]["response"] == "media_generator_response.v1"
+    assert response.json()["auth"]["configured"] is True
+    assert response.json()["auth"]["rotation_enabled"] is False
+    assert response.json()["auth"]["accepted_secret_count"] == 1
 
 
 def test_generate_pdf_returns_artifact_metadata_with_page_count(client) -> None:
@@ -100,3 +103,23 @@ def test_generate_rejects_generation_id_mismatch_with_structured_error_contract(
     assert response.json()["status"] == "failed"
     assert response.json()["error"]["code"] == "generation_id_mismatch"
     assert response.json()["error"]["laravel_error_code_hint"] == "artifact_invalid"
+
+
+def test_generate_accepts_previous_rotated_secret(client, monkeypatch) -> None:
+    monkeypatch.setenv("MEDIA_GENERATION_PYTHON_SHARED_SECRET", "next-shared-secret")
+    monkeypatch.setenv(
+        "MEDIA_GENERATION_PYTHON_SHARED_SECRET_PREVIOUS",
+        "legacy-shared-secret,test-shared-secret",
+    )
+
+    from app.settings import clear_settings_cache
+
+    clear_settings_cache()
+
+    body, headers, _ = signed_request_content("pdf", secret="test-shared-secret")
+
+    response = client.post("/v1/generate", content=body, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+    assert response.json()["data"]["artifact_metadata"]["export_format"] == "pdf"

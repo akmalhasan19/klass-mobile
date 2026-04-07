@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
@@ -11,7 +13,9 @@ import '../widgets/freelancer_details_bottom_sheet.dart';
 import '../widgets/media_generation_status_card.dart';
 import '../config/animations.dart';
 import '../services/home_service.dart';
+import '../services/media_generation_action_service.dart';
 import '../services/media_generation_service.dart';
+import '../services/project_service.dart';
 import '../utils/api_debug_info.dart';
 import '../utils/auth_guard.dart';
 import '../utils/role_guard.dart';
@@ -46,6 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _homeService = HomeService();
   final MediaGenerationService _mediaGenerationService = MediaGenerationService();
+  final MediaGenerationActionService _mediaGenerationActionService = MediaGenerationActionService();
+  final ProjectService _projectService = ProjectService();
   List<Map<String, dynamic>> projects = [];
   List<Map<String, dynamic>> freelancers = [];
   List<Map<String, dynamic>> _sections = [];
@@ -54,6 +60,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSectionsLoading = true;
   String? _projectsError;
   String? _freelancersError;
+  String? _lastHandledSuccessfulGenerationId;
+  bool _isRefreshingPublishedMedia = false;
 
   @override
   void initState() {
@@ -201,8 +209,57 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onMediaGenerationChanged() {
+    final generationId = _mediaGenerationService.generationId;
+
+    if (_mediaGenerationService.isSuccess
+        && generationId != null
+        && generationId != _lastHandledSuccessfulGenerationId) {
+      _lastHandledSuccessfulGenerationId = generationId;
+      unawaited(_refreshAfterSuccessfulGeneration());
+    }
+
     if (mounted) {
       setState(() {});
+    }
+  }
+
+  Future<void> _refreshAfterSuccessfulGeneration() async {
+    if (_isRefreshingPublishedMedia) {
+      return;
+    }
+
+    _isRefreshingPublishedMedia = true;
+
+    try {
+      await Future.wait<void>([
+        _projectService.fetchProjects(forceRefresh: true),
+        _refreshHomepageRecommendationsAfterGeneration(),
+      ]);
+    } finally {
+      _isRefreshingPublishedMedia = false;
+    }
+  }
+
+  Future<void> _refreshHomepageRecommendationsAfterGeneration() async {
+    try {
+      final refreshedProjects = await _homeService.fetchProjects(forceRefresh: true);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        projects = refreshedProjects;
+        _projectsError = null;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _projectsError = _localizeErrorMessage(error);
+      });
     }
   }
 
@@ -227,6 +284,130 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _promptController.clear();
     _promptFocusNode.unfocus();
+  }
+
+  Future<void> _handleOpenGeneratedArtifact() async {
+    await _runArtifactAction(
+      action: () => _mediaGenerationActionService.openArtifact(_artifactUrl()!),
+      errorMessageId: 'open',
+    );
+  }
+
+  Future<void> _handleDownloadGeneratedArtifact() async {
+    await _runArtifactAction(
+      action: () => _mediaGenerationActionService.downloadArtifact(_artifactUrl()!),
+      errorMessageId: 'download',
+    );
+  }
+
+  Future<void> _handleShareGeneratedArtifact() async {
+    await _runArtifactAction(
+      action: () => _mediaGenerationActionService.shareArtifact(
+        title: _artifactTitle(),
+        url: _artifactUrl()!,
+        summary: _artifactSummary(),
+      ),
+      errorMessageId: 'share',
+    );
+  }
+
+  Future<void> _runArtifactAction({
+    required Future<void> Function() action,
+    required String errorMessageId,
+  }) async {
+    final fileUrl = _artifactUrl();
+
+    if (fileUrl == null || fileUrl.isEmpty) {
+      _showGenerationMessage(_localizedArtifactMessage('missing'));
+      return;
+    }
+
+    try {
+      await action();
+    } catch (_) {
+      _showGenerationMessage(_localizedArtifactMessage(errorMessageId));
+    }
+  }
+
+  String _artifactTitle() {
+    final deliveryPayload = _mediaGenerationService.deliveryPayload;
+    final publication = _mediaGenerationService.publication;
+
+    return _stringAt(deliveryPayload, ['artifact', 'title'])
+        ?? _stringAt(deliveryPayload, ['title'])
+        ?? _stringAt(publication, ['recommended_project', 'title'])
+        ?? _stringAt(publication, ['topic', 'title'])
+        ?? (Localizations.localeOf(context).languageCode == 'id'
+            ? 'Media pembelajaran'
+            : 'Learning material');
+  }
+
+  String? _artifactSummary() {
+    final deliveryPayload = _mediaGenerationService.deliveryPayload;
+
+    return _stringAt(deliveryPayload, ['preview_summary'])
+        ?? _stringAt(deliveryPayload, ['teacher_message']);
+  }
+
+  String? _artifactUrl() {
+    final deliveryPayload = _mediaGenerationService.deliveryPayload;
+    final artifact = _mediaGenerationService.artifact;
+
+    return _stringAt(deliveryPayload, ['artifact', 'file_url'])
+        ?? _stringAt(artifact, ['file_url']);
+  }
+
+  void _showGenerationMessage(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _localizedArtifactMessage(String action) {
+    final isIndonesian = Localizations.localeOf(context).languageCode == 'id';
+
+    return switch (action) {
+      'missing' => isIndonesian
+          ? 'Tautan artifact belum tersedia untuk aksi ini.'
+          : 'The artifact link is not available for this action.',
+      'open' => isIndonesian
+          ? 'Artifact belum bisa dibuka saat ini.'
+          : 'The artifact could not be opened right now.',
+      'download' => isIndonesian
+          ? 'Unduhan artifact belum bisa dimulai saat ini.'
+          : 'The artifact download could not be started right now.',
+      'share' => isIndonesian
+          ? 'Artifact belum bisa dibagikan saat ini.'
+          : 'The artifact could not be shared right now.',
+      _ => isIndonesian ? 'Aksi artifact gagal dijalankan.' : 'The artifact action could not be completed.',
+    };
+  }
+
+  String? _stringAt(Map<String, dynamic>? source, List<String> path) {
+    dynamic current = source;
+
+    for (final segment in path) {
+      if (current is Map<String, dynamic>) {
+        current = current[segment];
+        continue;
+      }
+
+      if (current is Map) {
+        current = current[segment];
+        continue;
+      }
+
+      return null;
+    }
+
+    if (current == null) {
+      return null;
+    }
+
+    final value = current.toString().trim();
+    return value.isEmpty ? null : value;
   }
 
   List<Widget> _buildDynamicSections() {
@@ -657,6 +838,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                   service: _mediaGenerationService,
                                   onRefreshStatus: _mediaGenerationService.canRefreshStatus
                                       ? _mediaGenerationService.pollNow
+                                      : null,
+                                  onDownload: _mediaGenerationService.isSuccess
+                                      ? _handleDownloadGeneratedArtifact
+                                      : null,
+                                  onOpen: _mediaGenerationService.isSuccess
+                                      ? _handleOpenGeneratedArtifact
+                                      : null,
+                                  onShare: _mediaGenerationService.isSuccess
+                                      ? _handleShareGeneratedArtifact
                                       : null,
                                 ),
                               ],

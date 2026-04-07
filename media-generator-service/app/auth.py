@@ -56,13 +56,16 @@ async def verify_request_signature(request: Request) -> None:
         )
 
     body = await request.body()
-    expected_signature = hmac.new(
-        settings.shared_secret.encode("utf-8"),
-        timestamp.encode("utf-8") + b"." + body,
-        hashlib.sha256,
-    ).hexdigest()
+    expected_signatures = [
+        hmac.new(
+            shared_secret.encode("utf-8"),
+            timestamp.encode("utf-8") + b"." + body,
+            hashlib.sha256,
+        ).hexdigest()
+        for shared_secret in settings.accepted_shared_secrets
+    ]
 
-    if signature == "" or not compare_digest(expected_signature, signature):
+    if signature == "" or not any(compare_digest(expected_signature, signature) for expected_signature in expected_signatures):
         raise AuthenticationError(
             "signature_invalid",
             "Request signature is invalid.",

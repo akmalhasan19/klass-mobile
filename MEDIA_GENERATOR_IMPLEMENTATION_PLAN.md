@@ -257,69 +257,69 @@ Target akhir implementasi:
 
 ### 8.4 Teacher Result Card UX
 
-- [ ] Tampilkan progress steps seperti `understanding prompt`, `deciding format`, `generating file`, dan `publishing result`.
-- [ ] Tampilkan hasil akhir sebagai kartu dengan CTA `download`, `open`, dan `share`.
-- [ ] Tampilkan ringkasan AI yang menjelaskan file yang telah dibuat.
-- [ ] Tampilkan error state yang jelas bila generation gagal.
-- [ ] Pertimbangkan reuse visual pattern dari success screen yang sudah ada bila sesuai.
+- [x] Tampilkan progress steps seperti `understanding prompt`, `deciding format`, `generating file`, dan `publishing result`.
+- [x] Tampilkan hasil akhir sebagai kartu dengan CTA `download`, `open`, dan `share`.
+- [x] Tampilkan ringkasan AI yang menjelaskan file yang telah dibuat.
+- [x] Tampilkan error state yang jelas bila generation gagal.
+- [x] Pertimbangkan reuse visual pattern dari success screen yang sudah ada bila sesuai.
 
 ### 8.5 Feed dan Workspace Refresh
 
-- [ ] Refresh `ProjectService` setelah publish sukses agar Workspace langsung menampilkan hasil.
-- [ ] Refresh `HomeService` setelah publish sukses agar Homepage recommendation feed ikut terbarui.
-- [ ] Pastikan hasil baru bisa terlihat tanpa app restart.
+- [x] Refresh `ProjectService` setelah publish sukses agar Workspace langsung menampilkan hasil.
+- [x] Refresh `HomeService` setelah publish sukses agar Homepage recommendation feed ikut terbarui.
+- [x] Pastikan hasil baru bisa terlihat tanpa app restart.
 
 ## Phase 9 - Security, Governance, dan Deployment
 
 ### 9.1 Access Control
 
-- [ ] Pastikan hanya teacher yang bisa membuat media generation.
-- [ ] Pastikan teacher hanya bisa melihat generation miliknya sendiri.
-- [ ] Pastikan publication ownership mengarah ke teacher yang benar.
+- [x] Pastikan hanya teacher yang bisa membuat media generation.
+- [x] Pastikan teacher hanya bisa melihat generation miliknya sendiri.
+- [x] Pastikan publication ownership mengarah ke teacher yang benar.
 
 ### 9.2 Inter-Service Security
 
-- [ ] Lindungi komunikasi Laravel ke Python service dengan secret atau signature.
-- [ ] Pastikan endpoint Python tidak terbuka bebas tanpa autentikasi.
-- [ ] Tentukan strategi rotasi credential antar-service.
+- [x] Lindungi komunikasi Laravel ke Python service dengan secret atau signature.
+- [x] Pastikan endpoint Python tidak terbuka bebas tanpa autentikasi.
+- [x] Tentukan strategi rotasi credential antar-service.
 
 ### 9.3 Deployment Readiness
 
-- [ ] Tambahkan konfigurasi environment untuk base URL Python service, auth secret, timeout, dan retry.
-- [ ] Tambahkan queue worker ke `supervisord.conf` backend.
-- [ ] Pastikan perubahan deployment tidak melanggar constraint image backend yang ada.
-- [ ] Tambahkan smoke test untuk memastikan Laravel dapat reach Python service.
+- [x] Tambahkan konfigurasi environment untuk base URL Python service, auth secret, timeout, dan retry.
+- [x] Tambahkan queue worker ke `supervisord.conf` backend.
+- [x] Pastikan perubahan deployment tidak melanggar constraint image backend yang ada.
+- [x] Tambahkan smoke test untuk memastikan Laravel dapat reach Python service.
 
 ## Phase 10 - Testing dan Quality Gates
 
 ### 10.1 Backend Automated Tests
 
-- [ ] Tambahkan feature test untuk create media generation request.
-- [ ] Tambahkan feature test untuk polling status generation.
-- [ ] Tambahkan unit test untuk output type resolution.
-- [ ] Tambahkan unit test untuk schema validation hasil interpretasi LLM.
-- [ ] Tambahkan test untuk publication ke Topic, Content, dan RecommendedProject.
-- [ ] Tambahkan test untuk failure path Python service, upload failure, dan publication failure.
+- [x] Tambahkan feature test untuk create media generation request.
+- [x] Tambahkan feature test untuk polling status generation.
+- [x] Tambahkan unit test untuk output type resolution.
+- [x] Tambahkan unit test untuk schema validation hasil interpretasi LLM.
+- [x] Tambahkan test untuk publication ke Topic, Content, dan RecommendedProject.
+- [x] Tambahkan test untuk failure path Python service, upload failure, dan publication failure.
 
 ### 10.2 Frontend Tests
 
-- [ ] Tambahkan widget test untuk submit flow dari hero prompt.
-- [ ] Tambahkan widget test untuk loading/progress/result/error states.
-- [ ] Tambahkan test untuk refresh Workspace dan Homepage setelah generation sukses.
-- [ ] Pastikan flow teacher tidak merusak UI role lain.
+- [x] Tambahkan widget test untuk submit flow dari hero prompt.
+- [x] Tambahkan widget test untuk loading/progress/result/error states.
+- [x] Tambahkan test untuk refresh Workspace dan Homepage setelah generation sukses.
+- [x] Pastikan flow teacher tidak merusak UI role lain.
 
 ### 10.3 Manual End-to-End Verification
 
-- [ ] Login sebagai teacher/guru.
-- [ ] Submit prompt dari section `Generate Learning Topics`.
-- [ ] Verifikasi backend membuat record `media_generations`.
-- [ ] Verifikasi LLM menghasilkan JSON interpretasi yang valid.
-- [ ] Verifikasi sistem memilih output type yang benar atau mengikuti override teacher.
-- [ ] Verifikasi Python service menghasilkan file yang sesuai.
-- [ ] Verifikasi artifact ter-upload ke storage dan thumbnail dibuat bila memungkinkan.
-- [ ] Verifikasi hasil masuk ke Workspace.
-- [ ] Verifikasi hasil masuk ke Homepage recommendation feed sebagai `ai_generated` item.
-- [ ] Verifikasi guru dapat download, open, dan share hasil file.
+- [x] Login sebagai teacher/guru.
+- [x] Submit prompt dari section `Generate Learning Topics`.
+- [x] Verifikasi backend membuat record `media_generations`.
+- [x] Verifikasi LLM menghasilkan JSON interpretasi yang valid.
+- [x] Verifikasi sistem memilih output type yang benar atau mengikuti override teacher.
+- [x] Verifikasi Python service menghasilkan file yang sesuai.
+- [x] Verifikasi artifact ter-upload ke storage dan thumbnail dibuat bila memungkinkan.
+- [x] Verifikasi hasil masuk ke Workspace.
+- [x] Verifikasi hasil masuk ke Homepage recommendation feed sebagai `ai_generated` item.
+- [x] Verifikasi guru dapat download, open, dan share hasil file.
 
 ## File dan Area Implementasi yang Terdampak
 
