@@ -198,8 +198,20 @@ class RecommendationAggregationService
         return RecommendedProject::query()
             ->whereNotNull('source_reference')
             ->where('source_type', '!=', RecommendedProject::SOURCE_ADMIN_UPLOAD)
-            ->get(['source_type', 'source_reference'])
-            ->map(fn (RecommendedProject $project) => $this->makeSourceKey($project->source_type, $project->source_reference))
+            ->get(['source_type', 'source_reference', 'source_payload'])
+            ->flatMap(function (RecommendedProject $project): array {
+                $keys = array_filter([
+                    $this->makeSourceKey($project->source_type, $project->source_reference),
+                ]);
+
+                $generatedTopicId = data_get($project->source_payload, 'topic_id');
+
+                if ($project->source_type === RecommendedProject::SOURCE_AI_GENERATED && $generatedTopicId) {
+                    $keys[] = $this->makeSourceKey(RecommendedProject::SOURCE_SYSTEM_TOPIC, $generatedTopicId);
+                }
+
+                return array_values(array_filter($keys));
+            })
             ->filter()
             ->unique()
             ->values()
