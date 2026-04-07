@@ -69,6 +69,19 @@ return [
             'retry_attempts' => (int) env('MEDIA_GENERATION_DELIVERY_RETRY_ATTEMPTS', 2),
             'retry_sleep_milliseconds' => (int) env('MEDIA_GENERATION_DELIVERY_RETRY_SLEEP_MILLISECONDS', 250),
         ],
+        'queue' => [
+            'connection' => env('MEDIA_GENERATION_QUEUE_CONNECTION', 'database'),
+            'name' => env('MEDIA_GENERATION_QUEUE_NAME', 'media-generation'),
+            'tries' => (int) env('MEDIA_GENERATION_QUEUE_TRIES', 3),
+            'timeout_seconds' => (int) env('MEDIA_GENERATION_QUEUE_TIMEOUT_SECONDS', 300),
+            'backoff_seconds' => (int) env('MEDIA_GENERATION_QUEUE_BACKOFF_SECONDS', 30),
+            'sleep_seconds' => (int) env('MEDIA_GENERATION_QUEUE_SLEEP_SECONDS', 3),
+            'max_jobs' => (int) env('MEDIA_GENERATION_QUEUE_MAX_JOBS', 250),
+            'max_time_seconds' => (int) env('MEDIA_GENERATION_QUEUE_MAX_TIME_SECONDS', 3600),
+            'memory_mb' => (int) env('MEDIA_GENERATION_QUEUE_MEMORY_MB', 256),
+            'concurrency' => max(1, (int) env('MEDIA_GENERATION_QUEUE_CONCURRENCY', 1)),
+            'stopwait_seconds' => (int) env('MEDIA_GENERATION_QUEUE_STOPWAIT_SECONDS', 360),
+        ],
     ],
 
 ];

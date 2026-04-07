@@ -36,6 +36,7 @@ class MediaGeneration extends Model
         'interpretation_audit_payload',
         'generation_spec_payload',
         'decision_payload',
+        'orchestration_audit_payload',
         'delivery_payload',
         'generator_service_response',
         'storage_path',
@@ -56,6 +57,7 @@ class MediaGeneration extends Model
             'interpretation_audit_payload' => 'array',
             'generation_spec_payload' => 'array',
             'decision_payload' => 'array',
+            'orchestration_audit_payload' => 'array',
             'delivery_payload' => 'array',
             'generator_service_response' => 'array',
         ];

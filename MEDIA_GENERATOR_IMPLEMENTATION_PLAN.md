@@ -26,7 +26,7 @@ Target akhir implementasi:
 
 ## Keputusan Arsitektur
 
-- [ ] Mode proses: gunakan async job + polling, bukan synchronous request tunggal.
+- [x] Mode proses: gunakan async job + polling, bukan synchronous request tunggal.
 - [ ] Pemilihan tipe file: default `auto`, namun guru dapat override ke `docx`, `pdf`, atau `pptx`.
 - [ ] Delivery hasil: tampilkan kartu hasil di app dan publish hasil ke Workspace serta Homepage recommendation feed.
 - [ ] Arsitektur generator: gunakan Python service terpisah, bukan embed Python langsung ke container Laravel.
@@ -153,47 +153,47 @@ Target akhir implementasi:
 
 ### 5.1 Job Orchestration
 
-- [ ] Tambahkan job utama seperti `ProcessMediaGenerationJob`.
-- [ ] Pastikan job mengubah status sesuai lifecycle secara berurutan.
-- [ ] Pisahkan step-step berat ke service layer agar job tetap tipis dan mudah dites.
-- [ ] Pastikan job aman di-retry tanpa menimbulkan duplikasi publication.
+- [x] Tambahkan job utama seperti `ProcessMediaGenerationJob`.
+- [x] Pastikan job mengubah status sesuai lifecycle secara berurutan.
+- [x] Pisahkan step-step berat ke service layer agar job tetap tipis dan mudah dites.
+- [x] Pastikan job aman di-retry tanpa menimbulkan duplikasi publication.
 
 ### 5.2 Queue Infrastructure
 
-- [ ] Tambahkan proses queue worker di supervisor backend.
-- [ ] Pastikan runtime environment menyediakan konfigurasi queue yang benar.
-- [ ] Tentukan concurrency, timeout, dan retry count yang aman untuk generation job.
-- [ ] Pastikan failure tidak menjatuhkan web request utama.
+- [x] Tambahkan proses queue worker di supervisor backend.
+- [x] Pastikan runtime environment menyediakan konfigurasi queue yang benar.
+- [x] Tentukan concurrency, timeout, dan retry count yang aman untuk generation job.
+- [x] Pastikan failure tidak menjatuhkan web request utama.
 
 ### 5.3 Observability dan Audit Trail
 
-- [ ] Log perubahan status generation secara terstruktur.
-- [ ] Catat model/provider LLM yang dipakai per generation.
-- [ ] Catat resolved output type, durasi proses, dan error class.
-- [ ] Pastikan audit trail cukup untuk debugging tanpa membocorkan data sensitif.
+- [x] Log perubahan status generation secara terstruktur.
+- [x] Catat model/provider LLM yang dipakai per generation.
+- [x] Catat resolved output type, durasi proses, dan error class.
+- [x] Pastikan audit trail cukup untuk debugging tanpa membocorkan data sensitif.
 
 ## Phase 6 - Python Media Generator Service
 
 ### 6.1 Arsitektur Service Python
 
-- [ ] Buat Python service terpisah dengan API yang tipis dan fokus.
-- [ ] Tambahkan router/entrypoint yang menerima generation spec dari Laravel.
-- [ ] Pastikan Python service tidak mengambil keputusan bisnis utama yang seharusnya milik Laravel.
-- [ ] Definisikan health check endpoint untuk deployment smoke test.
+- [x] Buat Python service terpisah dengan API yang tipis dan fokus.
+- [x] Tambahkan router/entrypoint yang menerima generation spec dari Laravel.
+- [x] Pastikan Python service tidak mengambil keputusan bisnis utama yang seharusnya milik Laravel.
+- [x] Definisikan health check endpoint untuk deployment smoke test.
 
 ### 6.2 DOCX Generator
 
-- [ ] Buat file Python khusus untuk generator `.docx`.
-- [ ] Pastikan generator menerima generation spec terstruktur, bukan prompt mentah.
-- [ ] Tentukan library Python yang akan dipakai untuk pembuatan `.docx`.
-- [ ] Pastikan output metadata minimal memuat title, extension, mime type, dan page count bila tersedia.
+- [x] Buat file Python khusus untuk generator `.docx`.
+- [x] Pastikan generator menerima generation spec terstruktur, bukan prompt mentah.
+- [x] Tentukan library Python yang akan dipakai untuk pembuatan `.docx`.
+- [x] Pastikan output metadata minimal memuat title, extension, mime type, dan page count bila tersedia.
 
 ### 6.3 PDF Generator
 
-- [ ] Buat file Python khusus untuk generator `.pdf`.
-- [ ] Tentukan apakah PDF dihasilkan langsung atau melalui intermediate document model.
-- [ ] Pastikan styling dasar dan layout hasil stabil untuk materi pembelajaran.
-- [ ] Kembalikan metadata yang diperlukan untuk preview dan thumbnail flow.
+- [x] Buat file Python khusus untuk generator `.pdf`.
+- [x] Tentukan apakah PDF dihasilkan langsung atau melalui intermediate document model.
+- [x] Pastikan styling dasar dan layout hasil stabil untuk materi pembelajaran.
+- [x] Kembalikan metadata yang diperlukan untuk preview dan thumbnail flow.
 
 ### 6.4 PPTX Generator
 

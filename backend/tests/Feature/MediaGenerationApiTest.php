@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessMediaGenerationJob;
 use App\MediaGeneration\MediaGenerationErrorCode;
 use App\MediaGeneration\MediaGenerationLifecycle;
 use App\Models\MediaGeneration;
@@ -10,6 +11,7 @@ use App\Models\Subject;
 use App\Models\User;
 use Database\Seeders\SubjectTaxonomySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -46,6 +48,16 @@ class MediaGenerationApiTest extends TestCase
 
         $generationId = $response->json('data.id');
 
+        $this->assertDatabaseHas('jobs', ['queue' => 'media-generation']);
+        $queuedJob = DB::table('jobs')->where('queue', 'media-generation')->latest('id')->first();
+
+        $this->assertNotNull($queuedJob);
+        $queuedJobPayload = json_decode((string) $queuedJob->payload, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(ProcessMediaGenerationJob::class, data_get($queuedJobPayload, 'displayName'));
+        $this->assertSame(ProcessMediaGenerationJob::class, data_get($queuedJobPayload, 'data.commandName'));
+        $this->assertStringContainsString($generationId, (string) data_get($queuedJobPayload, 'data.command'));
+
         $response->assertJsonPath('data.links.poll', url('/api/media-generations/' . $generationId));
 
         $this->assertDatabaseHas('media_generations', [
@@ -77,6 +89,7 @@ class MediaGenerationApiTest extends TestCase
             ->assertJsonPath('data.id', $generationId);
 
         $this->assertDatabaseCount('media_generations', 1);
+        $this->assertDatabaseCount('jobs', 1);
     }
 
     public function test_media_generation_api_requires_teacher_role_and_owned_generation(): void

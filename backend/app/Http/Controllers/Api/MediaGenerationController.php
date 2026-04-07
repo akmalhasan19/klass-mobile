@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMediaGenerationRequest;
 use App\Http\Resources\MediaGenerationResource;
 use App\Http\Traits\ApiResponseTrait;
+use App\Jobs\ProcessMediaGenerationJob;
 use App\MediaGeneration\MediaGenerationApiException;
 use App\Models\MediaGeneration;
 use App\Models\User;
 use App\Services\MediaGenerationSubmissionService;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -20,6 +22,7 @@ class MediaGenerationController extends Controller
     public function store(
         StoreMediaGenerationRequest $request,
         MediaGenerationSubmissionService $submissionService,
+        Dispatcher $dispatcher,
     ): JsonResponse {
         $teacher = $this->requireTeacher($request);
         $attributes = $request->generationAttributes();
@@ -31,6 +34,10 @@ class MediaGenerationController extends Controller
             subjectId: $attributes['subject_id'],
             subSubjectId: $attributes['sub_subject_id'],
         );
+
+        if ($generation->wasRecentlyCreated) {
+            $dispatcher->dispatch(new ProcessMediaGenerationJob($generation->id));
+        }
 
         $generation->loadMissing(['subject', 'subSubject.subject', 'topic', 'content', 'recommendedProject']);
 

@@ -21,11 +21,19 @@ class MediaPublicationService
     ) {
     }
 
-    public function publish(MediaGeneration $generation): MediaGeneration
+    public function publish(MediaGeneration $generation, ?callable $afterArtifactPrepared = null): MediaGeneration
     {
         $preparedArtifact = $this->prepareArtifactForPublication($generation);
 
         try {
+            if ($afterArtifactPrepared !== null) {
+                $callbackResult = $afterArtifactPrepared($generation->fresh() ?? $generation, $preparedArtifact);
+
+                if ($callbackResult instanceof MediaGeneration) {
+                    $generation = $callbackResult;
+                }
+            }
+
             return DB::transaction(function () use ($generation, $preparedArtifact): MediaGeneration {
                 /** @var MediaGeneration $lockedGeneration */
                 $lockedGeneration = MediaGeneration::query()
