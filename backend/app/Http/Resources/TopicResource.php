@@ -23,6 +23,7 @@ class TopicResource extends JsonResource
             'sub_subject_id' => $this->sub_subject_id,
             'subject_id' => $subject?->id ?? $subSubject?->subject_id,
             'taxonomy' => $this->serializeTaxonomy($subject, $subSubject),
+            'personalization' => $this->resource->resolvePersonalizationContext(),
             'thumbnail_url' => $this->thumbnail_url,
             'is_published' => $this->is_published,
             'order' => $this->order,

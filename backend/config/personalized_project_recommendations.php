@@ -3,7 +3,7 @@
 use App\Models\RecommendedProject;
 
 return [
-    'lock_version' => 'phase_0_discovery_lock',
+    'lock_version' => 'phase_3_3_system_recommendation_candidate_selection',
 
     'files' => [
         'config' => 'config/personalized_project_recommendations.php',
@@ -50,5 +50,12 @@ return [
             'description' => 'Guests remain on the current non-personalized homepage feed until an authenticated context exists.',
             'tracks_assignments' => false,
         ],
+    ],
+
+    'topic_guardrails' => [
+        'taxonomy_required_for_personalization' => true,
+        'missing_sub_subject_fallback' => 'general_feed_only',
+        'allow_unresolved_ownership_in_general_feed' => true,
+        'unresolved_ownership_fallback' => 'general_feed_only',
     ],
 ];

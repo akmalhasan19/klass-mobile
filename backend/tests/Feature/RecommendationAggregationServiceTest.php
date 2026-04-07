@@ -5,9 +5,13 @@ namespace Tests\Feature;
 use App\Http\Resources\RecommendedProjectRecommendationCollection;
 use App\Models\Content;
 use App\Models\RecommendedProject;
+use App\Models\SubSubject;
 use App\Models\Topic;
+use App\Models\User;
 use App\Services\RecommendationAggregationService;
+use App\Services\RecommendationPersonalizationService;
 use Carbon\CarbonImmutable;
+use Database\Seeders\SubjectTaxonomySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -195,5 +199,184 @@ class RecommendationAggregationServiceTest extends TestCase
         $feedAfterOverride = $service->buildFeed($moment);
 
         $this->assertCount(0, $feedAfterOverride);
+    }
+
+    public function test_service_keeps_topics_visible_in_general_feed_when_guardrails_exclude_them_from_personalization(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $service = new RecommendationAggregationService();
+        $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+
+        $missingTaxonomyTopic = Topic::create([
+            'title' => 'Missing Taxonomy Feed Topic',
+            'teacher_id' => (string) $teacher->id,
+            'thumbnail_url' => 'https://example.com/missing-taxonomy.jpg',
+        ]);
+
+        $unresolvedOwnershipTopic = Topic::create([
+            'title' => 'Unresolved Ownership Feed Topic',
+            'teacher_id' => 'legacy-owner-reference',
+            'sub_subject_id' => $subSubject->id,
+            'thumbnail_url' => 'https://example.com/unresolved-owner.jpg',
+        ]);
+
+        $feed = $service->buildFeed();
+
+        $missingTaxonomyItem = $feed->firstWhere('id', 'system_topic_' . $missingTaxonomyTopic->id);
+        $unresolvedOwnershipItem = $feed->firstWhere('id', 'system_topic_' . $unresolvedOwnershipTopic->id);
+
+        $this->assertNotNull($missingTaxonomyItem);
+        $this->assertNotNull($unresolvedOwnershipItem);
+        $this->assertFalse($missingTaxonomyItem['personalization']['eligible']);
+        $this->assertSame(Topic::PERSONALIZATION_MODE_GENERAL_FEED_ONLY, $missingTaxonomyItem['personalization']['mode']);
+        $this->assertSame(Topic::PERSONALIZATION_EXCLUSION_MISSING_SUB_SUBJECT, $missingTaxonomyItem['personalization']['excluded_reason']);
+        $this->assertTrue($missingTaxonomyItem['personalization']['has_normalized_ownership']);
+
+        $this->assertFalse($unresolvedOwnershipItem['personalization']['eligible']);
+        $this->assertSame(Topic::PERSONALIZATION_MODE_GENERAL_FEED_ONLY, $unresolvedOwnershipItem['personalization']['mode']);
+        $this->assertSame(Topic::PERSONALIZATION_EXCLUSION_UNRESOLVED_OWNERSHIP, $unresolvedOwnershipItem['personalization']['excluded_reason']);
+        $this->assertTrue($unresolvedOwnershipItem['personalization']['has_adequate_taxonomy']);
+    }
+
+    public function test_service_filters_system_generated_candidates_for_authenticated_user_without_displacing_admin_curated_items(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $service = new RecommendationAggregationService();
+        $personalizationService = new RecommendationPersonalizationService();
+        $science = \App\Models\Subject::query()->where('slug', 'science')->firstOrFail();
+        $quantumPhysics = SubSubject::query()->where('slug', 'quantum-physics')->firstOrFail();
+        $thermodynamics = SubSubject::query()->where('slug', 'thermodynamics')->firstOrFail();
+        $algebra = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+        $history = SubSubject::query()->where('slug', 'indonesian-history')->firstOrFail();
+
+        $teacher = User::factory()->teacher()->create([
+            'primary_subject_id' => $science->id,
+        ]);
+        $otherTeacher = User::factory()->teacher()->create();
+
+        RecommendedProject::factory()->create([
+            'title' => 'Admin Showcase',
+            'display_priority' => 100,
+            'source_type' => RecommendedProject::SOURCE_ADMIN_UPLOAD,
+        ]);
+
+        Topic::create([
+            'title' => 'Quantum Activity Topic',
+            'teacher_id' => (string) $teacher->id,
+            'sub_subject_id' => $quantumPhysics->id,
+        ]);
+
+        Topic::create([
+            'title' => 'Algebra Activity Topic',
+            'teacher_id' => (string) $teacher->id,
+            'sub_subject_id' => $algebra->id,
+        ]);
+
+        RecommendedProject::factory()->create([
+            'title' => 'Thermodynamics AI Candidate',
+            'display_priority' => 30,
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'score' => 6.7,
+                'sub_subject_id' => $thermodynamics->id,
+                'subject_id' => $science->id,
+                'taxonomy' => [
+                    'subject' => [
+                        'id' => $science->id,
+                        'name' => $science->name,
+                        'slug' => $science->slug,
+                    ],
+                    'sub_subject' => [
+                        'id' => $thermodynamics->id,
+                        'subject_id' => $science->id,
+                        'name' => $thermodynamics->name,
+                        'slug' => $thermodynamics->slug,
+                    ],
+                ],
+            ],
+        ]);
+
+        RecommendedProject::factory()->create([
+            'title' => 'History AI Candidate',
+            'display_priority' => 80,
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'score' => 9.9,
+                'sub_subject_id' => $history->id,
+                'subject_id' => $history->subject_id,
+            ],
+        ]);
+
+        Topic::create([
+            'title' => 'History General Topic',
+            'teacher_id' => (string) $otherTeacher->id,
+            'sub_subject_id' => $history->id,
+        ]);
+
+        $context = $personalizationService->resolve($teacher->fresh('primarySubject'));
+        $snapshot = $service->buildFeedSnapshot(personalizationContext: $context);
+        $titles = $snapshot['items']->pluck('title')->take(5)->all();
+
+        $this->assertSame([
+            'Admin Showcase',
+            'Quantum Activity Topic',
+            'Thermodynamics AI Candidate',
+            'Algebra Activity Topic',
+        ], $titles);
+        $this->assertTrue($snapshot['personalization']['applied']);
+        $this->assertTrue($snapshot['personalization']['filter_applied']);
+        $this->assertSame(2, $snapshot['personalization']['matched_system_topic_count']);
+        $this->assertSame(3, $snapshot['personalization']['selected_system_candidate_count']);
+        $this->assertSame(2, $snapshot['personalization']['filtered_out_system_candidate_count']);
+        $this->assertSame(1, $snapshot['personalization']['selected_source_breakdown'][RecommendedProject::SOURCE_AI_GENERATED]);
+        $this->assertSame(2, $snapshot['personalization']['selected_source_breakdown'][RecommendedProject::SOURCE_SYSTEM_TOPIC]);
+        $this->assertSame([$quantumPhysics->id, $thermodynamics->id, $algebra->id], $snapshot['personalization']['matched_sub_subject_ids']);
+        $this->assertNotContains('History AI Candidate', $snapshot['items']->pluck('title')->all());
+        $this->assertNotContains('History General Topic', $snapshot['items']->pluck('title')->all());
+    }
+
+    public function test_service_keeps_persisted_system_topic_override_when_candidate_filter_suppresses_raw_duplicate(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $service = new RecommendationAggregationService();
+        $personalizationService = new RecommendationPersonalizationService();
+        $mathematics = \App\Models\Subject::query()->where('slug', 'mathematics')->firstOrFail();
+        $algebra = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+
+        $teacher = User::factory()->teacher()->create([
+            'primary_subject_id' => $mathematics->id,
+        ]);
+
+        $sourceTopic = Topic::unguarded(fn () => Topic::create([
+            'id' => 'topic-algebra-source',
+            'title' => 'Raw Algebra Topic',
+            'teacher_id' => (string) $teacher->id,
+            'sub_subject_id' => $algebra->id,
+            'thumbnail_url' => 'https://example.com/raw-algebra.jpg',
+            'is_published' => true,
+            'order' => 1,
+        ]));
+
+        RecommendedProject::factory()->create([
+            'title' => 'Persisted Algebra Override',
+            'display_priority' => 20,
+            'source_type' => RecommendedProject::SOURCE_SYSTEM_TOPIC,
+            'source_reference' => $sourceTopic->id,
+            'source_payload' => [
+                'score' => 7.2,
+            ],
+        ]);
+
+        $context = $personalizationService->resolve($teacher->fresh('primarySubject'));
+        $snapshot = $service->buildFeedSnapshot(personalizationContext: $context);
+
+        $this->assertContains('Persisted Algebra Override', $snapshot['items']->pluck('title')->all());
+        $this->assertNotContains('Raw Algebra Topic', $snapshot['items']->pluck('title')->all());
+        $this->assertTrue($snapshot['personalization']['applied']);
+        $this->assertSame(1, $snapshot['personalization']['matched_system_topic_count']);
     }
 }

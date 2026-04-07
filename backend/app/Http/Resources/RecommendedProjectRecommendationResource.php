@@ -20,6 +20,13 @@ class RecommendedProjectRecommendationResource extends JsonResource
             'project_type' => data_get($this->resource, 'project_type'),
             'tags' => $this->normalizeList(data_get($this->resource, 'tags')),
             'modules' => $this->normalizeList(data_get($this->resource, 'modules')),
+            'sub_subject_id' => data_get($this->resource, 'sub_subject_id'),
+            'subject_id' => data_get($this->resource, 'subject_id'),
+            'taxonomy' => data_get($this->resource, 'taxonomy'),
+            'personalization' => $this->when(
+                data_get($this->resource, 'personalization') !== null,
+                data_get($this->resource, 'personalization')
+            ),
             'source_type' => data_get($this->resource, 'source_type'),
             'display_priority' => (int) data_get($this->resource, 'display_priority', 0),
             'visibility' => [

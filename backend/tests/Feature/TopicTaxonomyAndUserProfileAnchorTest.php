@@ -61,6 +61,25 @@ class TopicTaxonomyAndUserProfileAnchorTest extends TestCase
             ->assertJsonPath('data.personalization_subject', null);
     }
 
+    public function test_topic_api_marks_topics_without_sub_subject_as_general_feed_only_for_personalization(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+
+        $topic = Topic::create([
+            'title' => 'Draft Topic Without Taxonomy',
+            'teacher_id' => (string) $teacher->id,
+        ]);
+
+        $this->getJson('/api/topics/' . $topic->id)
+            ->assertOk()
+            ->assertJsonPath('data.taxonomy', null)
+            ->assertJsonPath('data.personalization.eligible', false)
+            ->assertJsonPath('data.personalization.mode', Topic::PERSONALIZATION_MODE_GENERAL_FEED_ONLY)
+            ->assertJsonPath('data.personalization.has_adequate_taxonomy', false)
+            ->assertJsonPath('data.personalization.has_normalized_ownership', true)
+            ->assertJsonPath('data.personalization.excluded_reason', Topic::PERSONALIZATION_EXCLUSION_MISSING_SUB_SUBJECT);
+    }
+
     public function test_user_primary_subject_profile_has_priority_over_authored_topic_activity(): void
     {
         $this->seed(SubjectTaxonomySeeder::class);

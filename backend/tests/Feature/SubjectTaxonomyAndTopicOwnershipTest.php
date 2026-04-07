@@ -60,16 +60,20 @@ class SubjectTaxonomyAndTopicOwnershipTest extends TestCase
 
     public function test_topic_ownership_backfill_maps_numeric_and_email_teacher_ids_and_excludes_unresolved_topics_from_personalization_scope(): void
     {
+        $this->seed(SubjectTaxonomySeeder::class);
+
         $numericTeacher = User::factory()->teacher()->create();
         $emailTeacher = User::factory()->teacher()->create([
             'email' => 'topic-owner@example.com',
         ]);
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
 
         DB::table('topics')->insert([
             [
                 'id' => (string) str()->uuid(),
                 'title' => 'Numeric Legacy Topic',
                 'teacher_id' => (string) $numericTeacher->id,
+                'sub_subject_id' => $subSubject->id,
                 'thumbnail_url' => null,
                 'is_published' => true,
                 'order' => 0,
@@ -82,6 +86,7 @@ class SubjectTaxonomyAndTopicOwnershipTest extends TestCase
                 'id' => (string) str()->uuid(),
                 'title' => 'Email Legacy Topic',
                 'teacher_id' => strtoupper($emailTeacher->email),
+                'sub_subject_id' => $subSubject->id,
                 'thumbnail_url' => null,
                 'is_published' => true,
                 'order' => 0,
@@ -94,6 +99,7 @@ class SubjectTaxonomyAndTopicOwnershipTest extends TestCase
                 'id' => (string) str()->uuid(),
                 'title' => 'Unresolved Legacy Topic',
                 'teacher_id' => 'legacy-teacher-reference',
+                'sub_subject_id' => $subSubject->id,
                 'thumbnail_url' => null,
                 'is_published' => true,
                 'order' => 0,
@@ -128,6 +134,52 @@ class SubjectTaxonomyAndTopicOwnershipTest extends TestCase
                 ->orderBy('title')
                 ->pluck('title')
                 ->all(),
+        );
+    }
+
+    public function test_personalization_scope_requires_both_normalized_ownership_and_sub_subject_taxonomy(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+
+        $eligibleTopic = Topic::create([
+            'title' => 'Eligible Topic',
+            'teacher_id' => (string) $teacher->id,
+            'sub_subject_id' => $subSubject->id,
+        ]);
+
+        $missingTaxonomyTopic = Topic::create([
+            'title' => 'Missing Taxonomy Topic',
+            'teacher_id' => (string) $teacher->id,
+        ]);
+
+        $unresolvedOwnershipTopic = Topic::create([
+            'title' => 'Unresolved Ownership Topic',
+            'teacher_id' => 'legacy-owner-ref',
+            'sub_subject_id' => $subSubject->id,
+        ]);
+
+        $this->assertSame(
+            ['Eligible Topic'],
+            Topic::query()
+                ->eligibleForPersonalization()
+                ->orderBy('title')
+                ->pluck('title')
+                ->all(),
+        );
+
+        $this->assertTrue($eligibleTopic->isEligibleForPersonalization());
+        $this->assertFalse($missingTaxonomyTopic->isEligibleForPersonalization());
+        $this->assertFalse($unresolvedOwnershipTopic->isEligibleForPersonalization());
+        $this->assertSame(
+            Topic::PERSONALIZATION_EXCLUSION_MISSING_SUB_SUBJECT,
+            $missingTaxonomyTopic->resolvePersonalizationExclusionReason(),
+        );
+        $this->assertSame(
+            Topic::PERSONALIZATION_EXCLUSION_UNRESOLVED_OWNERSHIP,
+            $unresolvedOwnershipTopic->resolvePersonalizationExclusionReason(),
         );
     }
 }

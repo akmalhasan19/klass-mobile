@@ -80,7 +80,7 @@ class User extends Authenticatable
     public function resolveAuthoredTopicFallbackSubject(): ?Subject
     {
         $candidate = $this->authoredTopics()
-            ->whereNotNull('sub_subject_id')
+            ->eligibleForPersonalization()
             ->join('sub_subjects', 'sub_subjects.id', '=', 'topics.sub_subject_id')
             ->select([
                 'sub_subjects.subject_id',

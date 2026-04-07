@@ -91,7 +91,15 @@ class TopicController extends Controller
      */
     public function store(StoreTopicRequest $request): JsonResponse
     {
-        $topic = Topic::create($request->validated());
+        $attributes = $request->topicAttributes();
+        $user = $request->user();
+
+        if ($user?->isTeacher()) {
+            $attributes['teacher_id'] = (string) $user->id;
+        }
+
+        $topic = Topic::create($attributes);
+        $topic->loadMissing('subSubject.subject');
 
         return $this->created(
             new TopicResource($topic),
@@ -117,7 +125,9 @@ class TopicController extends Controller
      */
     public function update(UpdateTopicRequest $request, Topic $topic): JsonResponse
     {
-        $topic->update($request->validated());
+        $topic->fill($request->topicAttributes());
+        $topic->save();
+        $topic->loadMissing('subSubject.subject');
 
         return $this->success(
             new TopicResource($topic),

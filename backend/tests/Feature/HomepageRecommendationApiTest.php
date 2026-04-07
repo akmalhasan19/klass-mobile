@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Models\Content;
 use App\Models\HomepageSection;
 use App\Models\RecommendedProject;
+use App\Models\SubSubject;
 use App\Models\Topic;
 use App\Models\User;
 use App\Services\RecommendationAggregationService;
+use Database\Seeders\SubjectTaxonomySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Laravel\Sanctum\Sanctum;
@@ -61,15 +63,22 @@ class HomepageRecommendationApiTest extends TestCase
             ->assertJsonPath('meta.section.enabled', true)
             ->assertJsonPath('meta.section.endpoint', '/api/homepage-recommendations')
             ->assertJsonPath('meta.section.admin_configurator_path', '/admin/homepage-sections')
-            ->assertJsonPath('meta.personalization.policy_version', 'phase_0_discovery_lock')
+            ->assertJsonPath('meta.personalization.policy_version', 'phase_3_3_system_recommendation_candidate_selection')
             ->assertJsonPath('meta.personalization.audience', 'guest')
             ->assertJsonPath('meta.personalization.mode', 'default_global_feed')
+            ->assertJsonPath('meta.personalization.signals_available', false)
+            ->assertJsonPath('meta.personalization.topic_guardrails.taxonomy_required_for_personalization', true)
+            ->assertJsonPath('meta.personalization.topic_guardrails.missing_sub_subject_fallback', 'general_feed_only')
+            ->assertJsonPath('meta.personalization.topic_guardrails.allow_unresolved_ownership_in_general_feed', true)
             ->assertJsonPath('meta.source_breakdown.admin_upload', 1)
             ->assertJsonPath('meta.source_breakdown.system_topic', 1)
             ->assertJsonPath('meta.source_status.admin_upload.state', 'ok')
             ->assertJsonPath('meta.source_status.system_topic.state', 'ok')
             ->assertJsonPath('data.0.title', 'Admin Showcase')
-            ->assertJsonPath('data.1.id', 'system_topic_topic-api');
+            ->assertJsonPath('data.1.id', 'system_topic_topic-api')
+            ->assertJsonPath('data.1.personalization.eligible', false)
+            ->assertJsonPath('data.1.personalization.mode', 'general_feed_only')
+            ->assertJsonPath('data.1.personalization.excluded_reason', 'missing_sub_subject');
     }
 
     public function test_public_endpoint_uses_aggregation_service_and_supports_limit_and_source_context(): void
@@ -189,14 +198,167 @@ class HomepageRecommendationApiTest extends TestCase
 
         $this->getJson('/api/homepage-recommendations')
             ->assertOk()
-            ->assertJsonPath('meta.personalization.policy_version', 'phase_0_discovery_lock')
+            ->assertJsonPath('meta.personalization.policy_version', 'phase_3_3_system_recommendation_candidate_selection')
             ->assertJsonPath('meta.personalization.audience', 'authenticated')
             ->assertJsonPath('meta.personalization.mode', 'default_global_feed')
             ->assertJsonPath('meta.personalization.tracks_assignments', false)
+            ->assertJsonPath('meta.personalization.signals_available', false)
+            ->assertJsonPath('meta.personalization.signal_source', 'insufficient_signals')
+            ->assertJsonPath('meta.personalization.fallback_mode', 'global_feed')
+            ->assertJsonPath('meta.personalization.applied', false)
+            ->assertJsonPath('meta.personalization.topic_guardrails.taxonomy_required_for_personalization', true)
+            ->assertJsonPath('meta.personalization.topic_guardrails.unresolved_ownership_fallback', 'general_feed_only')
             ->assertJsonPath(
                 'meta.personalization.description',
                 'Serve the current safe mixed homepage feed when subject profile or authored-topic signals are still insufficient.'
             );
+    }
+
+    public function test_authenticated_endpoint_personalizes_system_topic_ordering_and_keeps_curated_items_visible(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        HomepageSection::create([
+            'key' => 'project_recommendations',
+            'label' => 'Project Recommendations',
+            'position' => 1,
+            'is_enabled' => true,
+            'data_source' => 'recommended_projects',
+        ]);
+
+        $science = \App\Models\Subject::query()->where('slug', 'science')->firstOrFail();
+        $quantumPhysics = SubSubject::query()->where('slug', 'quantum-physics')->firstOrFail();
+        $thermodynamics = SubSubject::query()->where('slug', 'thermodynamics')->firstOrFail();
+        $algebra = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+        $history = SubSubject::query()->where('slug', 'indonesian-history')->firstOrFail();
+
+        $teacher = User::factory()->teacher()->create([
+            'primary_subject_id' => $science->id,
+        ]);
+        $otherTeacher = User::factory()->teacher()->create();
+
+        RecommendedProject::factory()->create([
+            'title' => 'Admin Showcase',
+            'display_priority' => 100,
+            'source_type' => RecommendedProject::SOURCE_ADMIN_UPLOAD,
+        ]);
+
+        Topic::create([
+            'title' => 'Quantum Activity Topic',
+            'teacher_id' => (string) $teacher->id,
+            'sub_subject_id' => $quantumPhysics->id,
+        ]);
+
+        Topic::create([
+            'title' => 'Algebra Activity Topic',
+            'teacher_id' => (string) $teacher->id,
+            'sub_subject_id' => $algebra->id,
+        ]);
+
+        RecommendedProject::factory()->create([
+            'title' => 'Thermodynamics AI Candidate',
+            'display_priority' => 30,
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'score' => 6.7,
+                'sub_subject_id' => $thermodynamics->id,
+                'subject_id' => $science->id,
+                'taxonomy' => [
+                    'subject' => [
+                        'id' => $science->id,
+                        'name' => $science->name,
+                        'slug' => $science->slug,
+                    ],
+                    'sub_subject' => [
+                        'id' => $thermodynamics->id,
+                        'subject_id' => $science->id,
+                        'name' => $thermodynamics->name,
+                        'slug' => $thermodynamics->slug,
+                    ],
+                ],
+            ],
+        ]);
+
+        RecommendedProject::factory()->create([
+            'title' => 'Malformed AI Candidate',
+            'display_priority' => 90,
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'score' => 9.9,
+            ],
+        ]);
+
+        Topic::create([
+            'title' => 'History General Topic',
+            'teacher_id' => (string) $otherTeacher->id,
+            'sub_subject_id' => $history->id,
+        ]);
+
+        Sanctum::actingAs($teacher);
+
+        $this->getJson('/api/homepage-recommendations')
+            ->assertOk()
+            ->assertJsonPath('meta.personalization.policy_version', 'phase_3_3_system_recommendation_candidate_selection')
+            ->assertJsonPath('meta.personalization.audience', 'authenticated')
+            ->assertJsonPath('meta.personalization.signals_available', true)
+            ->assertJsonPath('meta.personalization.has_primary_subject', true)
+            ->assertJsonPath('meta.personalization.has_authored_topic_activity', true)
+            ->assertJsonPath('meta.personalization.signal_source', 'profile_subject_with_authored_activity')
+            ->assertJsonPath('meta.personalization.subject_anchor.slug', 'science')
+            ->assertJsonPath('meta.personalization.candidate_sub_subjects.0.sub_subject.slug', 'quantum-physics')
+            ->assertJsonPath('meta.personalization.applied', true)
+            ->assertJsonPath('meta.personalization.filter_applied', true)
+            ->assertJsonPath('meta.personalization.mode', 'personalized_system_candidate_selection')
+            ->assertJsonPath('meta.personalization.matched_system_topic_count', 2)
+            ->assertJsonPath('meta.personalization.selected_system_candidate_count', 3)
+            ->assertJsonPath('meta.personalization.filtered_out_system_candidate_count', 2)
+            ->assertJsonPath('meta.personalization.selected_source_breakdown.ai_generated', 1)
+            ->assertJsonPath('data.0.title', 'Admin Showcase')
+            ->assertJsonPath('data.1.title', 'Quantum Activity Topic')
+            ->assertJsonPath('data.2.title', 'Thermodynamics AI Candidate')
+            ->assertJsonPath('data.3.title', 'Algebra Activity Topic');
+    }
+
+    public function test_public_endpoint_exposes_system_topic_taxonomy_for_mobile_creation_flow_without_source_context_flag(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        HomepageSection::create([
+            'key' => 'project_recommendations',
+            'label' => 'Project Recommendations',
+            'position' => 1,
+            'is_enabled' => true,
+            'data_source' => 'recommended_projects',
+        ]);
+
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+
+        $topic = Topic::create([
+            'title' => 'Algebra Recommendation',
+            'teacher_id' => 'teacher-taxonomy',
+            'sub_subject_id' => $subSubject->id,
+            'thumbnail_url' => 'https://example.com/algebra-topic.jpg',
+        ]);
+
+        Content::create([
+            'topic_id' => $topic->id,
+            'type' => 'module',
+            'title' => 'Numbers',
+            'data' => ['mode' => 'mobile-compat'],
+            'media_url' => null,
+            'is_published' => true,
+            'order' => 1,
+        ]);
+
+        $this->getJson('/api/homepage-recommendations')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', 'system_topic_' . $topic->id)
+            ->assertJsonPath('data.0.sub_subject_id', $subSubject->id)
+            ->assertJsonPath('data.0.subject_id', $subSubject->subject_id)
+            ->assertJsonPath('data.0.taxonomy.subject.slug', 'mathematics')
+            ->assertJsonPath('data.0.taxonomy.sub_subject.slug', 'algebra')
+            ->assertJsonMissingPath('data.0.source_reference')
+            ->assertJsonMissingPath('data.0.source_payload');
     }
 
     public function test_public_endpoint_stays_safe_when_non_admin_source_normalization_fails(): void

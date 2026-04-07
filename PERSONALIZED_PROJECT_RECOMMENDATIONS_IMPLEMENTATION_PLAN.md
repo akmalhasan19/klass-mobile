@@ -69,49 +69,49 @@ Target akhir implementasi:
 
 ### 2.1 Backend Topic API
 
-- [ ] Update validation request untuk create topic agar menerima taxonomy baru.
-- [ ] Update validation request untuk update topic agar menerima taxonomy baru.
-- [ ] Update controller create topic agar ownership user terisi otomatis bila request berasal dari teacher yang login.
-- [ ] Update controller update topic agar field taxonomy dan ownership tetap konsisten.
-- [ ] Pastikan endpoint read topic tetap backward compatible untuk consumer yang lama.
+- [x] Update validation request untuk create topic agar menerima taxonomy baru.
+- [x] Update validation request untuk update topic agar menerima taxonomy baru.
+- [x] Update controller create topic agar ownership user terisi otomatis bila request berasal dari teacher yang login.
+- [x] Update controller update topic agar field taxonomy dan ownership tetap konsisten.
+- [x] Pastikan endpoint read topic tetap backward compatible untuk consumer yang lama.
 
 ### 2.2 Mobile Topic Creation Compatibility
 
-- [ ] Audit payload `POST /topics` dari Flutter flow yang sudah ada.
-- [ ] Tentukan field tambahan minimum agar topic baru bisa masuk ke personalization pipeline.
-- [ ] Update Flutter `project_service` hanya jika backend contract memang berubah secara wajib.
-- [ ] Pastikan workspace topic list tetap bisa memuat topic lama dan topic baru tanpa regression.
+- [x] Audit payload `POST /topics` dari Flutter flow yang sudah ada.
+- [x] Tentukan field tambahan minimum agar topic baru bisa masuk ke personalization pipeline.
+- [x] Update Flutter `project_service` hanya jika backend contract memang berubah secara wajib.
+- [x] Pastikan workspace topic list tetap bisa memuat topic lama dan topic baru tanpa regression.
 
 ### 2.3 Data Quality Guardrails
 
-- [ ] Tambahkan guard agar topic tanpa taxonomy yang memadai tidak merusak personalization.
-- [ ] Tentukan fallback untuk topic yang belum punya sub-subject.
-- [ ] Tentukan apakah topic tanpa ownership valid tetap boleh tampil di feed umum.
+- [x] Tambahkan guard agar topic tanpa taxonomy yang memadai tidak merusak personalization.
+- [x] Tentukan fallback untuk topic yang belum punya sub-subject.
+- [x] Tentukan apakah topic tanpa ownership valid tetap boleh tampil di feed umum.
 
 ## Phase 3 - Personalized Recommendation Engine
 
 ### 3.1 User-Aware Recommendation Resolution
 
-- [ ] Ubah recommendation flow agar dapat membaca user terautentikasi secara opsional.
-- [ ] Pertahankan endpoint `GET /api/homepage-recommendations` sebagai contract utama.
-- [ ] Bedakan behavior untuk authenticated user dan guest user.
-- [ ] Pastikan admin-curated recommendations tetap ikut dimunculkan seperti sebelumnya.
+- [x] Ubah recommendation flow agar dapat membaca user terautentikasi secara opsional.
+- [x] Pertahankan endpoint `GET /api/homepage-recommendations` sebagai contract utama.
+- [x] Bedakan behavior untuk authenticated user dan guest user.
+- [x] Pastikan admin-curated recommendations tetap ikut dimunculkan seperti sebelumnya.
 
 ### 3.2 Personalization Signals
 
-- [ ] Gunakan `users.primary_subject_id` sebagai signal utama.
-- [ ] Hitung authored-topic activity per sub-subject untuk user terkait.
-- [ ] Tentukan ranking authored-topic activity berdasarkan frekuensi dan recency.
-- [ ] Gunakan kombinasi subject profile dan authored-topic activity untuk memilih candidate sub-subject.
-- [ ] Tentukan fallback ranking bila signal user minim atau kosong.
+- [x] Gunakan `users.primary_subject_id` sebagai signal utama.
+- [x] Hitung authored-topic activity per sub-subject untuk user terkait.
+- [x] Tentukan ranking authored-topic activity berdasarkan frekuensi dan recency.
+- [x] Gunakan kombinasi subject profile dan authored-topic activity untuk memilih candidate sub-subject.
+- [x] Tentukan fallback ranking bila signal user minim atau kosong.
 
 ### 3.3 System Recommendation Candidate Selection
 
-- [ ] Filter system-generated recommendation candidates berdasarkan sub-subject yang relevan untuk user.
-- [ ] Pertahankan curated admin items di luar filter personalization ini.
-- [ ] Definisikan aturan urutan candidate yang deterministic.
-- [ ] Pastikan override/suppression behavior yang existing tetap jalan.
-- [ ] Pastikan personalized result tetap aman bila sebagian source gagal dinormalisasi.
+- [x] Filter system-generated recommendation candidates berdasarkan sub-subject yang relevan untuk user.
+- [x] Pertahankan curated admin items di luar filter personalization ini.
+- [x] Definisikan aturan urutan candidate yang deterministic.
+- [x] Pastikan override/suppression behavior yang existing tetap jalan.
+- [x] Pastikan personalized result tetap aman bila sebagian source gagal dinormalisasi.
 
 ## Phase 4 - Distribution Tracking dan Persistence
 
@@ -191,12 +191,12 @@ Target akhir implementasi:
 ### 7.1 Backend Automated Tests
 
 - [ ] Tambahkan test untuk taxonomy dan normalized ownership migration/backfill.
-- [ ] Tambahkan test untuk personalized homepage feed pada authenticated teacher.
-- [ ] Tambahkan test untuk guest fallback behavior.
+- [x] Tambahkan test untuk personalized homepage feed pada authenticated teacher.
+- [x] Tambahkan test untuk guest fallback behavior.
 - [ ] Tambahkan test untuk assignment upsert/deduplication.
 - [ ] Tambahkan test untuk aggregation selection satu item per sub-subject.
 - [ ] Tambahkan test untuk exclusion rule `distinct_user_count <= 1`.
-- [ ] Pastikan existing curated recommendation tests tetap hijau.
+- [x] Pastikan existing curated recommendation tests tetap hijau.
 
 ### 7.2 Admin Feature Tests
 
@@ -245,12 +245,12 @@ Target akhir implementasi:
 
 ## Keputusan yang Sudah Dikunci
 
-- [ ] System recommendation harus benar-benar personalized untuk user yang login.
+- [x] System recommendation harus benar-benar personalized untuk user yang login.
 - [x] Taxonomy subject/sub-subject harus explicit, bukan hasil parsing judul.
 - [x] Personalization harus mengambil signal dari profile user dan authored-topic activity.
 - [x] Topic ownership harus dinormalisasi ke relasi user yang valid.
 - [ ] Distibusi dihitung sebagai jumlah distinct users.
-- [ ] Existing admin-curated recommendation section harus tetap utuh.
+- [x] Existing admin-curated recommendation section harus tetap utuh.
 
 ## Catatan Implementasi Penting
 
