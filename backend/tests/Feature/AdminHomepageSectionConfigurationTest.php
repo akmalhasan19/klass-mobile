@@ -49,6 +49,7 @@ class AdminHomepageSectionConfigurationTest extends TestCase
             ->assertOk()
             ->assertViewHas('systemDistributionSummary', function (array $summary): bool {
                 return ($summary['empty_state']['is_empty'] ?? null) === true
+                    && ($summary['items_count'] ?? null) === 0
                     && ($summary['empty_state']['message'] ?? null) === 'No system recommendation has been distributed to more than one user yet.'
                     && ($summary['items'] ?? []) === [];
             })
@@ -58,6 +59,11 @@ class AdminHomepageSectionConfigurationTest extends TestCase
             ->assertSeeText('Top Distributed System Recommendations by Sub-Subject')
             ->assertSeeText('GET /api/homepage-recommendations')
             ->assertSeeText('No system recommendation has been distributed to more than one user yet.')
+            ->assertSeeText('The summary will appear here after a system recommendation has been distributed to more than one distinct user.')
+            ->assertSeeInOrder([
+                'Recommended Projects (Admin Curated)',
+                'Top Distributed System Recommendations by Sub-Subject',
+            ])
             ->assertSeeText('Section Ordering');
 
         $this->actingAs($admin)
@@ -178,6 +184,10 @@ class AdminHomepageSectionConfigurationTest extends TestCase
                     return false;
                 }
 
+                if (($summary['items_count'] ?? null) !== 1) {
+                    return false;
+                }
+
                 $item = $summary['items'][0];
 
                 return ($item['title'] ?? null) === 'Thermodynamics Distribution Winner'
@@ -186,8 +196,75 @@ class AdminHomepageSectionConfigurationTest extends TestCase
                     && ($item['source_type'] ?? null) === RecommendedProject::SOURCE_AI_GENERATED
                     && ($item['source_reference'] ?? null) === (string) $project->id
                     && ($item['distinct_user_count'] ?? null) === 2
-                    && ($item['latest_distribution_at'] ?? null) === $latestDistributionAt->toISOString();
-            });
+                    && ($item['latest_distribution_at'] ?? null) === $latestDistributionAt->toISOString()
+                    && ($item['subject_label'] ?? null) === 'Science'
+                    && ($item['sub_subject_label'] ?? null) === 'Thermodynamics';
+            })
+            ->assertSeeText('Thermodynamics Distribution Winner')
+            ->assertSeeText('Thermodynamics')
+            ->assertSeeText('Science')
+            ->assertSeeText('2 users')
+            ->assertSeeText('AI GENERATED');
+    }
+
+    public function test_admin_homepage_configurator_keeps_curated_actions_visible_when_system_summary_exists(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $admin = User::factory()->admin()->create();
+
+        HomepageSection::create([
+            'key' => 'project_recommendations',
+            'label' => 'Project Recommendations',
+            'position' => 1,
+            'is_enabled' => true,
+            'data_source' => 'topics',
+        ]);
+
+        $curatedProject = RecommendedProject::factory()->create([
+            'title' => 'Admin Curated Project',
+            'source_type' => RecommendedProject::SOURCE_ADMIN_UPLOAD,
+            'is_active' => true,
+        ]);
+
+        $science = \App\Models\Subject::query()->where('slug', 'science')->firstOrFail();
+        $thermodynamics = SubSubject::query()->where('slug', 'thermodynamics')->firstOrFail();
+        $systemProject = RecommendedProject::factory()->create([
+            'title' => 'System Summary Winner',
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_payload' => [
+                'subject_id' => $science->id,
+                'sub_subject_id' => $thermodynamics->id,
+            ],
+        ]);
+
+        $this->createSystemRecommendationAssignment(
+            User::factory()->create(),
+            RecommendedProject::SOURCE_AI_GENERATED,
+            (string) $systemProject->id,
+            $science->id,
+            $thermodynamics->id,
+            CarbonImmutable::parse('2026-04-07 10:00:00'),
+        );
+        $this->createSystemRecommendationAssignment(
+            User::factory()->create(),
+            RecommendedProject::SOURCE_AI_GENERATED,
+            (string) $systemProject->id,
+            $science->id,
+            $thermodynamics->id,
+            CarbonImmutable::parse('2026-04-07 11:00:00'),
+        );
+
+        $this->actingAs($admin)
+            ->get(route('admin.homepage-sections.index'))
+            ->assertOk()
+            ->assertSeeText('+ Add Project')
+            ->assertSeeText('Admin Curated Project')
+            ->assertSeeText('Edit')
+            ->assertSeeText('Deactivate')
+            ->assertSeeText('Tampilkan Sekarang')
+            ->assertSeeText('Delete')
+            ->assertSeeText('System Summary Winner');
     }
 
     protected function createSystemRecommendationAssignment(

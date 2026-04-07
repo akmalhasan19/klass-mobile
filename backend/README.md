@@ -9,13 +9,16 @@
 
 ## Klass Backend Notes
 
+Phase 8 operational documentation for personalized project recommendations lives in `PERSONALIZED_PROJECT_RECOMMENDATIONS.md`. Use that file for runtime flow, schema, fallback policy, aggregation rules, and deployment/backfill steps.
+
 ### Homepage Configurator / Recommended Projects
 
 - Admin workspace lives at `/admin/homepage-sections` and now manages both section ordering and curated recommended projects.
 - Recommended project CRUD routes are under `/admin/homepage-sections/recommended-projects/*` and every create, update, toggle, and delete action writes an `activity_logs` row.
 - Thumbnail uploads from Homepage Configurator reuse `FileUploadService` with the `gallery` upload category on the `supabase` disk.
 - Public mobile feed for mixed recommendations is served by `GET /api/homepage-recommendations` and stays gated by the `homepage_sections` visibility config for `project_recommendations`.
-- Phase 0 discovery-lock decisions for personalized recommendations now live in `config/personalized_project_recommendations.php`, including the admin section terminology, summary eligibility rules, deterministic tie-breakers, and guest/authenticated fallback policy.
+- Curated admin uploads always remain visible in the feed when the section is enabled; only system-generated candidates participate in personalization and distribution tracking.
+- Phase 0 through Phase 8 decisions for personalized recommendations now live in `config/personalized_project_recommendations.php` plus `PERSONALIZED_PROJECT_RECOMMENDATIONS.md`, including the admin section terminology, summary eligibility rules, deterministic tie-breakers, guest/authenticated fallback policy, and deployment runbook.
 
 ### Topic Taxonomy / Ownership Normalization
 
@@ -33,6 +36,7 @@
 php artisan test --testdox
 php artisan test --filter=AdminRecommendedProjectManagementTest
 php artisan test --filter=HomepageRecommendationApiTest
+php artisan test --filter=Phase7EndToEndVerificationTest
 ```
 
 ## About Laravel

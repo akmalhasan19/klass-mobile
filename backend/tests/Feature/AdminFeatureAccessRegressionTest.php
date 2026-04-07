@@ -129,6 +129,10 @@ class AdminFeatureAccessRegressionTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($user)
+            ->patch(route('admin.recommended-projects.show-now', $recommendedProject))
+            ->assertForbidden();
+
+        $this->actingAs($user)
             ->delete(route('admin.recommended-projects.destroy', $recommendedProject))
             ->assertForbidden();
 

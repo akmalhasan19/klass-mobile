@@ -167,30 +167,30 @@ Target akhir implementasi:
 
 ### 6.1 Controller dan View Model
 
-- [ ] Extend data loader untuk Homepage Configurator agar memuat curated projects seperti biasa.
-- [ ] Tambahkan fetch terpisah untuk aggregated system recommendation summary.
-- [ ] Pastikan data section baru tidak mengubah flow CRUD curated project.
-- [ ] Pastikan admin page tetap bisa dibuka walau summary system recommendation kosong.
+- [x] Extend data loader untuk Homepage Configurator agar memuat curated projects seperti biasa.
+- [x] Tambahkan fetch terpisah untuk aggregated system recommendation summary.
+- [x] Pastikan data section baru tidak mengubah flow CRUD curated project.
+- [x] Pastikan admin page tetap bisa dibuka walau summary system recommendation kosong.
 
 ### 6.2 UI Section Baru
 
-- [ ] Tambahkan section baru di bawah `Recommended Projects (Admin Curated)`.
-- [ ] Gunakan label yang jelas, misalnya `Top Distributed System Recommendations by Sub-Subject`.
-- [ ] Tampilkan satu row/item per sub-subject.
-- [ ] Tampilkan detail penting: title, subject, sub-subject, jumlah user, dan waktu distribusi terakhir.
-- [ ] Tambahkan empty state yang menjelaskan belum ada item system recommendation yang didistribusikan ke lebih dari satu user.
+- [x] Tambahkan section baru di bawah `Recommended Projects (Admin Curated)`.
+- [x] Gunakan label yang jelas, misalnya `Top Distributed System Recommendations by Sub-Subject`.
+- [x] Tampilkan satu row/item per sub-subject.
+- [x] Tampilkan detail penting: title, subject, sub-subject, jumlah user, dan waktu distribusi terakhir.
+- [x] Tambahkan empty state yang menjelaskan belum ada item system recommendation yang didistribusikan ke lebih dari satu user.
 
 ### 6.3 Non-Regression pada Curated Section
 
-- [ ] Pastikan tombol add/edit/delete/toggle curated project tetap bekerja tanpa perubahan behavior.
-- [ ] Pastikan existing curated table tidak berubah logika bisnisnya.
-- [ ] Pastikan curated project uploads tetap tidak terpengaruh oleh feature baru.
+- [x] Pastikan tombol add/edit/delete/toggle curated project tetap bekerja tanpa perubahan behavior.
+- [x] Pastikan existing curated table tidak berubah logika bisnisnya.
+- [x] Pastikan curated project uploads tetap tidak terpengaruh oleh feature baru.
 
 ## Phase 7 - Testing dan Quality Gates
 
 ### 7.1 Backend Automated Tests
 
-- [ ] Tambahkan test untuk taxonomy dan normalized ownership migration/backfill.
+- [x] Tambahkan test untuk taxonomy dan normalized ownership migration/backfill.
 - [x] Tambahkan test untuk personalized homepage feed pada authenticated teacher.
 - [x] Tambahkan test untuk guest fallback behavior.
 - [x] Tambahkan test untuk assignment upsert/deduplication.
@@ -200,34 +200,34 @@ Target akhir implementasi:
 
 ### 7.2 Admin Feature Tests
 
-- [ ] Tambahkan assertion bahwa Homepage Configurator menampilkan curated section dan system section secara terpisah.
-- [ ] Tambahkan assertion urutan section: system section harus berada di bawah curated section.
-- [ ] Tambahkan assertion empty state untuk system section.
-- [ ] Tambahkan access-control regression bila ada route/admin loader baru.
+- [x] Tambahkan assertion bahwa Homepage Configurator menampilkan curated section dan system section secara terpisah.
+- [x] Tambahkan assertion urutan section: system section harus berada di bawah curated section.
+- [x] Tambahkan assertion empty state untuk system section.
+- [x] Tambahkan access-control regression bila ada route/admin loader baru.
 
 ### 7.3 Manual Verification
 
-- [ ] Verifikasi `GET /api/homepage-recommendations` tanpa auth masih aman.
-- [ ] Verifikasi `GET /api/homepage-recommendations` dengan auth menghasilkan system recommendation yang lebih relevan terhadap subject/sub-subject user.
-- [ ] Verifikasi repeated refresh tidak menaikkan distinct user count secara salah.
-- [ ] Verifikasi Admin Panel hanya menampilkan satu item per sub-subject.
-- [ ] Verifikasi item di Admin Panel memang item dengan distribusi user tertinggi pada sub-subject tersebut.
-- [ ] Verifikasi curated project flow tetap normal end-to-end.
+- [x] Verifikasi `GET /api/homepage-recommendations` tanpa auth masih aman.
+- [x] Verifikasi `GET /api/homepage-recommendations` dengan auth menghasilkan system recommendation yang lebih relevan terhadap subject/sub-subject user.
+- [x] Verifikasi repeated refresh tidak menaikkan distinct user count secara salah.
+- [x] Verifikasi Admin Panel hanya menampilkan satu item per sub-subject.
+- [x] Verifikasi item di Admin Panel memang item dengan distribusi user tertinggi pada sub-subject tersebut.
+- [x] Verifikasi curated project flow tetap normal end-to-end.
 
 ## Phase 8 - Dokumentasi dan Operasional
 
-- [ ] Update backend notes atau README yang relevan untuk menjelaskan personalization flow baru.
-- [ ] Dokumentasikan schema baru dan tujuan masing-masing table/field.
-- [ ] Dokumentasikan behavior fallback untuk guest dan user tanpa signal personalization.
-- [ ] Dokumentasikan aturan agregasi yang dipakai Admin Panel.
-- [ ] Dokumentasikan langkah seed/backfill bila deployment membutuhkan migrasi data existing.
+- [x] Update backend notes atau README yang relevan untuk menjelaskan personalization flow baru.
+- [x] Dokumentasikan schema baru dan tujuan masing-masing table/field.
+- [x] Dokumentasikan behavior fallback untuk guest dan user tanpa signal personalization.
+- [x] Dokumentasikan aturan agregasi yang dipakai Admin Panel.
+- [x] Dokumentasikan langkah seed/backfill bila deployment membutuhkan migrasi data existing.
 
 ## File yang Paling Mungkin Tersentuh
 
 - [ ] `backend/app/Services/RecommendationAggregationService.php`
 - [ ] `backend/app/Http/Controllers/Api/HomepageRecommendationController.php`
-- [ ] `backend/app/Http/Controllers/Admin/AdminHomepageSectionController.php`
-- [ ] `backend/resources/views/admin/homepage-sections/index.blade.php`
+- [x] `backend/app/Http/Controllers/Admin/AdminHomepageSectionController.php`
+- [x] `backend/resources/views/admin/homepage-sections/index.blade.php`
 - [ ] `backend/app/Models/Topic.php`
 - [ ] `backend/app/Http/Controllers/Api/TopicController.php`
 - [ ] `backend/app/Http/Requests/StoreTopicRequest.php`
@@ -238,8 +238,12 @@ Target akhir implementasi:
 - [ ] `backend/routes/web.php`
 - [ ] `backend/tests/Feature/RecommendationAggregationServiceTest.php`
 - [ ] `backend/tests/Feature/HomepageRecommendationApiTest.php`
-- [ ] `backend/tests/Feature/AdminHomepageSectionConfigurationTest.php`
+- [x] `backend/tests/Feature/AdminHomepageSectionConfigurationTest.php`
 - [ ] `backend/tests/Feature/AdminRecommendedProjectManagementTest.php`
+- [x] `backend/tests/Feature/AdminFeatureAccessRegressionTest.php`
+- [x] `backend/tests/Feature/Phase7EndToEndVerificationTest.php`
+- [x] `backend/README.md`
+- [x] `backend/PERSONALIZED_PROJECT_RECOMMENDATIONS.md`
 - [ ] `frontend/lib/services/project_service.dart`
 - [ ] `frontend/lib/services/home_service.dart`
 

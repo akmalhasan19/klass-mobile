@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\HomepageSection;
+use App\Models\RecommendedProject;
 use App\Services\RecommendationAggregationService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Throwable;
 
 class AdminHomepageSectionController extends Controller
 {
@@ -23,23 +26,37 @@ class AdminHomepageSectionController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = \App\Models\RecommendedProject::query();
-        
+        $homepageSections = HomepageSection::query()
+            ->orderBy('position')
+            ->orderBy('label')
+            ->get();
+        $recommendedProjects = $this->loadRecommendedProjects($request);
+        $discoveryLock = $this->buildDiscoveryLock();
+        $systemDistributionSummary = $this->loadSystemDistributionSummaryViewModel();
+
+        return view('admin.homepage-sections.index', compact('homepageSections', 'recommendedProjects', 'discoveryLock', 'systemDistributionSummary'));
+    }
+
+    protected function loadRecommendedProjects(Request $request)
+    {
+        $query = RecommendedProject::query();
+
         if ($request->filled('source_type')) {
             $query->where('source_type', $request->source_type);
         }
-        
+
         if ($request->filled('status')) {
             $now = now();
+
             switch ($request->status) {
                 case 'active':
                     $query->where('is_active', true)
-                          ->where(function($q) use ($now) {
-                              $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
-                          })
-                          ->where(function($q) use ($now) {
-                              $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
-                          });
+                        ->where(function ($builder) use ($now) {
+                            $builder->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+                        })
+                        ->where(function ($builder) use ($now) {
+                            $builder->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
+                        });
                     break;
                 case 'inactive':
                     $query->where('is_active', false);
@@ -52,16 +69,64 @@ class AdminHomepageSectionController extends Controller
                     break;
             }
         }
-        
-        $homepageSections = HomepageSection::query()
-            ->orderBy('position')
-            ->orderBy('label')
-            ->get();
-        $recommendedProjects = $query->orderBy('display_priority', 'desc')->get();
-        $discoveryLock = $this->buildDiscoveryLock();
-        $systemDistributionSummary = $this->recommendationAggregationService->buildAdminSystemDistributionSummaryPayload();
 
-        return view('admin.homepage-sections.index', compact('homepageSections', 'recommendedProjects', 'discoveryLock', 'systemDistributionSummary'));
+        return $query
+            ->orderBy('display_priority', 'desc')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * @return array{items: array<int, array<string, mixed>>, empty_state: array<string, mixed>, items_count: int}
+     */
+    protected function loadSystemDistributionSummaryViewModel(): array
+    {
+        try {
+            $payload = $this->recommendationAggregationService->buildAdminSystemDistributionSummaryPayload();
+        } catch (Throwable $throwable) {
+            report($throwable);
+
+            $payload = [
+                'items' => [],
+                'empty_state' => [
+                    'is_empty' => true,
+                    'message' => (string) config(
+                        'personalized_project_recommendations.homepage.admin_sections.system_distribution_empty_state',
+                        'No system recommendation has been distributed to more than one user yet.',
+                    ),
+                ],
+            ];
+        }
+
+        $items = collect($payload['items'] ?? [])
+            ->map(function (array $item): array {
+                $latestDistributionAt = $this->formatAdminSummaryTimestamp(data_get($item, 'latest_distribution_at'));
+
+                return array_merge($item, [
+                    'subject_label' => (string) (data_get($item, 'subject.name') ?: 'Unassigned subject'),
+                    'sub_subject_label' => (string) (data_get($item, 'sub_subject.name') ?: 'Unassigned sub-subject'),
+                    'latest_distribution_at_label' => $latestDistributionAt,
+                    'source_label' => strtoupper(str_replace('_', ' ', (string) data_get($item, 'source_type', 'unknown'))),
+                ]);
+            })
+            ->values()
+            ->all();
+
+        return [
+            'items' => $items,
+            'empty_state' => [
+                'is_empty' => $items === [],
+                'message' => (string) data_get(
+                    $payload,
+                    'empty_state.message',
+                    config(
+                        'personalized_project_recommendations.homepage.admin_sections.system_distribution_empty_state',
+                        'No system recommendation has been distributed to more than one user yet.',
+                    ),
+                ),
+            ],
+            'items_count' => count($items),
+        ];
     }
 
     public function update(Request $request): RedirectResponse
@@ -140,5 +205,16 @@ class AdminHomepageSectionController extends Controller
             'authenticated_fallback' => (string) config('personalized_project_recommendations.fallbacks.authenticated_without_personalization.description', ''),
             'guest_fallback' => (string) config('personalized_project_recommendations.fallbacks.guest.description', ''),
         ];
+    }
+
+    protected function formatAdminSummaryTimestamp(mixed $value): string
+    {
+        if (! is_string($value) || $value === '') {
+            return 'Not distributed yet';
+        }
+
+        return CarbonImmutable::parse($value)
+            ->setTimezone(config('app.timezone'))
+            ->format('d M Y, H:i');
     }
 }
