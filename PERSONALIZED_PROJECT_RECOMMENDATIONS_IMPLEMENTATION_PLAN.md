@@ -224,28 +224,30 @@ Target akhir implementasi:
 
 ## File yang Paling Mungkin Tersentuh
 
-- [ ] `backend/app/Services/RecommendationAggregationService.php`
-- [ ] `backend/app/Http/Controllers/Api/HomepageRecommendationController.php`
+- [x] `backend/app/Services/RecommendationAggregationService.php`
+- [x] `backend/app/Http/Controllers/Api/HomepageRecommendationController.php`
 - [x] `backend/app/Http/Controllers/Admin/AdminHomepageSectionController.php`
 - [x] `backend/resources/views/admin/homepage-sections/index.blade.php`
-- [ ] `backend/app/Models/Topic.php`
-- [ ] `backend/app/Http/Controllers/Api/TopicController.php`
-- [ ] `backend/app/Http/Requests/StoreTopicRequest.php`
-- [ ] `backend/app/Http/Requests/UpdateTopicRequest.php`
-- [ ] `backend/app/Models/User.php`
-- [ ] `backend/app/Http/Resources/UserResource.php`
-- [ ] `backend/routes/api.php`
-- [ ] `backend/routes/web.php`
-- [ ] `backend/tests/Feature/RecommendationAggregationServiceTest.php`
-- [ ] `backend/tests/Feature/HomepageRecommendationApiTest.php`
+- [x] `backend/app/Models/Topic.php`
+- [x] `backend/app/Http/Controllers/Api/TopicController.php`
+- [x] `backend/app/Http/Requests/StoreTopicRequest.php`
+- [x] `backend/app/Http/Requests/UpdateTopicRequest.php`
+- [x] `backend/app/Models/User.php`
+- [x] `backend/app/Http/Resources/UserResource.php`
+- [x] `backend/routes/api.php`
+- [x] `backend/routes/web.php`
+- [x] `backend/tests/Feature/RecommendationAggregationServiceTest.php`
+- [x] `backend/tests/Feature/HomepageRecommendationApiTest.php`
 - [x] `backend/tests/Feature/AdminHomepageSectionConfigurationTest.php`
-- [ ] `backend/tests/Feature/AdminRecommendedProjectManagementTest.php`
+- [x] `backend/tests/Feature/AdminRecommendedProjectManagementTest.php`
 - [x] `backend/tests/Feature/AdminFeatureAccessRegressionTest.php`
 - [x] `backend/tests/Feature/Phase7EndToEndVerificationTest.php`
 - [x] `backend/README.md`
 - [x] `backend/PERSONALIZED_PROJECT_RECOMMENDATIONS.md`
 - [ ] `frontend/lib/services/project_service.dart`
 - [ ] `frontend/lib/services/home_service.dart`
+
+Catatan: file service Flutter tetap tidak perlu diubah karena contract `POST /topics` dan `GET /api/homepage-recommendations` dipertahankan backward compatible.
 
 ## Keputusan yang Sudah Dikunci
 
@@ -265,10 +267,10 @@ Target akhir implementasi:
 
 ## Definition of Done
 
-- [ ] Authenticated user menerima personalized system recommendation yang relevan.
-- [ ] Guest user tetap menerima fallback recommendation flow yang aman.
-- [ ] System recommendation delivery tercatat tanpa double counting distinct users.
-- [ ] Homepage Configurator menampilkan section baru di bawah curated section.
-- [ ] Section baru hanya menampilkan satu top-distributed item per sub-subject.
-- [ ] Existing curated recommendation flow tetap tidak regress.
-- [ ] Automated tests dan manual smoke checks selesai.
+- [x] Authenticated user menerima personalized system recommendation yang relevan.
+- [x] Guest user tetap menerima fallback recommendation flow yang aman.
+- [x] System recommendation delivery tercatat tanpa double counting distinct users.
+- [x] Homepage Configurator menampilkan section baru di bawah curated section.
+- [x] Section baru hanya menampilkan satu top-distributed item per sub-subject.
+- [x] Existing curated recommendation flow tetap tidak regress.
+- [x] Automated tests dan manual smoke checks selesai.
