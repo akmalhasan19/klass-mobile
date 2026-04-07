@@ -4,6 +4,9 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsFreelancer;
 use App\Http\Middleware\EnsureUserIsTeacher;
 use App\Http\Middleware\StructuredApiLogger;
+use App\MediaGeneration\MediaGenerationApiException;
+use App\MediaGeneration\MediaGenerationContractException;
+use App\MediaGeneration\MediaGenerationErrorCode;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -44,6 +47,34 @@ return Application::configure(basePath: dirname(__DIR__))
         | sebagai JSON dengan format konsisten:
         | { "success": false, "message": "...", "errors": { ... } }
         */
+
+        $exceptions->renderable(function (MediaGenerationApiException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                $response = [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                    'error' => MediaGenerationErrorCode::toClientPayload($e->errorCode()),
+                ];
+
+                if ($e->errors() !== []) {
+                    $response['errors'] = $e->errors();
+                }
+
+                return response()->json($response, $e->statusCode());
+            }
+        });
+
+        $exceptions->renderable(function (MediaGenerationContractException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                $errorCode = $e->errorCode();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => MediaGenerationErrorCode::clientMessage($errorCode),
+                    'error' => MediaGenerationErrorCode::toClientPayload($errorCode),
+                ], MediaGenerationErrorCode::httpStatus($errorCode));
+            }
+        });
 
         // Validation errors → 422
         $exceptions->renderable(function (ValidationException $e, Request $request) {

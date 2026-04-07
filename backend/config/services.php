@@ -35,4 +35,40 @@ return [
         ],
     ],
 
+    'media_generation' => [
+        'interpreter' => [
+            'base_url' => env('MEDIA_GENERATION_INTERPRETER_BASE_URL'),
+            'path' => env('MEDIA_GENERATION_INTERPRETER_PATH', '/v1/interpret'),
+            'api_key' => env('MEDIA_GENERATION_INTERPRETER_API_KEY'),
+            'provider' => env('MEDIA_GENERATION_INTERPRETER_PROVIDER', 'llm-gateway'),
+            'model' => env('MEDIA_GENERATION_INTERPRETER_MODEL', 'gpt-5.4'),
+            'timeout_seconds' => (float) env('MEDIA_GENERATION_INTERPRETER_TIMEOUT_SECONDS', 30),
+            'connect_timeout_seconds' => (float) env('MEDIA_GENERATION_INTERPRETER_CONNECT_TIMEOUT_SECONDS', 10),
+            'retry_attempts' => (int) env('MEDIA_GENERATION_INTERPRETER_RETRY_ATTEMPTS', 2),
+            'retry_sleep_milliseconds' => (int) env('MEDIA_GENERATION_INTERPRETER_RETRY_SLEEP_MILLISECONDS', 250),
+        ],
+        'python' => [
+            'base_url' => env('MEDIA_GENERATION_PYTHON_BASE_URL'),
+            'generate_path' => env('MEDIA_GENERATION_PYTHON_GENERATE_PATH', '/v1/generate'),
+            'provider' => env('MEDIA_GENERATION_PYTHON_PROVIDER', 'klass-python'),
+            'model' => env('MEDIA_GENERATION_PYTHON_MODEL', 'renderer-v1'),
+            'shared_secret' => env('MEDIA_GENERATION_PYTHON_SHARED_SECRET'),
+            'timeout_seconds' => (float) env('MEDIA_GENERATION_PYTHON_TIMEOUT_SECONDS', 60),
+            'connect_timeout_seconds' => (float) env('MEDIA_GENERATION_PYTHON_CONNECT_TIMEOUT_SECONDS', 10),
+            'retry_attempts' => (int) env('MEDIA_GENERATION_PYTHON_RETRY_ATTEMPTS', 2),
+            'retry_sleep_milliseconds' => (int) env('MEDIA_GENERATION_PYTHON_RETRY_SLEEP_MILLISECONDS', 500),
+        ],
+        'delivery' => [
+            'base_url' => env('MEDIA_GENERATION_DELIVERY_BASE_URL'),
+            'path' => env('MEDIA_GENERATION_DELIVERY_PATH', '/v1/respond'),
+            'api_key' => env('MEDIA_GENERATION_DELIVERY_API_KEY'),
+            'provider' => env('MEDIA_GENERATION_DELIVERY_PROVIDER', 'llm-gateway'),
+            'model' => env('MEDIA_GENERATION_DELIVERY_MODEL', 'gpt-5.4'),
+            'timeout_seconds' => (float) env('MEDIA_GENERATION_DELIVERY_TIMEOUT_SECONDS', 30),
+            'connect_timeout_seconds' => (float) env('MEDIA_GENERATION_DELIVERY_CONNECT_TIMEOUT_SECONDS', 10),
+            'retry_attempts' => (int) env('MEDIA_GENERATION_DELIVERY_RETRY_ATTEMPTS', 2),
+            'retry_sleep_milliseconds' => (int) env('MEDIA_GENERATION_DELIVERY_RETRY_SLEEP_MILLISECONDS', 250),
+        ],
+    ],
+
 ];

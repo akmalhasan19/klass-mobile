@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\FileUploadController;
 use App\Http\Controllers\Api\GalleryController;
 use App\Http\Controllers\Api\HomepageRecommendationController;
+use App\Http\Controllers\Api\MediaGenerationController;
 use App\Http\Controllers\Api\MarketplaceTaskController;
 use App\Http\Controllers\Api\StudentProgressController;
 use App\Http\Controllers\Api\TopicController;
@@ -78,6 +79,10 @@ Route::get('/gallery', [GalleryController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     // Avatar Upload — all authenticated users
     Route::post('/user/avatar', [AvatarController::class, 'store']);
+
+    // Media generation — teacher-only access enforced in controller for strict ownership semantics
+    Route::post('/media-generations', [MediaGenerationController::class, 'store']);
+    Route::get('/media-generations/{mediaGeneration}', [MediaGenerationController::class, 'show']);
 });
 
 // =========================================================================

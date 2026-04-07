@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreMediaGenerationRequest;
+use App\Http\Resources\MediaGenerationResource;
+use App\Http\Traits\ApiResponseTrait;
+use App\MediaGeneration\MediaGenerationApiException;
+use App\Models\MediaGeneration;
+use App\Models\User;
+use App\Services\MediaGenerationSubmissionService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class MediaGenerationController extends Controller
+{
+    use ApiResponseTrait;
+
+    public function store(
+        StoreMediaGenerationRequest $request,
+        MediaGenerationSubmissionService $submissionService,
+    ): JsonResponse {
+        $teacher = $this->requireTeacher($request);
+        $attributes = $request->generationAttributes();
+
+        $generation = $submissionService->createOrReuse(
+            teacherId: $teacher->id,
+            rawPrompt: $attributes['prompt'],
+            preferredOutputType: $attributes['preferred_output_type'],
+            subjectId: $attributes['subject_id'],
+            subSubjectId: $attributes['sub_subject_id'],
+        );
+
+        $generation->loadMissing(['subject', 'subSubject.subject', 'topic', 'content', 'recommendedProject']);
+
+        return $this->accepted(
+            new MediaGenerationResource($generation),
+            $generation->wasRecentlyCreated
+                ? 'Permintaan media generation diterima dan siap diproses.'
+                : 'Permintaan identik yang masih aktif ditemukan. Gunakan generation yang sama untuk polling status.'
+        );
+    }
+
+    public function show(Request $request, string $mediaGeneration): JsonResponse
+    {
+        $teacher = $this->requireTeacher($request);
+
+        $generation = MediaGeneration::query()
+            ->with(['subject', 'subSubject.subject', 'topic', 'content', 'recommendedProject'])
+            ->whereKey($mediaGeneration)
+            ->where('teacher_id', $teacher->id)
+            ->first();
+
+        if (! $generation) {
+            throw MediaGenerationApiException::notFound();
+        }
+
+        return $this->success(
+            new MediaGenerationResource($generation),
+            'Status media generation berhasil diambil.'
+        );
+    }
+
+    protected function requireTeacher(Request $request): User
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if (! $user || ! $user->isTeacher()) {
+            throw MediaGenerationApiException::teacherRoleRequired();
+        }
+
+        return $user;
+    }
+}

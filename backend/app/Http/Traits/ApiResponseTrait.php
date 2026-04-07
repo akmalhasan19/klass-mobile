@@ -49,6 +49,16 @@ trait ApiResponseTrait
     }
 
     /**
+     * Response sukses untuk request async yang diterima (202).
+     */
+    protected function accepted(
+        mixed $data = null,
+        string $message = 'Permintaan diterima.',
+    ): JsonResponse {
+        return $this->success($data, $message, 202);
+    }
+
+    /**
      * Response sukses tanpa konten (204).
      */
     protected function noContent(string $message = 'Data berhasil dihapus.'): JsonResponse

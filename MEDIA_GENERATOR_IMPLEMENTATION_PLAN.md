@@ -91,63 +91,63 @@ Target akhir implementasi:
 
 ### 3.1 Teacher-Only Media Generation API
 
-- [ ] Tambahkan endpoint `POST /api/media-generations` untuk submit prompt generation.
-- [ ] Tambahkan endpoint `GET /api/media-generations/{id}` untuk polling status.
+- [x] Tambahkan endpoint `POST /api/media-generations` untuk submit prompt generation.
+- [x] Tambahkan endpoint `GET /api/media-generations/{id}` untuk polling status.
 - [ ] Pertimbangkan endpoint `GET /api/media-generations` untuk history guru pada fase berikutnya.
-- [ ] Batasi endpoint hanya untuk role teacher/guru.
-- [ ] Pastikan ownership check diterapkan saat teacher mengambil detail generation miliknya.
+- [x] Batasi endpoint hanya untuk role teacher/guru.
+- [x] Pastikan ownership check diterapkan saat teacher mengambil detail generation miliknya.
 
 ### 3.2 Request Validation dan Response Contract
 
-- [ ] Definisikan request validation untuk `prompt`, `preferred_output_type`, `subject_id`, dan `sub_subject_id`.
-- [ ] Pastikan `preferred_output_type` menerima `auto`, `docx`, `pdf`, dan `pptx`.
-- [ ] Kembalikan `202 Accepted` untuk create request.
-- [ ] Kembalikan payload status yang cukup untuk immediate polling.
-- [ ] Tetapkan response schema yang konsisten untuk success, in-progress, dan failed states.
+- [x] Definisikan request validation untuk `prompt`, `preferred_output_type`, `subject_id`, dan `sub_subject_id`.
+- [x] Pastikan `preferred_output_type` menerima `auto`, `docx`, `pdf`, dan `pptx`.
+- [x] Kembalikan `202 Accepted` untuk create request.
+- [x] Kembalikan payload status yang cukup untuk immediate polling.
+- [x] Tetapkan response schema yang konsisten untuk success, in-progress, dan failed states.
 
 ### 3.3 Error Contract
 
-- [ ] Definisikan error code yang stabil seperti `validation_failed`, `llm_contract_failed`, `python_service_unavailable`, `artifact_invalid`, `upload_failed`, dan `publication_failed`.
-- [ ] Pastikan frontend bisa menampilkan pesan retry yang bermakna tanpa membaca stack trace backend.
-- [ ] Tentukan error fields yang aman diekspos ke client.
+- [x] Definisikan error code yang stabil seperti `validation_failed`, `llm_contract_failed`, `python_service_unavailable`, `artifact_invalid`, `upload_failed`, dan `publication_failed`.
+- [x] Pastikan frontend bisa menampilkan pesan retry yang bermakna tanpa membaca stack trace backend.
+- [x] Tentukan error fields yang aman diekspos ke client.
 
 ## Phase 4 - Backend Orchestration Services
 
 ### 4.1 Prompt Interpretation Layer
 
-- [ ] Tambahkan `MediaPromptInterpretationService` untuk memanggil LLM pertama.
-- [ ] Validasi JSON hasil interpretasi sebelum melanjutkan ke tahap berikutnya.
-- [ ] Simpan raw response dan normalized response untuk audit seperlunya.
-- [ ] Definisikan fallback behavior bila LLM mengembalikan struktur parsial.
+- [x] Tambahkan `MediaPromptInterpretationService` untuk memanggil LLM pertama.
+- [x] Validasi JSON hasil interpretasi sebelum melanjutkan ke tahap berikutnya.
+- [x] Simpan raw response dan normalized response untuk audit seperlunya.
+- [x] Definisikan fallback behavior bila LLM mengembalikan struktur parsial.
 
 ### 4.2 Output Type Resolution Layer
 
-- [ ] Tambahkan `MediaGenerationDecisionService` untuk memilih output final.
-- [ ] Terapkan prioritas override teacher di atas auto-classification bila override diberikan.
-- [ ] Tentukan rule deterministic untuk memilih antara `docx`, `pdf`, dan `pptx`.
-- [ ] Simpan alasan resolusi output untuk debugging dan observability.
+- [x] Tambahkan `MediaGenerationDecisionService` untuk memilih output final.
+- [x] Terapkan prioritas override teacher di atas auto-classification bila override diberikan.
+- [x] Tentukan rule deterministic untuk memilih antara `docx`, `pdf`, dan `pptx`.
+- [x] Simpan alasan resolusi output untuk debugging dan observability.
 
 ### 4.3 Python Client Layer
 
-- [ ] Tambahkan `PythonMediaGeneratorClient` untuk memanggil Python service.
-- [ ] Gunakan authentication secret atau signed request antar-service.
-- [ ] Tentukan timeout, retry policy, dan failure classification untuk koneksi ke Python service.
-- [ ] Pastikan request payload yang dikirim ke Python adalah generation spec yang sudah dinormalisasi.
+- [x] Tambahkan `PythonMediaGeneratorClient` untuk memanggil Python service.
+- [x] Gunakan authentication secret atau signed request antar-service.
+- [x] Tentukan timeout, retry policy, dan failure classification untuk koneksi ke Python service.
+- [x] Pastikan request payload yang dikirim ke Python adalah generation spec yang sudah dinormalisasi.
 
 ### 4.4 Publication Layer
 
-- [ ] Tambahkan `MediaPublicationService` untuk upload file, generate thumbnail, dan publish entity hasil.
-- [ ] Reuse `FileUploadService` untuk upload artifact final ke kategori `materials`.
-- [ ] Reuse `ThumbnailGeneratorService` untuk membuat preview bila format mendukung.
-- [ ] Publish Topic, Content, dan RecommendedProject dalam urutan yang aman.
-- [ ] Tentukan rollback atau compensating strategy bila publish gagal di tengah jalan.
+- [x] Tambahkan `MediaPublicationService` untuk upload file, generate thumbnail, dan publish entity hasil.
+- [x] Reuse `FileUploadService` untuk upload artifact final ke kategori `materials`.
+- [x] Reuse `ThumbnailGeneratorService` untuk membuat preview bila format mendukung.
+- [x] Publish Topic, Content, dan RecommendedProject dalam urutan yang aman.
+- [x] Tentukan rollback atau compensating strategy bila publish gagal di tengah jalan.
 
 ### 4.5 Final Delivery Response Layer
 
-- [ ] Tambahkan `MediaDeliveryResponseService` untuk menyusun respons akhir bagi guru.
-- [ ] Gunakan LLM kedua hanya setelah artifact final tersedia.
-- [ ] Kirim metadata hasil, preview summary, dan file URL ke LLM, bukan binary mentah sebagai default flow.
-- [ ] Simpan delivery payload final agar bisa dipakai ulang oleh frontend.
+- [x] Tambahkan `MediaDeliveryResponseService` untuk menyusun respons akhir bagi guru.
+- [x] Gunakan LLM kedua hanya setelah artifact final tersedia.
+- [x] Kirim metadata hasil, preview summary, dan file URL ke LLM, bukan binary mentah sebagai default flow.
+- [x] Simpan delivery payload final agar bisa dipakai ulang oleh frontend.
 
 ## Phase 5 - Async Jobs dan Queue Execution
 

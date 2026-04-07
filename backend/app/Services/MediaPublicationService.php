@@ -2,43 +2,344 @@
 
 namespace App\Services;
 
+use App\MediaGeneration\MediaArtifactMetadataContract;
+use App\MediaGeneration\MediaGenerationContractException;
+use App\MediaGeneration\MediaGenerationServiceException;
 use App\Models\Content;
 use App\Models\MediaGeneration;
 use App\Models\RecommendedProject;
 use App\Models\Topic;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 class MediaPublicationService
 {
+    public function __construct(
+        protected ?FileUploadService $fileUploadService = null,
+        protected ?ThumbnailGeneratorService $thumbnailGeneratorService = null,
+    ) {
+    }
+
     public function publish(MediaGeneration $generation): MediaGeneration
     {
-        return DB::transaction(function () use ($generation): MediaGeneration {
-            /** @var MediaGeneration $lockedGeneration */
-            $lockedGeneration = MediaGeneration::query()
-                ->with(['teacher', 'subject', 'subSubject.subject'])
-                ->lockForUpdate()
-                ->findOrFail($generation->getKey());
+        $preparedArtifact = $this->prepareArtifactForPublication($generation);
 
-            $existingProject = $this->resolveExistingRecommendedProject($lockedGeneration);
-            $existingTopic = $this->resolveExistingTopic($lockedGeneration, $existingProject);
-            $existingContent = $this->resolveExistingContent($lockedGeneration, $existingProject, $existingTopic);
+        try {
+            return DB::transaction(function () use ($generation, $preparedArtifact): MediaGeneration {
+                /** @var MediaGeneration $lockedGeneration */
+                $lockedGeneration = MediaGeneration::query()
+                    ->with(['teacher', 'subject', 'subSubject.subject'])
+                    ->lockForUpdate()
+                    ->findOrFail($generation->getKey());
 
-            $topic = $existingTopic ?? $this->createTopic($lockedGeneration);
-            $content = $existingContent ?? $this->createContent($lockedGeneration, $topic);
-            $project = $existingProject ?? $this->createRecommendedProject($lockedGeneration, $topic, $content);
+                $lockedGeneration->forceFill([
+                    'storage_path' => $preparedArtifact['storage_path'] ?? $lockedGeneration->storage_path,
+                    'file_url' => $preparedArtifact['file_url'] ?? $lockedGeneration->file_url,
+                    'thumbnail_url' => $preparedArtifact['thumbnail_url'] ?? $lockedGeneration->thumbnail_url,
+                    'mime_type' => $preparedArtifact['mime_type'] ?? $lockedGeneration->mime_type,
+                    'error_code' => null,
+                    'error_message' => null,
+                ])->save();
 
-            $deliveryPayload = $this->buildDeliveryPayload($lockedGeneration, $topic, $content, $project);
+                $existingProject = $this->resolveExistingRecommendedProject($lockedGeneration);
+                $existingTopic = $this->resolveExistingTopic($lockedGeneration, $existingProject);
+                $existingContent = $this->resolveExistingContent($lockedGeneration, $existingProject, $existingTopic);
 
-            $lockedGeneration->forceFill([
-                'topic_id' => $topic->id,
-                'content_id' => $content->id,
-                'recommended_project_id' => $project->id,
-                'delivery_payload' => $deliveryPayload,
-            ])->save();
+                $topic = $existingTopic ?? $this->createTopic($lockedGeneration);
+                $content = $existingContent ?? $this->createContent($lockedGeneration, $topic);
+                $project = $existingProject ?? $this->createRecommendedProject($lockedGeneration, $topic, $content);
 
-            return $lockedGeneration->fresh(['topic', 'content', 'recommendedProject', 'subject', 'subSubject.subject']);
-        });
+                $deliveryPayload = $this->buildDeliveryPayload($lockedGeneration, $topic, $content, $project);
+
+                $lockedGeneration->forceFill([
+                    'topic_id' => $topic->id,
+                    'content_id' => $content->id,
+                    'recommended_project_id' => $project->id,
+                    'delivery_payload' => $deliveryPayload,
+                ])->save();
+
+                return $lockedGeneration->fresh(['topic', 'content', 'recommendedProject', 'subject', 'subSubject.subject']);
+            });
+        } catch (Throwable $throwable) {
+            $this->compensateUploadedFiles($preparedArtifact['uploaded_paths']);
+
+            if ($throwable instanceof MediaGenerationServiceException) {
+                throw $throwable;
+            }
+
+            throw MediaGenerationServiceException::publicationFailed(
+                'Publishing generated media failed.',
+                ['exception' => $throwable->getMessage()]
+            );
+        } finally {
+            $this->cleanupTempFiles($preparedArtifact['cleanup_paths']);
+        }
+    }
+
+    /**
+     * @return array{storage_path: string|null, file_url: string|null, thumbnail_url: string|null, mime_type: string|null, uploaded_paths: string[], cleanup_paths: string[]}
+     */
+    protected function prepareArtifactForPublication(MediaGeneration $generation): array
+    {
+        $uploadedPaths = [];
+        $cleanupPaths = [];
+
+        try {
+            $artifactMetadata = $this->resolveArtifactMetadata($generation);
+            $artifactSource = $this->resolveArtifactSource($generation, $artifactMetadata);
+            $cleanupPaths = array_merge($cleanupPaths, $artifactSource['cleanup_paths']);
+
+            $storagePath = $generation->storage_path;
+            $fileUrl = $generation->file_url;
+            $thumbnailUrl = $generation->thumbnail_url;
+            $mimeType = $generation->mime_type ?: data_get($artifactMetadata, 'mime_type');
+
+            if (! $this->hasStoredArtifact($generation)) {
+                $upload = $this->uploadArtifact($artifactMetadata, $artifactSource);
+                $uploadedPaths[] = $upload['path'];
+                $storagePath = $upload['path'];
+                $fileUrl = $upload['url'];
+            }
+
+            if ($thumbnailUrl === null || trim((string) $thumbnailUrl) === '') {
+                $thumbnailLocalPath = $this->generateThumbnail(
+                    localArtifactPath: $artifactSource['local_path'],
+                    fileUrl: $fileUrl,
+                );
+
+                if ($thumbnailLocalPath !== null) {
+                    $cleanupPaths[] = $thumbnailLocalPath;
+                    $thumbnailUpload = $this->fileUploadService()->uploadFromPath(
+                        $thumbnailLocalPath,
+                        'generated_thumbnail_' . pathinfo((string) ($storagePath ?? basename($thumbnailLocalPath)), PATHINFO_FILENAME) . '.' . pathinfo($thumbnailLocalPath, PATHINFO_EXTENSION),
+                        'gallery',
+                    );
+                    $uploadedPaths[] = $thumbnailUpload['path'];
+                    $thumbnailUrl = $thumbnailUpload['url'];
+                }
+            }
+
+            return [
+                'storage_path' => $storagePath,
+                'file_url' => $fileUrl,
+                'thumbnail_url' => $thumbnailUrl,
+                'mime_type' => $mimeType,
+                'uploaded_paths' => $uploadedPaths,
+                'cleanup_paths' => $cleanupPaths,
+            ];
+        } catch (Throwable $throwable) {
+            $this->compensateUploadedFiles($uploadedPaths);
+            $this->cleanupTempFiles($cleanupPaths);
+
+            if ($throwable instanceof MediaGenerationServiceException) {
+                throw $throwable;
+            }
+
+            if ($throwable instanceof MediaGenerationContractException) {
+                throw MediaGenerationServiceException::artifactInvalid(
+                    'Generated artifact payload is invalid for publication.',
+                    ['exception' => $throwable->getMessage(), 'context' => $throwable->context()]
+                );
+            }
+
+            throw MediaGenerationServiceException::uploadFailed(
+                'Preparing generated artifact for publication failed.',
+                ['exception' => $throwable->getMessage()]
+            );
+        }
+    }
+
+    protected function hasStoredArtifact(MediaGeneration $generation): bool
+    {
+        return is_string($generation->storage_path)
+            && trim($generation->storage_path) !== ''
+            && is_string($generation->file_url)
+            && trim($generation->file_url) !== '';
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function resolveArtifactMetadata(MediaGeneration $generation): ?array
+    {
+        $payload = data_get($generation->generator_service_response, 'response.artifact_metadata')
+            ?? data_get($generation->generator_service_response, 'artifact_metadata');
+
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        return MediaArtifactMetadataContract::validate($payload);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $artifactMetadata
+     * @return array{local_path: string|null, cleanup_paths: string[]}
+     */
+    protected function resolveArtifactSource(MediaGeneration $generation, ?array $artifactMetadata): array
+    {
+        if (! is_array($artifactMetadata)) {
+            return [
+                'local_path' => null,
+                'cleanup_paths' => [],
+            ];
+        }
+
+        $kind = data_get($artifactMetadata, 'artifact_locator.kind');
+        $value = data_get($artifactMetadata, 'artifact_locator.value');
+
+        if (! is_string($kind) || ! is_string($value) || trim($value) === '') {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact locator is missing from generator metadata.'
+            );
+        }
+
+        return match ($kind) {
+            'temporary_path' => $this->artifactSourceFromTemporaryPath($value),
+            'signed_url' => $this->artifactSourceFromSignedUrl($value, (string) data_get($artifactMetadata, 'filename', 'generated-artifact')),
+            'storage_object' => [
+                'local_path' => null,
+                'cleanup_paths' => [],
+            ],
+            default => throw MediaGenerationServiceException::artifactInvalid(
+                'Unsupported artifact locator kind.',
+                ['kind' => $kind]
+            ),
+        };
+    }
+
+    /**
+     * @return array{local_path: string, cleanup_paths: string[]}
+     */
+    protected function artifactSourceFromTemporaryPath(string $path): array
+    {
+        if (! is_file($path)) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Temporary artifact path does not exist.',
+                ['path' => $path]
+            );
+        }
+
+        return [
+            'local_path' => $path,
+            'cleanup_paths' => [],
+        ];
+    }
+
+    /**
+     * @return array{local_path: string, cleanup_paths: string[]}
+     */
+    protected function artifactSourceFromSignedUrl(string $url, string $filename): array
+    {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION) ?: pathinfo(parse_url($url, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION) ?: 'bin');
+        $tempPath = sys_get_temp_dir() . '/' . 'generated_artifact_' . Str::random(12) . '.' . $extension;
+        $contents = @file_get_contents($url);
+
+        if ($contents === false) {
+            throw MediaGenerationServiceException::uploadFailed(
+                'Could not download signed artifact URL for publication.',
+                ['url' => $url]
+            );
+        }
+
+        file_put_contents($tempPath, $contents);
+
+        return [
+            'local_path' => $tempPath,
+            'cleanup_paths' => [$tempPath],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $artifactMetadata
+     * @param  array{local_path: string|null, cleanup_paths: string[]}  $artifactSource
+     * @return array{path: string, url: string}
+     */
+    protected function uploadArtifact(?array $artifactMetadata, array $artifactSource): array
+    {
+        if (is_array($artifactMetadata)
+            && data_get($artifactMetadata, 'artifact_locator.kind') === 'storage_object'
+            && is_string(data_get($artifactMetadata, 'artifact_locator.value'))
+            && trim((string) data_get($artifactMetadata, 'artifact_locator.value')) !== '') {
+            $path = trim((string) data_get($artifactMetadata, 'artifact_locator.value'));
+
+            return [
+                'path' => $path,
+                'url' => $this->fileUploadService()->generatePublicUrl($path),
+            ];
+        }
+
+        $localPath = $artifactSource['local_path'];
+
+        if (! is_string($localPath) || trim($localPath) === '' || ! is_file($localPath)) {
+            throw MediaGenerationServiceException::artifactInvalid(
+                'Artifact file is not available for upload.'
+            );
+        }
+
+        $originalName = is_array($artifactMetadata)
+            ? (string) data_get($artifactMetadata, 'filename', basename($localPath))
+            : basename($localPath);
+
+        return $this->fileUploadService()->uploadFromPath($localPath, $originalName, 'materials');
+    }
+
+    protected function generateThumbnail(?string $localArtifactPath, ?string $fileUrl): ?string
+    {
+        try {
+            if (is_string($localArtifactPath) && trim($localArtifactPath) !== '' && is_file($localArtifactPath)) {
+                return $this->thumbnailGeneratorService()->generateFromFile($localArtifactPath);
+            }
+
+            if (is_string($fileUrl) && trim($fileUrl) !== '') {
+                return $this->thumbnailGeneratorService()->generateFromUrl($fileUrl);
+            }
+        } catch (Throwable $throwable) {
+            report($throwable);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  string[]  $uploadedPaths
+     */
+    protected function compensateUploadedFiles(array $uploadedPaths): void
+    {
+        foreach (array_reverse($uploadedPaths) as $path) {
+            if (! is_string($path) || trim($path) === '') {
+                continue;
+            }
+
+            try {
+                $this->fileUploadService()->delete($path);
+            } catch (Throwable $throwable) {
+                report($throwable);
+            }
+        }
+    }
+
+    /**
+     * @param  string[]  $cleanupPaths
+     */
+    protected function cleanupTempFiles(array $cleanupPaths): void
+    {
+        foreach ($cleanupPaths as $path) {
+            if (is_string($path) && trim($path) !== '' && is_file($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    protected function fileUploadService(): FileUploadService
+    {
+        return $this->fileUploadService ??= app(FileUploadService::class);
+    }
+
+    protected function thumbnailGeneratorService(): ThumbnailGeneratorService
+    {
+        return $this->thumbnailGeneratorService ??= app(ThumbnailGeneratorService::class);
     }
 
     protected function resolveExistingTopic(MediaGeneration $generation, ?RecommendedProject $project): ?Topic
@@ -241,7 +542,10 @@ class MediaPublicationService
                     'project_file_url' => $project->project_file_url,
                 ],
             ],
-            'summary' => $this->resolvePublicationDescription($generation),
+            'summary' => [
+                'title' => $this->resolvePublicationTitle($generation),
+                'preview' => $this->resolvePublicationDescription($generation),
+            ],
         ];
     }
 

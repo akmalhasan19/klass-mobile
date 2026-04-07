@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 /**
  * FileUploadService
@@ -49,6 +50,28 @@ class FileUploadService
             'path' => $path,
             'url' => $this->generatePublicUrl($path),
         ];
+    }
+
+    /**
+     * Upload file lokal yang sudah ada di filesystem ke bucket kategori tertentu.
+     *
+     * @return array{path: string, url: string}
+     */
+    public function uploadFromPath(string $filePath, string $originalName, string $category): array
+    {
+        if (! is_file($filePath)) {
+            throw new InvalidArgumentException("File lokal '{$filePath}' tidak ditemukan.");
+        }
+
+        $uploadedFile = new UploadedFile(
+            $filePath,
+            $originalName,
+            mime_content_type($filePath) ?: null,
+            null,
+            true,
+        );
+
+        return $this->upload($uploadedFile, $category);
     }
 
     /**
@@ -111,7 +134,7 @@ class FileUploadService
 
         if (!array_key_exists($category, $categories)) {
             $allowed = implode(', ', array_keys($categories));
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 "Kategori upload '{$category}' tidak valid. Kategori yang diizinkan: {$allowed}"
             );
         }
