@@ -36,10 +36,12 @@ return [
     ],
 
     'media_generation' => [
+        'llm_adapter' => [
+            'shared_secret' => env('MEDIA_GENERATION_LLM_ADAPTER_SHARED_SECRET'),
+        ],
         'interpreter' => [
             'base_url' => env('MEDIA_GENERATION_INTERPRETER_BASE_URL'),
             'path' => env('MEDIA_GENERATION_INTERPRETER_PATH', '/v1/interpret'),
-            'api_key' => env('MEDIA_GENERATION_INTERPRETER_API_KEY'),
             'provider' => env('MEDIA_GENERATION_INTERPRETER_PROVIDER', 'llm-gateway'),
             'model' => env('MEDIA_GENERATION_INTERPRETER_MODEL', 'gpt-5.4'),
             'timeout_seconds' => (float) env('MEDIA_GENERATION_INTERPRETER_TIMEOUT_SECONDS', 30),
@@ -62,7 +64,6 @@ return [
         'delivery' => [
             'base_url' => env('MEDIA_GENERATION_DELIVERY_BASE_URL'),
             'path' => env('MEDIA_GENERATION_DELIVERY_PATH', '/v1/respond'),
-            'api_key' => env('MEDIA_GENERATION_DELIVERY_API_KEY'),
             'provider' => env('MEDIA_GENERATION_DELIVERY_PROVIDER', 'llm-gateway'),
             'model' => env('MEDIA_GENERATION_DELIVERY_MODEL', 'gpt-5.4'),
             'timeout_seconds' => (float) env('MEDIA_GENERATION_DELIVERY_TIMEOUT_SECONDS', 30),

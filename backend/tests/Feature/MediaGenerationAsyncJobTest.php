@@ -40,6 +40,7 @@ class MediaGenerationAsyncJobTest extends TestCase
         $this->app->instance(ThumbnailGeneratorService::class, $this->fakeThumbnailGeneratorService());
 
         config([
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
             'services.media_generation.interpreter.base_url' => 'https://llm.example',
             'services.media_generation.interpreter.provider' => 'llm-gateway',
             'services.media_generation.interpreter.model' => 'gpt-5.4',

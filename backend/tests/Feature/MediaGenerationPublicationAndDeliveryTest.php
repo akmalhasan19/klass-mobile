@@ -407,7 +407,7 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
 
         config([
             'services.media_generation.delivery.base_url' => 'https://llm.example',
-            'services.media_generation.delivery.api_key' => 'delivery-api-key',
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
             'services.media_generation.delivery.provider' => 'llm-gateway',
             'services.media_generation.delivery.model' => 'gpt-5.4',
         ]);
@@ -469,9 +469,19 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
 
         Http::assertSent(function (Request $request): bool {
             $payload = json_decode($request->body(), true, 512, JSON_THROW_ON_ERROR);
+            $timestamp = $request->header('X-Klass-Request-Timestamp')[0] ?? null;
+            $signature = $request->header('X-Klass-Signature')[0] ?? null;
+            $requestId = $request->header('X-Request-Id')[0] ?? null;
 
             return $request->url() === 'https://llm.example/v1/respond'
-                && ($request->header('Authorization')[0] ?? null) === 'Bearer delivery-api-key'
+                && ($request->header('Authorization')[0] ?? null) === null
+                && ($request->header('X-Klass-Generation-Id')[0] ?? null) !== null
+                && ($request->header('X-Klass-Signature-Algorithm')[0] ?? null) === 'hmac-sha256'
+                && is_string($requestId)
+                && trim($requestId) !== ''
+                && is_string($timestamp)
+                && $timestamp !== ''
+                && $signature === hash_hmac('sha256', $timestamp . '.' . $request->body(), 'adapter-shared-secret')
                 && data_get($payload, 'input.artifact.file_url') === 'https://example.com/materials/handout-aljabar-kelas-8.docx'
                 && data_get($payload, 'input.publication.recommended_project.project_file_url') === 'https://example.com/materials/handout-aljabar-kelas-8.docx'
                 && data_get($payload, 'input.artifact.binary') === null

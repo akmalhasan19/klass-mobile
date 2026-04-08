@@ -3,19 +3,27 @@
 namespace Tests\Feature;
 
 use App\MediaGeneration\MediaArtifactMetadataContract;
+use App\MediaGeneration\MediaDeliveryResponseSchema;
 use App\MediaGeneration\MediaGenerationErrorCode;
 use App\MediaGeneration\MediaGenerationLifecycle;
 use App\MediaGeneration\MediaGenerationServiceException;
 use App\MediaGeneration\MediaGenerationSpecContract;
 use App\MediaGeneration\MediaPromptInterpretationSchema;
 use App\Models\MediaGeneration;
+use App\Models\SubSubject;
 use App\Models\User;
+use App\Services\MediaDeliveryResponseService;
+use App\Services\MediaGenerationAuditTrailService;
 use App\Services\MediaGenerationDecisionService;
+use App\Services\MediaGenerationWorkflowService;
+use App\Services\MediaPublicationService;
 use App\Services\MediaPromptInterpretationService;
 use App\Services\PythonMediaGeneratorClient;
+use Database\Seeders\SubjectTaxonomySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Mockery;
 use Tests\TestCase;
 
 class MediaGenerationOrchestrationServiceTest extends TestCase
@@ -24,9 +32,14 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
 
     public function test_prompt_interpretation_service_calls_llm_and_persists_normalized_and_audit_payloads(): void
     {
+        $this->seed(SubjectTaxonomySeeder::class);
+
         $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
         $generation = MediaGeneration::create([
             'teacher_id' => $teacher->id,
+            'subject_id' => $subSubject->subject_id,
+            'sub_subject_id' => $subSubject->id,
             'raw_prompt' => 'Buatkan handout pecahan untuk kelas 5 dengan contoh dan latihan singkat.',
             'preferred_output_type' => 'auto',
             'status' => MediaGenerationLifecycle::INTERPRETING,
@@ -34,7 +47,7 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
 
         config([
             'services.media_generation.interpreter.base_url' => 'https://llm.example',
-            'services.media_generation.interpreter.api_key' => 'test-api-key',
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
             'services.media_generation.interpreter.model' => 'gpt-5.4',
             'services.media_generation.interpreter.provider' => 'llm-gateway',
         ]);
@@ -65,14 +78,44 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
             MediaPromptInterpretationSchema::VERSION,
             data_get($result->interpretation_audit_payload, 'response.normalized_payload.schema_version')
         );
+        $this->assertNotEmpty(data_get($result->interpretation_audit_payload, 'request_meta.request_id'));
+        $this->assertSame('hmac-sha256', data_get($result->interpretation_audit_payload, 'request_meta.signature_algorithm'));
 
-        Http::assertSent(function (Request $request): bool {
+        Http::assertSent(function (Request $request) use ($generation, $subSubject): bool {
             $payload = json_decode($request->body(), true, 512, JSON_THROW_ON_ERROR);
+            $timestamp = $request->header('X-Klass-Request-Timestamp')[0] ?? null;
+            $signature = $request->header('X-Klass-Signature')[0] ?? null;
+            $requestId = $request->header('X-Request-Id')[0] ?? null;
 
             return $request->url() === 'https://llm.example/v1/interpret'
-                && ($request->header('Authorization')[0] ?? null) === 'Bearer test-api-key'
-                && data_get($payload, 'input.teacher_prompt') === 'Buatkan handout pecahan untuk kelas 5 dengan contoh dan latihan singkat.'
-                && str_contains((string) data_get($payload, 'instruction'), 'Return exactly one JSON object.');
+                && ($request->header('Authorization')[0] ?? null) === null
+                && ($request->header('X-Klass-Generation-Id')[0] ?? null) === $generation->id
+                && ($request->header('X-Klass-Signature-Algorithm')[0] ?? null) === 'hmac-sha256'
+                && is_string($requestId)
+                && trim($requestId) !== ''
+                && is_string($timestamp)
+                && $timestamp !== ''
+                && $signature === hash_hmac('sha256', $timestamp . '.' . $request->body(), 'adapter-shared-secret')
+                && $payload === [
+                    'request_type' => 'media_prompt_interpretation',
+                    'generation_id' => $generation->id,
+                    'model' => 'gpt-5.4',
+                    'instruction' => MediaPromptInterpretationSchema::llmInstruction(),
+                    'input' => [
+                        'teacher_prompt' => 'Buatkan handout pecahan untuk kelas 5 dengan contoh dan latihan singkat.',
+                        'preferred_output_type' => 'auto',
+                        'subject_context' => [
+                            'id' => $subSubject->subject_id,
+                            'name' => $subSubject->subject->name,
+                            'slug' => $subSubject->subject->slug,
+                        ],
+                        'sub_subject_context' => [
+                            'id' => $subSubject->id,
+                            'name' => $subSubject->name,
+                            'slug' => $subSubject->slug,
+                        ],
+                    ],
+                ];
         });
     }
 
@@ -88,6 +131,7 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
 
         config([
             'services.media_generation.interpreter.base_url' => 'https://llm.example',
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
         ]);
 
         Http::fake([
@@ -111,6 +155,152 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
             MediaGenerationErrorCode::LLM_CONTRACT_FAILED,
             data_get($result->interpretation_audit_payload, 'response.fallback_error.error_code')
         );
+    }
+
+    public function test_media_generation_workflow_service_remains_primary_orchestrator(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'raw_prompt' => 'Buatkan handout pecahan untuk kelas 5 dengan contoh dan latihan singkat.',
+            'preferred_output_type' => 'auto',
+            'status' => MediaGenerationLifecycle::QUEUED,
+        ]);
+
+        $sequence = [];
+
+        $interpretationService = Mockery::mock(MediaPromptInterpretationService::class);
+        $decisionService = Mockery::mock(MediaGenerationDecisionService::class);
+        $pythonMediaGeneratorClient = Mockery::mock(PythonMediaGeneratorClient::class);
+        $publicationService = Mockery::mock(MediaPublicationService::class);
+        $deliveryResponseService = Mockery::mock(MediaDeliveryResponseService::class);
+        $auditTrailService = Mockery::mock(MediaGenerationAuditTrailService::class);
+
+        $auditTrailService->shouldReceive('initialize')
+            ->once()
+            ->andReturnUsing(function (MediaGeneration $input) use (&$sequence): MediaGeneration {
+                $sequence[] = 'initialize';
+
+                return $input;
+            });
+
+        $auditTrailService->shouldReceive('transition')
+            ->times(6)
+            ->andReturnUsing(function (MediaGeneration $input, string $status) use (&$sequence): MediaGeneration {
+                $sequence[] = 'transition:' . $status;
+                $input->status = $status;
+
+                return $input;
+            });
+
+        $interpretationService->shouldReceive('interpret')
+            ->once()
+            ->andReturnUsing(function (MediaGeneration $input) use (&$sequence): MediaGeneration {
+                $sequence[] = 'interpret';
+                $input->interpretation_payload = $this->validInterpretationPayload();
+
+                return $input;
+            });
+
+        $decisionService->shouldReceive('resolve')
+            ->once()
+            ->andReturnUsing(function (MediaGeneration $input) use (&$sequence): MediaGeneration {
+                $sequence[] = 'decide';
+                $input->resolved_output_type = 'pdf';
+                $input->generation_spec_payload = MediaGenerationSpecContract::fromInterpretation($this->validInterpretationPayload(), 'pdf');
+                $input->decision_payload = [
+                    'decision_source' => 'candidate_ranking',
+                    'reason_code' => 'highest_score_selected',
+                ];
+
+                return $input;
+            });
+
+        $pythonMediaGeneratorClient->shouldReceive('generate')
+            ->once()
+            ->andReturnUsing(function (MediaGeneration $input) use (&$sequence): MediaGeneration {
+                $sequence[] = 'generate';
+                $input->generator_service_response = [
+                    'response' => [
+                        'artifact_metadata' => [
+                            'schema_version' => MediaArtifactMetadataContract::VERSION,
+                        ],
+                    ],
+                ];
+
+                return $input;
+            });
+
+        $publicationService->shouldReceive('publish')
+            ->once()
+            ->andReturnUsing(function (MediaGeneration $input, callable $afterArtifactPrepared) use (&$sequence): MediaGeneration {
+                $sequence[] = 'publish';
+                $input = $afterArtifactPrepared($input, [
+                    'storage_path' => 'materials/handout-pecahan-kelas-5.pdf',
+                    'thumbnail_url' => null,
+                ]);
+                $input->topic_id = 101;
+                $input->content_id = 102;
+                $input->recommended_project_id = 103;
+                $input->file_url = 'https://example.com/materials/handout-pecahan-kelas-5.pdf';
+                $input->mime_type = 'application/pdf';
+
+                return $input;
+            });
+
+        $deliveryResponseService->shouldReceive('compose')
+            ->once()
+            ->andReturnUsing(function (MediaGeneration $input) use (&$sequence): MediaGeneration {
+                $sequence[] = 'compose';
+                $input->delivery_payload = MediaDeliveryResponseSchema::fallback([
+                    'title' => 'Handout Pecahan Kelas 5',
+                    'preview_summary' => 'Handout siap dipakai untuk penguatan konsep dan latihan singkat.',
+                    'teacher_message' => 'Bagikan file setelah pengantar singkat.',
+                    'recommended_next_steps' => ['Buka file dan tinjau contoh soal.'],
+                    'classroom_tips' => ['Mulai dari contoh sederhana sebelum latihan.'],
+                    'artifact' => [
+                        'output_type' => 'pdf',
+                        'title' => 'Handout Pecahan Kelas 5',
+                        'file_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf',
+                        'thumbnail_url' => null,
+                        'mime_type' => 'application/pdf',
+                        'filename' => 'handout-pecahan-kelas-5.pdf',
+                    ],
+                    'publication' => [
+                        'topic' => null,
+                        'content' => null,
+                        'recommended_project' => null,
+                    ],
+                ], 'delivery_service_unconfigured');
+
+                return $input;
+            });
+
+        $result = (new MediaGenerationWorkflowService(
+            $interpretationService,
+            $decisionService,
+            $pythonMediaGeneratorClient,
+            $publicationService,
+            $deliveryResponseService,
+            $auditTrailService,
+        ))->process($generation->id, 2, ['job' => 'phase-1-freeze']);
+
+        $this->assertSame([
+            'initialize',
+            'transition:interpreting',
+            'interpret',
+            'decide',
+            'transition:classified',
+            'transition:generating',
+            'generate',
+            'transition:uploading',
+            'publish',
+            'transition:publishing',
+            'compose',
+            'transition:completed',
+        ], $sequence);
+        $this->assertSame(MediaGenerationLifecycle::COMPLETED, $result->status);
+        $this->assertSame(MediaDeliveryResponseSchema::VERSION, data_get($result->delivery_payload, 'schema_version'));
     }
 
     public function test_output_decision_service_prioritizes_teacher_override_and_builds_generation_spec(): void

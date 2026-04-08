@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\MediaGeneration\MediaGenerationContractException;
 use App\MediaGeneration\MediaGenerationServiceException;
+use App\MediaGeneration\MediaPromptInterpretationRequestContract;
 use App\MediaGeneration\MediaPromptInterpretationSchema;
 use App\Models\MediaGeneration;
 use Exception;
@@ -16,13 +17,18 @@ class MediaPromptInterpretationService
 {
     public const AUDIT_SCHEMA_VERSION = 'media_prompt_interpretation_audit.v1';
 
-    public function __construct(protected ?HttpFactory $http = null)
+    public function __construct(
+        protected ?HttpFactory $http = null,
+        protected ?InterServiceRequestSigner $requestSigner = null,
+    )
     {
     }
 
     public function interpret(MediaGeneration $generation): MediaGeneration
     {
-        $response = $this->sendInterpretationRequest($generation);
+        $requestPayload = $this->buildRequestPayload($generation);
+        $signedRequest = $this->buildSignedRequestContext($generation, $requestPayload);
+        $response = $this->sendInterpretationRequest($signedRequest);
 
         if ($response->failed()) {
             $this->throwFailedInterpretationRequest($response);
@@ -37,6 +43,8 @@ class MediaPromptInterpretationService
             'interpretation_payload' => $normalization['payload'],
             'interpretation_audit_payload' => $this->buildAuditPayload(
                 generation: $generation,
+                requestPayload: $requestPayload,
+                requestMeta: $this->buildRequestMeta($signedRequest),
                 response: $response,
                 rawContent: $rawContent,
                 normalizedPayload: $normalization['payload'],
@@ -50,7 +58,10 @@ class MediaPromptInterpretationService
         return $generation->fresh(['subject', 'subSubject.subject']);
     }
 
-    protected function sendInterpretationRequest(MediaGeneration $generation): Response
+    /**
+     * @param  array{headers: array<string, string>, encoded_payload: string}  $signedRequest
+     */
+    protected function sendInterpretationRequest(array $signedRequest): Response
     {
         $baseUrl = trim((string) config('services.media_generation.interpreter.base_url'));
 
@@ -64,9 +75,9 @@ class MediaPromptInterpretationService
         $request = $this->http()
             ->baseUrl(rtrim($baseUrl, '/'))
             ->acceptJson()
-            ->asJson()
             ->timeout($this->timeoutSeconds())
             ->connectTimeout($this->connectTimeoutSeconds())
+            ->withHeaders($signedRequest['headers'])
             ->retry(
                 $this->retryAttempts(),
                 $this->retrySleepMilliseconds(),
@@ -76,14 +87,8 @@ class MediaPromptInterpretationService
                 false,
             );
 
-        $apiKey = trim((string) config('services.media_generation.interpreter.api_key'));
-
-        if ($apiKey !== '') {
-            $request = $request->withToken($apiKey);
-        }
-
         try {
-            return $request->post($this->path(), $this->buildRequestPayload($generation));
+            return $request->send('POST', $this->path(), ['body' => $signedRequest['encoded_payload']]);
         } catch (ConnectionException $exception) {
             throw MediaGenerationServiceException::llmContractFailed(
                 'Could not reach the media interpretation service.',
@@ -94,31 +99,11 @@ class MediaPromptInterpretationService
 
     protected function buildRequestPayload(MediaGeneration $generation): array
     {
-        $generation->loadMissing(['subject', 'subSubject.subject']);
-
-        $subject = $generation->subSubject?->subject ?? $generation->subject;
-        $subSubject = $generation->subSubject;
-
-        return [
-            'request_type' => 'media_prompt_interpretation',
-            'generation_id' => $generation->id,
-            'model' => $this->model(),
-            'instruction' => MediaPromptInterpretationSchema::llmInstruction(),
-            'input' => [
-                'teacher_prompt' => $generation->raw_prompt,
-                'preferred_output_type' => $generation->preferred_output_type,
-                'subject_context' => $subject ? [
-                    'id' => $subject->id,
-                    'name' => $subject->name,
-                    'slug' => $subject->slug,
-                ] : null,
-                'sub_subject_context' => $subSubject ? [
-                    'id' => $subSubject->id,
-                    'name' => $subSubject->name,
-                    'slug' => $subSubject->slug,
-                ] : null,
-            ],
-        ];
+        return MediaPromptInterpretationRequestContract::fromGeneration(
+            $generation,
+            $this->model(),
+            MediaPromptInterpretationSchema::llmInstruction(),
+        );
     }
 
     /**
@@ -151,6 +136,8 @@ class MediaPromptInterpretationService
 
     protected function buildAuditPayload(
         MediaGeneration $generation,
+        array $requestPayload,
+        array $requestMeta,
         Response $response,
         string $rawContent,
         array $normalizedPayload,
@@ -163,7 +150,8 @@ class MediaPromptInterpretationService
                 'name' => $this->provider(),
                 'model' => $this->model(),
             ],
-            'request' => $this->buildRequestPayload($generation),
+            'request' => $requestPayload,
+            'request_meta' => $requestMeta,
             'response' => [
                 'http_status' => $response->status(),
                 'raw_payload' => $this->decodedResponsePayload($response),
@@ -205,6 +193,48 @@ class MediaPromptInterpretationService
         }
 
         return trim($response->body());
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{request_id: string, timestamp: string, signature_algorithm: string, body_sha256: string, signature: string, encoded_payload: string, headers: array<string, string>}
+     */
+    protected function buildSignedRequestContext(MediaGeneration $generation, array $payload): array
+    {
+        $sharedSecret = trim((string) config('services.media_generation.llm_adapter.shared_secret'));
+
+        if ($sharedSecret === '') {
+            throw MediaGenerationServiceException::llmContractFailed(
+                'LLM adapter shared secret is not configured.',
+                ['config' => 'services.media_generation.llm_adapter.shared_secret']
+            );
+        }
+
+        try {
+            $encodedPayload = $this->requestSigner()->encodePayload($payload);
+        } catch (JsonException $exception) {
+            throw MediaGenerationServiceException::llmContractFailed(
+                'Media interpretation request could not be serialized for the LLM adapter.',
+                ['exception' => $exception->getMessage()]
+            );
+        }
+
+        return $this->requestSigner()->build($sharedSecret, (string) $generation->id, $encodedPayload);
+    }
+
+    /**
+     * @param  array{request_id: string, timestamp: string, signature_algorithm: string, body_sha256: string}  $signedRequest
+     * @return array<string, string>
+     */
+    protected function buildRequestMeta(array $signedRequest): array
+    {
+        return [
+            'request_id' => $signedRequest['request_id'],
+            'path' => '/' . $this->path(),
+            'timestamp' => $signedRequest['timestamp'],
+            'signature_algorithm' => $signedRequest['signature_algorithm'],
+            'body_sha256' => $signedRequest['body_sha256'],
+        ];
     }
 
     protected function stringifyContent(mixed $value): ?string
@@ -280,6 +310,11 @@ class MediaPromptInterpretationService
     protected function http(): HttpFactory
     {
         return $this->http ?? app(HttpFactory::class);
+    }
+
+    protected function requestSigner(): InterServiceRequestSigner
+    {
+        return $this->requestSigner ?? app(InterServiceRequestSigner::class);
     }
 
     protected function provider(): string

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\MediaGeneration\MediaDeliveryRequestContract;
 use App\MediaGeneration\MediaDeliveryResponseSchema;
 use App\MediaGeneration\MediaGenerationContractException;
 use App\Models\MediaGeneration;
@@ -13,7 +14,10 @@ use JsonException;
 
 class MediaDeliveryResponseService
 {
-    public function __construct(protected ?HttpFactory $http = null)
+    public function __construct(
+        protected ?HttpFactory $http = null,
+        protected ?InterServiceRequestSigner $requestSigner = null,
+    )
     {
     }
 
@@ -129,7 +133,6 @@ class MediaDeliveryResponseService
         $request = $this->http()
             ->baseUrl(rtrim((string) config('services.media_generation.delivery.base_url'), '/'))
             ->acceptJson()
-            ->asJson()
             ->timeout($this->timeoutSeconds())
             ->connectTimeout($this->connectTimeoutSeconds())
             ->retry(
@@ -141,26 +144,17 @@ class MediaDeliveryResponseService
                 false,
             );
 
-        $apiKey = trim((string) config('services.media_generation.delivery.api_key'));
-
-        if ($apiKey !== '') {
-            $request = $request->withToken($apiKey);
-        }
+        $payload = MediaDeliveryRequestContract::fromGeneration(
+            $generation,
+            $context,
+            $this->model(),
+            MediaDeliveryResponseSchema::llmInstruction(),
+        );
+        $signedRequest = $this->buildSignedRequestContext($generation, $payload);
+        $request = $request->withHeaders($signedRequest['headers']);
 
         try {
-            return $request->post($this->path(), [
-                'request_type' => 'media_delivery_response',
-                'generation_id' => $generation->id,
-                'model' => $this->model(),
-                'instruction' => MediaDeliveryResponseSchema::llmInstruction(),
-                'input' => [
-                    'artifact' => $context['artifact'],
-                    'publication' => $context['publication'],
-                    'preview_summary' => $context['preview_summary'],
-                    'teacher_delivery_summary' => data_get($generation->interpretation_payload, 'teacher_delivery_summary'),
-                    'generation_summary' => data_get($generation->generation_spec_payload, 'summary'),
-                ],
-            ]);
+            return $request->send('POST', $this->path(), ['body' => $signedRequest['encoded_payload']]);
         } catch (ConnectionException $exception) {
             throw MediaGenerationServiceException::llmContractFailed(
                 'Could not reach the media delivery response service.',
@@ -298,6 +292,38 @@ class MediaDeliveryResponseService
     protected function http(): HttpFactory
     {
         return $this->http ?? app(HttpFactory::class);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{headers: array<string, string>, encoded_payload: string}
+     */
+    protected function buildSignedRequestContext(MediaGeneration $generation, array $payload): array
+    {
+        $sharedSecret = trim((string) config('services.media_generation.llm_adapter.shared_secret'));
+
+        if ($sharedSecret === '') {
+            throw MediaGenerationServiceException::llmContractFailed(
+                'LLM adapter shared secret is not configured.',
+                ['config' => 'services.media_generation.llm_adapter.shared_secret']
+            );
+        }
+
+        try {
+            $encodedPayload = $this->requestSigner()->encodePayload($payload);
+        } catch (JsonException $exception) {
+            throw MediaGenerationServiceException::llmContractFailed(
+                'Media delivery request could not be serialized for the LLM adapter.',
+                ['exception' => $exception->getMessage()]
+            );
+        }
+
+        return $this->requestSigner()->build($sharedSecret, (string) $generation->id, $encodedPayload);
+    }
+
+    protected function requestSigner(): InterServiceRequestSigner
+    {
+        return $this->requestSigner ?? app(InterServiceRequestSigner::class);
     }
 
     protected function provider(): string

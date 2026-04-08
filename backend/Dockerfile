@@ -59,8 +59,9 @@ RUN set -eux; \
         echo 'php_admin_value[error_log] = /proc/self/fd/2'; \
     } > /usr/local/etc/php-fpm.d/zz-render.conf; \
     rm -f /usr/local/etc/php-fpm.d/www.conf; \
-    mkdir -p /run/nginx /var/lib/nginx/tmp /var/log/supervisor /var/www/html/storage /var/www/html/bootstrap/cache; \
-    chown -R www-data:www-data /var/www/html /run/nginx /var/lib/nginx
+    mkdir -p /home/www-data/.postgresql /run/nginx /var/lib/nginx/tmp /var/log/supervisor /var/www/html/storage /var/www/html/bootstrap/cache; \
+    chmod 700 /home/www-data /home/www-data/.postgresql; \
+    chown -R www-data:www-data /home/www-data /var/www/html /run/nginx /var/lib/nginx
 
 FROM composer:2.8 AS vendor
 
@@ -94,6 +95,7 @@ ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
     LOG_STACK=single \
+    HOME=/home/www-data \
     DB_QUEUE_RETRY_AFTER=420 \
     MEDIA_GENERATION_QUEUE_CONNECTION=database \
     MEDIA_GENERATION_QUEUE_NAME=media-generation \
@@ -117,9 +119,10 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN set -eux; \
     chmod +x /usr/local/bin/entrypoint.sh; \
-    mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; \
+    mkdir -p /home/www-data/.postgresql storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; \
     rm -f bootstrap/cache/config.php; \
-    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /run/nginx /var/lib/nginx
+    chmod 700 /home/www-data /home/www-data/.postgresql; \
+    chown -R www-data:www-data /home/www-data /var/www/html/storage /var/www/html/bootstrap/cache /run/nginx /var/lib/nginx
 
 # Hugging Face Spaces uses port 7860 by default.
 EXPOSE 7860

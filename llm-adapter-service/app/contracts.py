@@ -1,0 +1,11 @@
+HEALTH_SCHEMA_VERSION = "llm_adapter_health.v1"
+SIGNATURE_ALGORITHM = "hmac-sha256"
+DEFAULT_INTERPRETATION_PROVIDER = "gemini"
+DEFAULT_DELIVERY_PROVIDER = "gemini"
+SUPPORTED_PROVIDERS = ("gemini", "openai")
+LOGGER_NAME = "klass-llm-adapter"
+REQUEST_ID_HEADER = "X-Request-Id"
+GENERATION_ID_HEADER = "X-Klass-Generation-Id"
+TIMESTAMP_HEADER = "X-Klass-Request-Timestamp"
+SIGNATURE_ALGORITHM_HEADER = "X-Klass-Signature-Algorithm"
+SIGNATURE_HEADER = "X-Klass-Signature"

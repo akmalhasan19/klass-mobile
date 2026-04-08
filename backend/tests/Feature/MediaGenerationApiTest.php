@@ -189,6 +189,96 @@ class MediaGenerationApiTest extends TestCase
         $this->assertStringNotContainsString('SQLSTATE', $response->getContent());
     }
 
+    public function test_media_generation_resource_keeps_polling_shape_stable_for_frontend(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'subject_id' => $subSubject->subject_id,
+            'sub_subject_id' => $subSubject->id,
+            'raw_prompt' => 'Buatkan handout aljabar dasar untuk kelas 8.',
+            'preferred_output_type' => 'pdf',
+            'resolved_output_type' => 'pdf',
+            'status' => MediaGenerationLifecycle::COMPLETED,
+            'storage_path' => 'materials/handout-aljabar-kelas-8.pdf',
+            'file_url' => 'https://example.com/materials/handout-aljabar-kelas-8.pdf',
+            'thumbnail_url' => 'https://example.com/gallery/handout-aljabar-kelas-8.svg',
+            'mime_type' => 'application/pdf',
+            'llm_provider' => 'llm-gateway',
+            'llm_model' => 'gpt-5.4',
+            'generator_provider' => 'klass-media-generator',
+            'generator_model' => '0.1.0',
+            'delivery_payload' => [
+                'schema_version' => 'media_delivery_response.v1',
+                'title' => 'Handout Aljabar Kelas 8 siap digunakan',
+                'preview_summary' => 'Handout siap dipakai untuk penguatan konsep dan latihan singkat.',
+                'teacher_message' => 'Bagikan file setelah pengantar singkat.',
+                'recommended_next_steps' => ['Tinjau file sebelum dibagikan ke siswa.'],
+                'classroom_tips' => ['Mulai dari contoh sederhana sebelum latihan.'],
+                'artifact' => [
+                    'output_type' => 'pdf',
+                    'title' => 'Handout Aljabar Kelas 8',
+                    'file_url' => 'https://example.com/materials/handout-aljabar-kelas-8.pdf',
+                    'thumbnail_url' => 'https://example.com/gallery/handout-aljabar-kelas-8.svg',
+                    'mime_type' => 'application/pdf',
+                    'filename' => 'handout-aljabar-kelas-8.pdf',
+                ],
+                'publication' => [
+                    'topic' => null,
+                    'content' => null,
+                    'recommended_project' => null,
+                ],
+                'response_meta' => [
+                    'generated_at' => '2026-04-08T10:00:00Z',
+                    'llm_used' => true,
+                    'provider' => 'llm-gateway',
+                    'model' => 'gpt-5.4',
+                ],
+                'fallback' => [
+                    'triggered' => false,
+                    'reason_code' => null,
+                    'action' => null,
+                ],
+            ],
+        ]);
+
+        Sanctum::actingAs($teacher);
+
+        $response = $this->getJson('/api/media-generations/' . $generation->id);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.id', $generation->id)
+            ->assertJsonPath('data.status', MediaGenerationLifecycle::COMPLETED)
+            ->assertJsonPath('data.status_meta.lifecycle_version', MediaGenerationLifecycle::VERSION)
+            ->assertJsonPath('data.status_meta.is_terminal', true)
+            ->assertJsonPath('data.artifact.file_url', 'https://example.com/materials/handout-aljabar-kelas-8.pdf')
+            ->assertJsonPath('data.delivery_payload.schema_version', 'media_delivery_response.v1')
+            ->assertJsonPath('data.links.poll', url('/api/media-generations/' . $generation->id));
+
+        $resource = $response->json('data');
+
+        foreach (['id', 'prompt', 'preferred_output_type', 'resolved_output_type', 'status', 'status_meta', 'artifact', 'publication', 'delivery_payload', 'error', 'links'] as $key) {
+            $this->assertArrayHasKey($key, $resource);
+        }
+
+        foreach (['lifecycle_version', 'is_terminal', 'retry_behavior'] as $key) {
+            $this->assertArrayHasKey($key, $resource['status_meta']);
+        }
+
+        foreach (['storage_path', 'file_url', 'thumbnail_url', 'mime_type'] as $key) {
+            $this->assertArrayHasKey($key, $resource['artifact']);
+        }
+
+        foreach (['topic', 'content', 'recommended_project'] as $key) {
+            $this->assertArrayHasKey($key, $resource['publication']);
+        }
+    }
+
     public function test_media_generation_error_code_registry_locks_stable_phase_three_contract(): void
     {
         $this->assertContains(MediaGenerationErrorCode::VALIDATION_FAILED, MediaGenerationErrorCode::all());

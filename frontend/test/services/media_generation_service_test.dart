@@ -13,6 +13,8 @@ class _MediaGenerationAdapter implements HttpClientAdapter {
   final bool failOnPoll;
   int submitCount = 0;
   int pollCount = 0;
+  String? submitPath;
+  String? pollPath;
 
   @override
   Future<ResponseBody> fetch(
@@ -22,6 +24,7 @@ class _MediaGenerationAdapter implements HttpClientAdapter {
   ) async {
     if (options.method == 'POST' && options.path.endsWith('/media-generations')) {
       submitCount += 1;
+      submitPath = options.path;
 
       return _jsonResponse({
         'success': true,
@@ -55,6 +58,7 @@ class _MediaGenerationAdapter implements HttpClientAdapter {
 
     if (options.method == 'GET' && options.path.contains('/media-generations/gen-123')) {
       pollCount += 1;
+      pollPath = options.path;
 
       if (failOnPoll) {
         return _jsonResponse({
@@ -223,10 +227,12 @@ void main() {
     expect(service.generationId, 'gen-123');
     expect(service.currentStatus, 'queued');
     expect(adapter.submitCount, 1);
+    expect(adapter.submitPath, '/media-generations');
 
     await service.pollNow();
 
     expect(adapter.pollCount, 1);
+    expect(adapter.pollPath, '/media-generations/gen-123');
     expect(service.state, MediaGenerationViewState.success);
     expect(service.currentStatus, 'completed');
     expect(service.deliveryPayload?['title'], 'Deck Termodinamika Kelas 11 siap digunakan');

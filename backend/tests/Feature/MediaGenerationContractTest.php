@@ -3,10 +3,16 @@
 namespace Tests\Feature;
 
 use App\MediaGeneration\MediaArtifactMetadataContract;
+use App\MediaGeneration\MediaDeliveryRequestContract;
+use App\MediaGeneration\MediaDeliveryResponseSchema;
 use App\MediaGeneration\MediaGenerationContractException;
 use App\MediaGeneration\MediaGenerationLifecycle;
 use App\MediaGeneration\MediaGenerationSpecContract;
+use App\MediaGeneration\MediaPromptInterpretationRequestContract;
 use App\MediaGeneration\MediaPromptInterpretationSchema;
+use App\Models\MediaGeneration;
+use App\Models\SubSubject;
+use App\Models\Subject;
 use Tests\TestCase;
 
 class MediaGenerationContractTest extends TestCase
@@ -63,6 +69,149 @@ class MediaGenerationContractTest extends TestCase
         $this->assertSame('pdf', $fallback['constraints']['preferred_output_type']);
         $this->assertSame('pdf', $fallback['output_type_candidates'][0]['type']);
         $this->assertSame('retry_interpretation', $fallback['fallback']['action']);
+    }
+
+    public function test_prompt_interpretation_request_contract_builds_stable_adapter_payload(): void
+    {
+        $subject = new Subject([
+            'name' => 'Matematika',
+            'slug' => 'matematika',
+        ]);
+        $subject->id = 10;
+
+        $subSubject = new SubSubject([
+            'subject_id' => $subject->id,
+            'name' => 'Pecahan',
+            'slug' => 'pecahan',
+        ]);
+        $subSubject->id = 11;
+        $subSubject->setRelation('subject', $subject);
+
+        $generation = new MediaGeneration([
+            'raw_prompt' => 'Buatkan handout pecahan untuk kelas 5.',
+            'preferred_output_type' => 'pdf',
+        ]);
+        $generation->id = 'gen-123';
+        $generation->setRelation('subject', $subject);
+        $generation->setRelation('subSubject', $subSubject);
+
+        $payload = MediaPromptInterpretationRequestContract::fromGeneration(
+            $generation,
+            'gpt-5.4',
+            'Return exactly one JSON object.'
+        );
+
+        $this->assertSame([
+            'request_type' => MediaPromptInterpretationRequestContract::REQUEST_TYPE,
+            'generation_id' => 'gen-123',
+            'model' => 'gpt-5.4',
+            'instruction' => 'Return exactly one JSON object.',
+            'input' => [
+                'teacher_prompt' => 'Buatkan handout pecahan untuk kelas 5.',
+                'preferred_output_type' => 'pdf',
+                'subject_context' => [
+                    'id' => 10,
+                    'name' => 'Matematika',
+                    'slug' => 'matematika',
+                ],
+                'sub_subject_context' => [
+                    'id' => 11,
+                    'name' => 'Pecahan',
+                    'slug' => 'pecahan',
+                ],
+            ],
+        ], $payload);
+    }
+
+    public function test_prompt_interpretation_request_contract_rejects_unsupported_fields(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        MediaPromptInterpretationRequestContract::validate([
+            'request_type' => MediaPromptInterpretationRequestContract::REQUEST_TYPE,
+            'generation_id' => 'gen-123',
+            'model' => 'gpt-5.4',
+            'instruction' => 'Return exactly one JSON object.',
+            'input' => [
+                'teacher_prompt' => 'Buatkan handout pecahan untuk kelas 5.',
+                'preferred_output_type' => 'pdf',
+                'subject_context' => null,
+                'sub_subject_context' => null,
+                'binary' => 'forbidden',
+            ],
+        ]);
+    }
+
+    public function test_delivery_request_contract_builds_metadata_only_payload(): void
+    {
+        $generation = new MediaGeneration([
+            'interpretation_payload' => [
+                'teacher_delivery_summary' => 'Bagikan file setelah pengantar singkat.',
+            ],
+            'generation_spec_payload' => [
+                'summary' => 'Handout untuk penguatan konsep pecahan.',
+            ],
+        ]);
+        $generation->id = 'gen-456';
+
+        $payload = MediaDeliveryRequestContract::fromGeneration(
+            $generation,
+            [
+                'artifact' => [
+                    'output_type' => 'pdf',
+                    'title' => 'Handout Pecahan Kelas 5',
+                    'file_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf',
+                    'thumbnail_url' => 'https://example.com/gallery/handout-pecahan-kelas-5.svg',
+                    'mime_type' => 'application/pdf',
+                    'filename' => 'handout-pecahan-kelas-5.pdf',
+                ],
+                'publication' => [
+                    'topic' => ['id' => 'topic-123', 'title' => 'Handout Pecahan Kelas 5'],
+                    'content' => ['id' => 'content-123', 'title' => 'Handout Pecahan Kelas 5', 'type' => 'brief', 'media_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf'],
+                    'recommended_project' => ['id' => 'project-123', 'title' => 'Handout Pecahan Kelas 5', 'project_file_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf'],
+                ],
+                'preview_summary' => 'Handout siap dipakai untuk penguatan konsep dan latihan singkat.',
+            ],
+            'gpt-5.4',
+            'Return exactly one JSON object.'
+        );
+
+        $this->assertSame(MediaDeliveryRequestContract::REQUEST_TYPE, $payload['request_type']);
+        $this->assertSame('gen-456', $payload['generation_id']);
+        $this->assertSame('Bagikan file setelah pengantar singkat.', $payload['input']['teacher_delivery_summary']);
+        $this->assertSame('Handout untuk penguatan konsep pecahan.', $payload['input']['generation_summary']);
+        $this->assertArrayNotHasKey('binary', $payload['input']['artifact']);
+        $this->assertArrayNotHasKey('base64', $payload['input']['artifact']);
+    }
+
+    public function test_delivery_request_contract_rejects_binary_fields(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        $payload = $this->validDeliveryRequestPayload();
+        $payload['input']['artifact']['binary'] = 'forbidden';
+
+        MediaDeliveryRequestContract::validate($payload);
+    }
+
+    public function test_delivery_response_schema_validates_supported_payload_and_json_only_instruction(): void
+    {
+        $payload = MediaDeliveryResponseSchema::validate($this->validDeliveryResponsePayload());
+
+        $this->assertSame(MediaDeliveryResponseSchema::VERSION, $payload['schema_version']);
+        $this->assertFalse($payload['fallback']['triggered']);
+        $this->assertStringContainsString('Return exactly one JSON object.', MediaDeliveryResponseSchema::llmInstruction());
+        $this->assertStringContainsString('Do not include any raw binary, base64, or attachment bytes.', MediaDeliveryResponseSchema::llmInstruction());
+    }
+
+    public function test_delivery_response_schema_rejects_unsupported_attachment_fields(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        $payload = $this->validDeliveryResponsePayload();
+        $payload['artifact']['binary'] = 'forbidden';
+
+        MediaDeliveryResponseSchema::validate($payload);
     }
 
     public function test_generation_spec_contract_normalizes_interpretation_payload_without_raw_prompt(): void
@@ -271,6 +420,75 @@ class MediaGenerationContractTest extends TestCase
                 'score' => 0.93,
                 'label' => 'high',
                 'rationale' => 'The prompt explicitly asks for a printable handout with examples and exercises.',
+            ],
+            'fallback' => [
+                'triggered' => false,
+                'reason_code' => null,
+                'action' => null,
+            ],
+        ];
+    }
+
+    private function validDeliveryRequestPayload(): array
+    {
+        return [
+            'request_type' => MediaDeliveryRequestContract::REQUEST_TYPE,
+            'generation_id' => 'gen-456',
+            'model' => 'gpt-5.4',
+            'instruction' => 'Return exactly one JSON object.',
+            'input' => [
+                'artifact' => [
+                    'output_type' => 'pdf',
+                    'title' => 'Handout Pecahan Kelas 5',
+                    'file_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf',
+                    'thumbnail_url' => 'https://example.com/gallery/handout-pecahan-kelas-5.svg',
+                    'mime_type' => 'application/pdf',
+                    'filename' => 'handout-pecahan-kelas-5.pdf',
+                ],
+                'publication' => [
+                    'topic' => ['id' => 'topic-123', 'title' => 'Handout Pecahan Kelas 5'],
+                    'content' => ['id' => 'content-123', 'title' => 'Handout Pecahan Kelas 5', 'type' => 'brief', 'media_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf'],
+                    'recommended_project' => ['id' => 'project-123', 'title' => 'Handout Pecahan Kelas 5', 'project_file_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf'],
+                ],
+                'preview_summary' => 'Handout siap dipakai untuk penguatan konsep dan latihan singkat.',
+                'teacher_delivery_summary' => 'Bagikan file setelah pengantar singkat.',
+                'generation_summary' => 'Handout untuk penguatan konsep pecahan.',
+            ],
+        ];
+    }
+
+    private function validDeliveryResponsePayload(): array
+    {
+        return [
+            'schema_version' => MediaDeliveryResponseSchema::VERSION,
+            'title' => 'Handout Pecahan Kelas 5 siap digunakan',
+            'preview_summary' => 'Handout ini cocok untuk penguatan konsep dan latihan singkat di kelas.',
+            'teacher_message' => 'Materi sudah siap dipakai. Tinjau bagian contoh soal sebelum dibagikan ke siswa.',
+            'recommended_next_steps' => [
+                'Baca cepat struktur materi sebelum kelas dimulai.',
+                'Bagikan file ke siswa setelah pengantar singkat.',
+            ],
+            'classroom_tips' => [
+                'Mulai dengan contoh sederhana sebelum latihan mandiri.',
+            ],
+            'artifact' => [
+                'output_type' => 'pdf',
+                'title' => 'Handout Pecahan Kelas 5',
+                'file_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf',
+                'thumbnail_url' => 'https://example.com/gallery/handout-pecahan-kelas-5.svg',
+                'mime_type' => 'application/pdf',
+                'filename' => 'handout-pecahan-kelas-5.pdf',
+            ],
+            'publication' => [
+                'topic' => ['id' => 'topic-123', 'title' => 'Handout Pecahan Kelas 5'],
+                'content' => ['id' => 'content-123', 'title' => 'Handout Pecahan Kelas 5', 'type' => 'brief', 'media_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf'],
+                'recommended_project' => ['id' => 'project-123', 'title' => 'Handout Pecahan Kelas 5', 'project_file_url' => 'https://example.com/materials/handout-pecahan-kelas-5.pdf'],
+            ],
+            'response_meta' => [
+                'generated_at' => '2026-04-08T10:00:00Z',
+                'llm_used' => true,
+                'provider' => 'llm-gateway',
+                'model' => 'gpt-5.4',
             ],
             'fallback' => [
                 'triggered' => false,
