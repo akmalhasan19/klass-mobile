@@ -124,74 +124,74 @@ Target akhir implementasi:
 
 ### 4.1 Unified Provider Interface
 
-- [ ] Buat interface internal provider client yang netral vendor.
-- [ ] Normalisasi request interpretation ke format internal adapter.
-- [ ] Normalisasi request delivery ke format internal adapter.
-- [ ] Normalisasi response provider menjadi raw completion yang dapat divalidasi terhadap schema internal.
-- [ ] Normalisasi metadata usage seperti tokens, latency, upstream request id, dan finish reason.
+- [x] Buat interface internal provider client yang netral vendor.
+- [x] Normalisasi request interpretation ke format internal adapter.
+- [x] Normalisasi request delivery ke format internal adapter.
+- [x] Normalisasi response provider menjadi raw completion yang dapat divalidasi terhadap schema internal.
+- [x] Normalisasi metadata usage seperti tokens, latency, upstream request id, dan finish reason.
 
 ### 4.2 Gemini Implementation
 
-- [ ] Implementasikan provider Gemini sebagai provider awal.
-- [ ] Petakan request internal ke format API Gemini.
-- [ ] Tangani extraction text/content Gemini ke string JSON yang bisa divalidasi.
-- [ ] Tangani error mapping Gemini ke error class adapter yang stabil.
-- [ ] Simpan metadata usage dan provider response reference untuk cost tracking.
+- [x] Implementasikan provider Gemini sebagai provider awal.
+- [x] Petakan request internal ke format API Gemini.
+- [x] Tangani extraction text/content Gemini ke string JSON yang bisa divalidasi.
+- [x] Tangani error mapping Gemini ke error class adapter yang stabil.
+- [x] Simpan metadata usage dan provider response reference untuk cost tracking.
 
 ### 4.3 OpenAI Readiness
 
-- [ ] Tambahkan abstraction points agar OpenAI bisa diaktifkan tanpa refactor kontrak adapter.
-- [ ] Siapkan env placeholders untuk OpenAI walau belum dipakai.
-- [ ] Definisikan mapping response OpenAI ke normalized adapter shape.
-- [ ] Pastikan provider switch cukup lewat config active provider.
+- [x] Tambahkan abstraction points agar OpenAI bisa diaktifkan tanpa refactor kontrak adapter.
+- [x] Siapkan env placeholders untuk OpenAI walau belum dipakai.
+- [x] Definisikan mapping response OpenAI ke normalized adapter shape.
+- [x] Pastikan provider switch cukup lewat config active provider.
 
 ### 4.4 Provider Routing Policy
 
-- [ ] Tentukan provider default untuk interpretation.
-- [ ] Tentukan provider default untuk delivery.
-- [ ] Tentukan apakah interpretation dan delivery boleh memakai provider berbeda.
-- [ ] Tentukan fallback policy bila provider utama down atau rate-limited.
+- [x] Tentukan provider default untuk interpretation.
+- [x] Tentukan provider default untuk delivery.
+- [x] Tentukan apakah interpretation dan delivery boleh memakai provider berbeda.
+- [x] Tentukan fallback policy bila provider utama down atau rate-limited.
 
 ## Phase 5 - Postgres State Layer
 
 ### 5.1 Database Topology
 
-- [ ] Sediakan Postgres terpisah untuk adapter service.
-- [ ] Pastikan adapter tidak memakai database backend sebagai state store operasional.
-- [ ] Tambahkan migration mechanism untuk adapter.
-- [ ] Tambahkan database settings dan connection pooling yang sesuai untuk Hugging Face deployment.
+- [x] Sediakan Postgres terpisah untuk adapter service.
+- [x] Pastikan adapter tidak memakai database backend sebagai state store operasional.
+- [x] Tambahkan migration mechanism untuk adapter.
+- [x] Tambahkan database settings dan connection pooling yang sesuai untuk Hugging Face deployment.
 
 ### 5.2 Cache Tables
 
-- [ ] Buat tabel cache untuk response interpretation.
-- [ ] Buat tabel cache untuk response delivery.
-- [ ] Definisikan `cache_key` berbasis normalized semantic request.
-- [ ] Pastikan `generation_id` tidak menjadi bagian cache key utama.
-- [ ] Simpan `response_payload`, `created_at`, `expires_at`, `hit_count`, dan `last_hit_at`.
-- [ ] Tambahkan index untuk TTL cleanup dan lookup cepat.
+- [x] Buat tabel cache untuk response interpretation.
+- [x] Buat tabel cache untuk response delivery.
+- [x] Definisikan `cache_key` berbasis normalized semantic request.
+- [x] Pastikan `generation_id` tidak menjadi bagian cache key utama.
+- [x] Simpan `response_payload`, `created_at`, `expires_at`, `hit_count`, dan `last_hit_at`.
+- [x] Tambahkan index untuk TTL cleanup dan lookup cepat.
 
 ### 5.3 Rate Limit Tables
 
-- [ ] Buat tabel rate-limit bucket berbasis provider/model/route.
-- [ ] Definisikan token bucket atau fixed-window strategy di Postgres.
-- [ ] Gunakan row locking atau atomic upsert untuk update aman saat multi-replica.
-- [ ] Tambahkan scope quota global, per provider, per model, dan per route type.
-- [ ] Tambahkan hard ceiling untuk daily usage atau cost ceiling.
+- [x] Buat tabel rate-limit bucket berbasis provider/model/route.
+- [x] Definisikan token bucket atau fixed-window strategy di Postgres.
+- [x] Gunakan row locking atau atomic upsert untuk update aman saat multi-replica.
+- [x] Tambahkan scope quota global, per provider, per model, dan per route type.
+- [x] Tambahkan hard ceiling untuk daily usage atau cost ceiling.
 
 ### 5.4 Cost Ledger Tables
 
-- [ ] Buat tabel request ledger untuk semua upstream LLM call.
-- [ ] Simpan request id, generation id, route type, provider, model, latency, retry count, cache hit/miss, dan status akhir.
-- [ ] Simpan token usage bila provider mengembalikannya.
-- [ ] Simpan estimated cost per request.
-- [ ] Simpan error class dan fallback indicator untuk analisis biaya vs kegagalan.
+- [x] Buat tabel request ledger untuk semua upstream LLM call.
+- [x] Simpan request id, generation id, route type, provider, model, latency, retry count, cache hit/miss, dan status akhir.
+- [x] Simpan token usage bila provider mengembalikannya.
+- [x] Simpan estimated cost per request.
+- [x] Simpan error class dan fallback indicator untuk analisis biaya vs kegagalan.
 
 ### 5.5 Pricing and Aggregation Tables
 
-- [ ] Buat tabel price catalog untuk provider/model pricing.
-- [ ] Tambahkan mekanisme agregasi harian atau view untuk pelaporan biaya.
-- [ ] Tambahkan agregasi per route type (`interpret`, `respond`).
-- [ ] Tambahkan agregasi cache effectiveness dan retry volume.
+- [x] Buat tabel price catalog untuk provider/model pricing.
+- [x] Tambahkan mekanisme agregasi harian atau view untuk pelaporan biaya.
+- [x] Tambahkan agregasi per route type (`interpret`, `respond`).
+- [x] Tambahkan agregasi cache effectiveness dan retry volume.
 
 ## Phase 6 - Caching Strategy Without Redis
 
@@ -345,7 +345,7 @@ Target akhir implementasi:
 - [ ] Tambahkan test untuk rate limit deny.
 - [ ] Tambahkan test untuk ledger write success/failure.
 - [ ] Tambahkan test untuk provider normalization Gemini.
-- [ ] Tambahkan test untuk provider switch readiness ke OpenAI.
+- [x] Tambahkan test untuk provider switch readiness ke OpenAI.
 
 ### 12.2 Backend Test Updates
 
@@ -409,9 +409,9 @@ Target akhir implementasi:
 - [x] App entrypoint/router.
 - [x] Auth layer.
 - [x] Provider abstraction layer.
-- [ ] Gemini client.
-- [ ] OpenAI-ready client abstraction.
-- [ ] Postgres models/migrations.
+- [x] Gemini client.
+- [x] OpenAI-ready client abstraction.
+- [x] Postgres models/migrations.
 - [ ] Cache service.
 - [ ] Rate limiting service.
 - [ ] Cost tracking service.

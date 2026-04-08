@@ -8,6 +8,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Request
 
 from app.contracts import LOGGER_NAME
+from app.database import close_database_pool, run_pending_migrations
 from app.logging import configure_logging
 from app.routes import health_router
 from app.settings import Settings, get_settings
@@ -28,7 +29,34 @@ async def lifespan(_: FastAPI):
             }
         },
     )
-    yield
+
+    if settings.database_auto_migrate and settings.database_url != "":
+        try:
+            applied_migrations = run_pending_migrations(settings)
+            logger.info(
+                "database_migrations_applied",
+                extra={
+                    "event_data": {
+                        "migration_count": len(applied_migrations),
+                        "migrations": [migration.name for migration in applied_migrations],
+                    }
+                },
+            )
+        except Exception as exc:
+            logger.warning(
+                "database_migrations_failed",
+                extra={
+                    "event_data": {
+                        "error_class": exc.__class__.__name__,
+                        "error_message": str(exc),
+                    }
+                },
+            )
+
+    try:
+        yield
+    finally:
+        close_database_pool()
 
 
 app = FastAPI(

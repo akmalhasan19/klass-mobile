@@ -82,3 +82,19 @@ def test_health_endpoint_returns_503_when_active_provider_is_missing_credentials
     assert payload["dependencies"]["providers"]["interpretation"]["missing_settings"] == [
         "LLM_ADAPTER_GEMINI_API_KEY"
     ]
+
+
+def test_health_endpoint_reports_openai_provider_ready_when_selected_via_active_route_config(client, monkeypatch) -> None:
+    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "openai")
+    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER", "openai")
+    monkeypatch.setenv("LLM_ADAPTER_OPENAI_API_KEY", "test-openai-key")
+    clear_settings_cache()
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["dependencies"]["providers"]["interpretation"]["provider"] == "openai"
+    assert payload["dependencies"]["providers"]["interpretation"]["ready"] is True
+    assert payload["dependencies"]["providers"]["delivery"]["provider"] == "openai"
+    assert payload["dependencies"]["providers"]["delivery"]["ready"] is True

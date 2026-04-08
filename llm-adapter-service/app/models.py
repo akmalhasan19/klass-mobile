@@ -2,16 +2,92 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.contracts import INTERPRET_REQUEST_TYPE, RESPOND_REQUEST_TYPE
 
 
-class HealthError(BaseModel):
+class AdapterBaseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class NamedContext(AdapterBaseModel):
+    id: int
+    name: str = Field(min_length=1, max_length=100)
+    slug: str | None = Field(default=None, max_length=100)
+
+
+class InterpretationRequestInput(AdapterBaseModel):
+    teacher_prompt: str = Field(min_length=1, max_length=5000)
+    preferred_output_type: Literal["auto", "docx", "pdf", "pptx"]
+    subject_context: NamedContext | None = None
+    sub_subject_context: NamedContext | None = None
+
+
+class InterpretationRequest(AdapterBaseModel):
+    request_type: Literal[INTERPRET_REQUEST_TYPE]
+    generation_id: str = Field(min_length=1, max_length=100)
+    model: str = Field(min_length=1, max_length=200)
+    instruction: str = Field(min_length=1, max_length=20000)
+    input: InterpretationRequestInput
+
+
+class DeliveryArtifact(AdapterBaseModel):
+    output_type: Literal["docx", "pdf", "pptx"]
+    title: str = Field(min_length=1, max_length=200)
+    file_url: str = Field(min_length=1, max_length=2048)
+    thumbnail_url: str | None = Field(default=None, max_length=2048)
+    mime_type: str = Field(min_length=1, max_length=255)
+    filename: str | None = Field(default=None, max_length=255)
+
+
+class DeliveryTopicNode(AdapterBaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    title: str = Field(min_length=1, max_length=200)
+
+
+class DeliveryContentNode(AdapterBaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    title: str = Field(min_length=1, max_length=200)
+    type: str | None = Field(default=None, max_length=100)
+    media_url: str | None = Field(default=None, max_length=2048)
+
+
+class DeliveryRecommendedProjectNode(AdapterBaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    title: str = Field(min_length=1, max_length=200)
+    project_file_url: str | None = Field(default=None, max_length=2048)
+
+
+class DeliveryPublication(AdapterBaseModel):
+    topic: DeliveryTopicNode | None = None
+    content: DeliveryContentNode | None = None
+    recommended_project: DeliveryRecommendedProjectNode | None = None
+
+
+class DeliveryRequestInput(AdapterBaseModel):
+    artifact: DeliveryArtifact
+    publication: DeliveryPublication
+    preview_summary: str = Field(min_length=1, max_length=1000)
+    teacher_delivery_summary: str | None = Field(default=None, max_length=1000)
+    generation_summary: str | None = Field(default=None, max_length=2000)
+
+
+class DeliveryRequest(AdapterBaseModel):
+    request_type: Literal[RESPOND_REQUEST_TYPE]
+    generation_id: str = Field(min_length=1, max_length=100)
+    model: str = Field(min_length=1, max_length=200)
+    instruction: str = Field(min_length=1, max_length=20000)
+    input: DeliveryRequestInput
+
+
+class HealthError(AdapterBaseModel):
     code: str
     message: str
     detail: str | None = None
 
 
-class PostgresReadiness(BaseModel):
+class PostgresReadiness(AdapterBaseModel):
     configured: bool
     ready: bool
     driver: str | None = None
@@ -20,7 +96,7 @@ class PostgresReadiness(BaseModel):
     error: HealthError | None = None
 
 
-class ProviderReadiness(BaseModel):
+class ProviderReadiness(AdapterBaseModel):
     route: str
     provider: str
     configured: bool
@@ -30,17 +106,17 @@ class ProviderReadiness(BaseModel):
     error: HealthError | None = None
 
 
-class ProviderDependencyReadiness(BaseModel):
+class ProviderDependencyReadiness(AdapterBaseModel):
     interpretation: ProviderReadiness
     delivery: ProviderReadiness
 
 
-class DependencyReadiness(BaseModel):
+class DependencyReadiness(AdapterBaseModel):
     postgres: PostgresReadiness
     providers: ProviderDependencyReadiness
 
 
-class AuthReadiness(BaseModel):
+class AuthReadiness(AdapterBaseModel):
     ready: bool
     configured: bool
     rotation_enabled: bool
@@ -49,7 +125,7 @@ class AuthReadiness(BaseModel):
     signature_algorithm: str
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(AdapterBaseModel):
     schema_version: str
     status: Literal["ready", "degraded"]
     ready: bool
