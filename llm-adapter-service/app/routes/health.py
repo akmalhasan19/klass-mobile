@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Response, status
 from app.auth import auth_readiness_payload
 from app.contracts import HEALTH_SCHEMA_VERSION
 from app.database import get_database_readiness
+from app.governance import build_governance_health_payload
 from app.models import HealthResponse
 from app.providers import get_provider_readiness
 from app.settings import Settings, get_settings
@@ -18,12 +19,17 @@ def build_health_payload(settings: Settings) -> dict[str, object]:
     postgres = get_database_readiness(settings)
     providers = get_provider_readiness(settings)
     auth = auth_readiness_payload(settings)
+    governance = build_governance_health_payload(
+        settings,
+        postgres_ready=bool(postgres["ready"]),
+    )
 
     ready = (
         bool(postgres["ready"])
         and bool(providers["interpretation"]["ready"])
         and bool(providers["delivery"]["ready"])
         and bool(auth["ready"])
+        and bool(governance["ready"])
     )
 
     payload = HealthResponse.model_validate(
@@ -39,6 +45,7 @@ def build_health_payload(settings: Settings) -> dict[str, object]:
                 "providers": providers,
             },
             "auth": auth,
+            "governance": governance,
         }
     )
 

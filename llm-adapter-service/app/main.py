@@ -6,11 +6,13 @@ from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from app.contracts import LOGGER_NAME
 from app.database import close_database_pool, run_pending_migrations
+from app.errors import AdapterError, serialize_adapter_error
 from app.logging import configure_logging
-from app.routes import health_router
+from app.routes import health_router, interpret_router, ops_router, respond_router
 from app.settings import Settings, get_settings
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -66,6 +68,28 @@ app = FastAPI(
 )
 
 app.include_router(health_router)
+app.include_router(interpret_router)
+app.include_router(ops_router)
+app.include_router(respond_router)
+
+
+@app.exception_handler(AdapterError)
+async def handle_adapter_error(request: Request, exc: AdapterError) -> JSONResponse:
+    logger.warning(
+        "adapter_error",
+        extra={
+            "event_data": {
+                "request_id": getattr(request.state, "request_id", None),
+                "path": request.url.path,
+                "error_code": exc.code,
+                "status_code": exc.status_code,
+            }
+        },
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=serialize_adapter_error(exc),
+    )
 
 
 @app.middleware("http")

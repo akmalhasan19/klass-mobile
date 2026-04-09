@@ -46,10 +46,10 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
         ]);
 
         config([
-            'services.media_generation.interpreter.base_url' => 'https://llm.example',
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
             'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
-            'services.media_generation.interpreter.model' => 'gpt-5.4',
-            'services.media_generation.interpreter.provider' => 'llm-gateway',
+            'services.media_generation.interpreter.model' => 'adapter-managed',
+            'services.media_generation.interpreter.provider' => 'llm-adapter',
         ]);
 
         Http::fake([
@@ -61,15 +61,23 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
                         ],
                     ],
                 ],
-            ], 200),
+            ], 200, [
+                'X-Klass-LLM-Provider' => 'gemini',
+                'X-Klass-LLM-Model' => 'gemini-2.0-flash',
+                'X-Klass-LLM-Primary-Provider' => 'gemini',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ]),
         ]);
 
         $result = (new MediaPromptInterpretationService())->interpret($generation);
 
-        $this->assertSame('llm-gateway', $result->llm_provider);
-        $this->assertSame('gpt-5.4', $result->llm_model);
+        $this->assertSame('gemini', $result->llm_provider);
+        $this->assertSame('gemini-2.0-flash', $result->llm_model);
         $this->assertSame(MediaPromptInterpretationSchema::VERSION, data_get($result->interpretation_payload, 'schema_version'));
         $this->assertFalse((bool) data_get($result->interpretation_audit_payload, 'response.used_fallback'));
+        $this->assertSame('gemini', data_get($result->interpretation_audit_payload, 'provider.name'));
+        $this->assertSame('gemini-2.0-flash', data_get($result->interpretation_audit_payload, 'provider.model'));
+        $this->assertTrue((bool) data_get($result->interpretation_audit_payload, 'provider.reported_by_adapter'));
         $this->assertSame(
             'Buatkan handout pecahan untuk kelas 5 dengan contoh dan latihan singkat.',
             data_get($result->interpretation_audit_payload, 'request.input.teacher_prompt')
@@ -99,7 +107,7 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
                 && $payload === [
                     'request_type' => 'media_prompt_interpretation',
                     'generation_id' => $generation->id,
-                    'model' => 'gpt-5.4',
+                    'model' => 'adapter-managed',
                     'instruction' => MediaPromptInterpretationSchema::llmInstruction(),
                     'input' => [
                         'teacher_prompt' => 'Buatkan handout pecahan untuk kelas 5 dengan contoh dan latihan singkat.',
@@ -130,7 +138,7 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
         ]);
 
         config([
-            'services.media_generation.interpreter.base_url' => 'https://llm.example',
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
             'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
         ]);
 

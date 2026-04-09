@@ -197,154 +197,154 @@ Target akhir implementasi:
 
 ### 6.1 Cache Key and TTL Policy
 
-- [ ] Definisikan cache key yang memasukkan schema version, provider alias, model, instruction, dan normalized input.
-- [ ] Pisahkan TTL interpretation dan delivery sesuai karakter workload.
-- [ ] Tentukan rule invalidation ketika schema version naik.
-- [ ] Tentukan rule invalidation ketika provider/model berubah.
+- [x] Definisikan cache key yang memasukkan schema version, provider alias, model, instruction, dan normalized input.
+- [x] Pisahkan TTL interpretation dan delivery sesuai karakter workload.
+- [x] Tentukan rule invalidation ketika schema version naik.
+- [x] Tentukan rule invalidation ketika provider/model berubah.
 
 ### 6.2 Cache Stampede Protection
 
-- [ ] Tambahkan mekanisme in-flight lock menggunakan Postgres advisory lock atau row uniqueness.
-- [ ] Pastikan hanya satu upstream request berjalan untuk cache key yang sama pada saat yang sama.
-- [ ] Pastikan request lain dapat menunggu hasil in-flight atau gagal cepat dengan alasan yang jelas.
+- [x] Tambahkan mekanisme in-flight lock menggunakan Postgres advisory lock atau row uniqueness.
+- [x] Pastikan hanya satu upstream request berjalan untuk cache key yang sama pada saat yang sama.
+- [x] Pastikan request lain dapat menunggu hasil in-flight atau gagal cepat dengan alasan yang jelas.
 
 ### 6.3 Cache Cleanup Strategy
 
-- [ ] Tambahkan lazy cleanup untuk entri yang expired.
-- [ ] Tambahkan maintenance task atau endpoint opsional untuk cleanup manual.
-- [ ] Pastikan cleanup tidak menjadi syarat cron eksternal yang rapuh.
+- [x] Tambahkan lazy cleanup untuk entri yang expired.
+- [x] Tambahkan maintenance task atau endpoint opsional untuk cleanup manual.
+- [x] Pastikan cleanup tidak menjadi syarat cron eksternal yang rapuh.
 
 ## Phase 7 - Postgres-Based Rate Limiting
 
 ### 7.1 Interpretation Rate Limiting
 
-- [ ] Tentukan limit per menit dan per jam untuk route interpretation.
-- [ ] Tambahkan guard sebelum provider call dilakukan.
-- [ ] Pastikan exceed quota menghasilkan response error yang terstruktur.
-- [ ] Pastikan retry backend tidak memperburuk limit drift secara tidak terkontrol.
+- [x] Tentukan limit per menit dan per jam untuk route interpretation.
+- [x] Tambahkan guard sebelum provider call dilakukan.
+- [x] Pastikan exceed quota menghasilkan response error yang terstruktur.
+- [x] Pastikan retry backend tidak memperburuk limit drift secara tidak terkontrol.
 
 ### 7.2 Delivery Rate Limiting
 
-- [ ] Tentukan limit terpisah untuk route delivery.
-- [ ] Pertimbangkan bahwa delivery bisa lebih ringan atau lebih murah daripada interpretation.
-- [ ] Pastikan delivery route dapat dimatikan sementara tanpa memutus flow backend karena fallback sudah ada.
+- [x] Tentukan limit terpisah untuk route delivery.
+- [x] Pertimbangkan bahwa delivery bisa lebih ringan atau lebih murah daripada interpretation.
+- [x] Pastikan delivery route dapat dimatikan sementara tanpa memutus flow backend karena fallback sudah ada.
 
 ### 7.3 Budget Enforcement
 
-- [ ] Tambahkan daily budget ceiling berbasis cost estimate.
-- [ ] Tambahkan rule deny atau degrade mode jika budget habis.
-- [ ] Tambahkan observability agar operator tahu kapan budget mendekati limit.
+- [x] Tambahkan daily budget ceiling berbasis cost estimate.
+- [x] Tambahkan rule deny atau degrade mode jika budget habis.
+- [x] Tambahkan observability agar operator tahu kapan budget mendekati limit.
 
 ## Phase 8 - Cost Tracking and Observability
 
 ### 8.1 Request Ledger Write Path
 
-- [ ] Catat request ledger untuk success path.
-- [ ] Catat request ledger untuk failure path.
-- [ ] Catat request ledger untuk cache hit path.
-- [ ] Catat request ledger untuk fallback path.
-- [ ] Catat upstream request id jika tersedia.
+- [x] Catat request ledger untuk success path.
+- [x] Catat request ledger untuk failure path.
+- [x] Catat request ledger untuk cache hit path.
+- [x] Catat request ledger untuk fallback path.
+- [x] Catat upstream request id jika tersedia.
 
 ### 8.2 Usage and Cost Model
 
-- [ ] Normalisasi token usage dari Gemini.
-- [ ] Siapkan field yang kompatibel untuk OpenAI usage model.
-- [ ] Hitung estimated cost berdasarkan price catalog.
-- [ ] Bedakan cost aktual provider vs estimated cost internal jika diperlukan.
+- [x] Normalisasi token usage dari Gemini.
+- [x] Siapkan field yang kompatibel untuk OpenAI usage model.
+- [x] Hitung estimated cost berdasarkan price catalog.
+- [x] Bedakan cost aktual provider vs estimated cost internal jika diperlukan.
 
 ### 8.3 Operator Visibility
 
-- [ ] Tambahkan metrics minimal untuk latency, cache hit ratio, deny rate, dan cost volume.
-- [ ] Tambahkan endpoint atau query pattern untuk dashboard operasional.
-- [ ] Pastikan operator dapat melihat provider mana yang aktif untuk interpretation dan delivery.
+- [x] Tambahkan metrics minimal untuk latency, cache hit ratio, deny rate, dan cost volume.
+- [x] Tambahkan endpoint atau query pattern untuk dashboard operasional.
+- [x] Pastikan operator dapat melihat provider mana yang aktif untuk interpretation dan delivery.
 
 ## Phase 9 - Interpretation Endpoint Implementation
 
 ### 9.1 Request Validation
 
-- [ ] Validasi `request_type = media_prompt_interpretation`.
-- [ ] Validasi shape field `input` sesuai kontrak backend.
-- [ ] Validasi presence `teacher_prompt` dan `preferred_output_type`.
-- [ ] Validasi bahwa unsupported output type ditolak lebih awal.
+- [x] Validasi `request_type = media_prompt_interpretation`.
+- [x] Validasi shape field `input` sesuai kontrak backend.
+- [x] Validasi presence `teacher_prompt` dan `preferred_output_type`.
+- [x] Validasi bahwa unsupported output type ditolak lebih awal.
 
 ### 9.2 Processing Flow
 
-- [ ] Terapkan rate-limit check sebelum provider call.
-- [ ] Cek cache sebelum provider call.
-- [ ] Jika miss, panggil provider aktif.
-- [ ] Normalisasi raw provider response menjadi string JSON kandidat.
-- [ ] Validasi hasil terhadap `MediaPromptInterpretationSchema`.
-- [ ] Jika valid, simpan cache dan ledger.
-- [ ] Jika tidak valid, kembalikan response yang membuat backend memicu fallback schema lokal sesuai kontrak sekarang.
+- [x] Terapkan rate-limit check sebelum provider call.
+- [x] Cek cache sebelum provider call.
+- [x] Jika miss, panggil provider aktif.
+- [x] Normalisasi raw provider response menjadi string JSON kandidat.
+- [x] Validasi hasil terhadap `MediaPromptInterpretationSchema`.
+- [x] Jika valid, simpan cache dan ledger.
+- [x] Jika tidak valid, kembalikan response yang membuat backend memicu fallback schema lokal sesuai kontrak sekarang.
 
 ### 9.3 Error Handling
 
-- [ ] Petakan timeout provider ke error adapter yang eksplisit.
-- [ ] Petakan auth/provider config failure ke error adapter yang eksplisit.
-- [ ] Pastikan response gagal tetap cukup informatif untuk audit backend tanpa membocorkan credential.
+- [x] Petakan timeout provider ke error adapter yang eksplisit.
+- [x] Petakan auth/provider config failure ke error adapter yang eksplisit.
+- [x] Pastikan response gagal tetap cukup informatif untuk audit backend tanpa membocorkan credential.
 
 ## Phase 10 - Delivery Endpoint Implementation
 
 ### 10.1 Request Validation
 
-- [ ] Validasi `request_type = media_delivery_response`.
-- [ ] Validasi shape `artifact`, `publication`, `preview_summary`, dan context lainnya.
-- [ ] Pastikan binary/raw file tidak diterima sebagai mandatory input.
+- [x] Validasi `request_type = media_delivery_response`.
+- [x] Validasi shape `artifact`, `publication`, `preview_summary`, dan context lainnya.
+- [x] Pastikan binary/raw file tidak diterima sebagai mandatory input.
 
 ### 10.2 Processing Flow
 
-- [ ] Terapkan rate-limit check sebelum provider call.
-- [ ] Cek cache delivery sebelum provider call.
-- [ ] Jika miss, panggil provider aktif.
-- [ ] Normalisasi raw provider response ke JSON kandidat.
-- [ ] Validasi hasil terhadap `MediaDeliveryResponseSchema`.
-- [ ] Simpan cache dan ledger untuk hasil yang valid.
+- [x] Terapkan rate-limit check sebelum provider call.
+- [x] Cek cache delivery sebelum provider call.
+- [x] Jika miss, panggil provider aktif.
+- [x] Normalisasi raw provider response ke JSON kandidat.
+- [x] Validasi hasil terhadap `MediaDeliveryResponseSchema`.
+- [x] Simpan cache dan ledger untuk hasil yang valid.
 
 ### 10.3 Fallback Compatibility
 
-- [ ] Pastikan adapter dapat mengembalikan failure terstruktur bila delivery gagal.
-- [ ] Pastikan backend tetap bisa menggunakan fallback lokal yang sudah ada bila adapter unavailable atau response invalid.
+- [x] Pastikan adapter dapat mengembalikan failure terstruktur bila delivery gagal.
+- [x] Pastikan backend tetap bisa menggunakan fallback lokal yang sudah ada bila adapter unavailable atau response invalid.
 
 ## Phase 11 - Backend Integration Changes
 
 ### 11.1 Config Refactor
 
-- [ ] Refactor `backend/config/services.php` agar interpretation dan delivery mengarah ke adapter service yang sama.
-- [ ] Tambahkan env baru untuk adapter base URL.
-- [ ] Tambahkan env baru untuk auth secret adapter.
-- [ ] Tambahkan env request max age atau auth skew settings.
-- [ ] Tambahkan env service name/version bila diperlukan untuk observability.
+- [x] Refactor `backend/config/services.php` agar interpretation dan delivery mengarah ke adapter service yang sama.
+- [x] Tambahkan env baru untuk adapter base URL.
+- [x] Tambahkan env baru untuk auth secret adapter.
+- [x] Tambahkan env request max age atau auth skew settings.
+- [x] Tambahkan env service name/version bila diperlukan untuk observability.
 
 ### 11.2 .env Example Update
 
-- [ ] Tambahkan env adapter ke `backend/.env.example`.
-- [ ] Jelaskan hubungan antara backend, adapter, dan python renderer pada comment block env.
-- [ ] Tambahkan contoh host adapter Hugging Face Space.
+- [x] Tambahkan env adapter ke `backend/.env.example`.
+- [x] Jelaskan hubungan antara backend, adapter, dan python renderer pada comment block env.
+- [x] Tambahkan contoh host adapter Hugging Face Space.
 
 ### 11.3 Service Layer Update
 
-- [ ] Ubah `MediaPromptInterpretationService` agar berbicara ke adapter, bukan ke vendor LLM langsung.
-- [ ] Ubah `MediaDeliveryResponseService` agar berbicara ke adapter yang sama.
-- [ ] Pertimbangkan migrasi dari Bearer auth ke signed request auth untuk adapter.
-- [ ] Pastikan audit payload backend tetap mencatat provider dan model yang dilaporkan adapter.
+- [x] Ubah `MediaPromptInterpretationService` agar berbicara ke adapter, bukan ke vendor LLM langsung.
+- [x] Ubah `MediaDeliveryResponseService` agar berbicara ke adapter yang sama.
+- [x] Pertimbangkan migrasi dari Bearer auth ke signed request auth untuk adapter.
+- [x] Pastikan audit payload backend tetap mencatat provider dan model yang dilaporkan adapter.
 
 ### 11.4 Non-Breaking Backend Flow
 
-- [ ] Pastikan `MediaGenerationWorkflowService` tetap tidak berubah secara domain.
-- [ ] Pastikan queue worker backend tetap satu mekanisme utama untuk async orchestration.
-- [ ] Pastikan backend tetap tidak perlu mengetahui detail implementasi Gemini atau OpenAI.
+- [x] Pastikan `MediaGenerationWorkflowService` tetap tidak berubah secara domain.
+- [x] Pastikan queue worker backend tetap satu mekanisme utama untuk async orchestration.
+- [x] Pastikan backend tetap tidak perlu mengetahui detail implementasi Gemini atau OpenAI.
 
 ## Phase 12 - Testing and Quality Gates
 
 ### 12.1 Adapter Automated Tests
 
-- [ ] Tambahkan contract test untuk `/v1/interpret`.
-- [ ] Tambahkan contract test untuk `/v1/respond`.
-- [ ] Tambahkan test untuk signed auth success dan failure.
-- [ ] Tambahkan test untuk cache hit/miss.
-- [ ] Tambahkan test untuk rate limit deny.
-- [ ] Tambahkan test untuk ledger write success/failure.
-- [ ] Tambahkan test untuk provider normalization Gemini.
+- [x] Tambahkan contract test untuk `/v1/interpret`.
+- [x] Tambahkan contract test untuk `/v1/respond`.
+- [x] Tambahkan test untuk signed auth success dan failure.
+- [x] Tambahkan test untuk cache hit/miss.
+- [x] Tambahkan test untuk rate limit deny.
+- [x] Tambahkan test untuk ledger write success/failure.
+- [x] Tambahkan test untuk provider normalization Gemini.
 - [x] Tambahkan test untuk provider switch readiness ke OpenAI.
 
 ### 12.2 Backend Test Updates
@@ -412,9 +412,9 @@ Target akhir implementasi:
 - [x] Gemini client.
 - [x] OpenAI-ready client abstraction.
 - [x] Postgres models/migrations.
-- [ ] Cache service.
-- [ ] Rate limiting service.
-- [ ] Cost tracking service.
+- [x] Cache service.
+- [x] Rate limiting service.
+- [x] Cost tracking service.
 - [x] Health checks.
 - [x] Tests.
 

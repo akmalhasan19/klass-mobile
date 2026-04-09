@@ -406,10 +406,10 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
         ]);
 
         config([
-            'services.media_generation.delivery.base_url' => 'https://llm.example',
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
             'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
-            'services.media_generation.delivery.provider' => 'llm-gateway',
-            'services.media_generation.delivery.model' => 'gpt-5.4',
+            'services.media_generation.delivery.provider' => 'llm-adapter',
+            'services.media_generation.delivery.model' => 'adapter-managed',
         ]);
 
         Http::fake([
@@ -445,7 +445,7 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
                                 'response_meta' => [
                                     'generated_at' => now()->toISOString(),
                                     'llm_used' => true,
-                                    'provider' => 'llm-gateway',
+                                    'provider' => 'openai',
                                     'model' => 'gpt-5.4',
                                 ],
                                 'fallback' => [
@@ -457,7 +457,13 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
                         ],
                     ],
                 ],
-            ], 200),
+            ], 200, [
+                'X-Klass-LLM-Provider' => 'openai',
+                'X-Klass-LLM-Model' => 'gpt-5.4',
+                'X-Klass-LLM-Primary-Provider' => 'gemini',
+                'X-Klass-LLM-Fallback-Used' => 'true',
+                'X-Klass-LLM-Fallback-Reason' => 'provider_rate_limited',
+            ]),
         ]);
 
         $result = (new MediaDeliveryResponseService())->compose($generation);
@@ -465,6 +471,8 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
         $this->assertSame(MediaDeliveryResponseSchema::VERSION, data_get($result->delivery_payload, 'schema_version'));
         $this->assertFalse((bool) data_get($result->delivery_payload, 'fallback.triggered'));
         $this->assertTrue((bool) data_get($result->delivery_payload, 'response_meta.llm_used'));
+        $this->assertSame('openai', data_get($result->delivery_payload, 'response_meta.provider'));
+        $this->assertSame('gpt-5.4', data_get($result->delivery_payload, 'response_meta.model'));
         $this->assertSame('https://example.com/materials/handout-aljabar-kelas-8.docx', data_get($result->delivery_payload, 'artifact.file_url'));
 
         Http::assertSent(function (Request $request): bool {
@@ -509,7 +517,10 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
             ],
         ]);
 
-        config(['services.media_generation.delivery.base_url' => null]);
+        config([
+            'services.media_generation.llm_adapter.base_url' => null,
+            'services.media_generation.delivery.base_url' => null,
+        ]);
 
         $result = (new MediaDeliveryResponseService())->compose($generation);
 

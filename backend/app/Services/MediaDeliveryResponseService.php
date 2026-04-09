@@ -5,7 +5,9 @@ namespace App\Services;
 use App\MediaGeneration\MediaDeliveryRequestContract;
 use App\MediaGeneration\MediaDeliveryResponseSchema;
 use App\MediaGeneration\MediaGenerationContractException;
+use App\MediaGeneration\MediaGenerationServiceException;
 use App\Models\MediaGeneration;
+use App\Services\Concerns\InteractsWithLlmAdapter;
 use Exception;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
@@ -14,6 +16,8 @@ use JsonException;
 
 class MediaDeliveryResponseService
 {
+    use InteractsWithLlmAdapter;
+
     public function __construct(
         protected ?HttpFactory $http = null,
         protected ?InterServiceRequestSigner $requestSigner = null,
@@ -46,17 +50,25 @@ class MediaDeliveryResponseService
 
             $rawContent = $this->extractRawContent($response);
             $decoded = $this->decodeJsonPayload($rawContent);
+            $adapterMetadata = $this->resolveLlmAdapterResponseMetadata(
+                $response,
+                $this->provider(),
+                $this->model(),
+            );
             $deliveryPayload = MediaDeliveryResponseSchema::validate(array_replace_recursive($decoded, [
                 'response_meta' => [
-                    'generated_at' => now()->toISOString(),
-                    'llm_used' => true,
-                    'provider' => $this->provider(),
-                    'model' => $this->model(),
+                    'generated_at' => is_string(data_get($decoded, 'response_meta.generated_at'))
+                        && trim((string) data_get($decoded, 'response_meta.generated_at')) !== ''
+                            ? trim((string) data_get($decoded, 'response_meta.generated_at'))
+                            : now()->toISOString(),
+                    'llm_used' => (bool) data_get($decoded, 'response_meta.llm_used', true),
+                    'provider' => $adapterMetadata['provider'],
+                    'model' => $adapterMetadata['model'],
                 ],
                 'fallback' => [
-                    'triggered' => false,
-                    'reason_code' => null,
-                    'action' => null,
+                    'triggered' => (bool) data_get($decoded, 'fallback.triggered', false),
+                    'reason_code' => data_get($decoded, 'fallback.reason_code'),
+                    'action' => data_get($decoded, 'fallback.action'),
                 ],
             ]));
         } catch (Exception $exception) {
@@ -122,7 +134,7 @@ class MediaDeliveryResponseService
     {
         return is_string($generation->file_url)
             && trim($generation->file_url) !== ''
-            && trim((string) config('services.media_generation.delivery.base_url')) !== '';
+            && $this->llmAdapterConfigured('delivery');
     }
 
     /**
@@ -130,8 +142,17 @@ class MediaDeliveryResponseService
      */
     protected function sendDeliveryRequest(MediaGeneration $generation, array $context): Response
     {
+        $baseUrl = $this->llmAdapterBaseUrl('delivery');
+
+        if ($baseUrl === '') {
+            throw MediaGenerationServiceException::llmContractFailed(
+                'Media delivery response service is not configured.',
+                ['config' => 'services.media_generation.llm_adapter.base_url']
+            );
+        }
+
         $request = $this->http()
-            ->baseUrl(rtrim((string) config('services.media_generation.delivery.base_url'), '/'))
+            ->baseUrl($baseUrl)
             ->acceptJson()
             ->timeout($this->timeoutSeconds())
             ->connectTimeout($this->connectTimeoutSeconds())
@@ -328,12 +349,12 @@ class MediaDeliveryResponseService
 
     protected function provider(): string
     {
-        return trim((string) config('services.media_generation.delivery.provider', 'llm-gateway'));
+        return trim((string) config('services.media_generation.delivery.provider', 'llm-adapter'));
     }
 
     protected function model(): string
     {
-        return trim((string) config('services.media_generation.delivery.model', 'gpt-5.4'));
+        return trim((string) config('services.media_generation.delivery.model', 'adapter-managed'));
     }
 
     protected function path(): string

@@ -37,13 +37,25 @@ return [
 
     'media_generation' => [
         'llm_adapter' => [
+            'base_url' => env(
+                'MEDIA_GENERATION_LLM_ADAPTER_BASE_URL',
+                env('MEDIA_GENERATION_INTERPRETER_BASE_URL', env('MEDIA_GENERATION_DELIVERY_BASE_URL')),
+            ),
+            'health_path' => env('MEDIA_GENERATION_LLM_ADAPTER_HEALTH_PATH', '/v1/health'),
             'shared_secret' => env('MEDIA_GENERATION_LLM_ADAPTER_SHARED_SECRET'),
+            'request_max_age_seconds' => (int) env('MEDIA_GENERATION_LLM_ADAPTER_REQUEST_MAX_AGE_SECONDS', 300),
+            'clock_skew_seconds' => (int) env('MEDIA_GENERATION_LLM_ADAPTER_CLOCK_SKEW_SECONDS', 30),
+            'service_name' => env('MEDIA_GENERATION_LLM_ADAPTER_SERVICE_NAME', 'llm-adapter-service'),
+            'service_version' => env('MEDIA_GENERATION_LLM_ADAPTER_SERVICE_VERSION'),
         ],
         'interpreter' => [
-            'base_url' => env('MEDIA_GENERATION_INTERPRETER_BASE_URL'),
+            'base_url' => env(
+                'MEDIA_GENERATION_LLM_ADAPTER_BASE_URL',
+                env('MEDIA_GENERATION_INTERPRETER_BASE_URL'),
+            ),
             'path' => env('MEDIA_GENERATION_INTERPRETER_PATH', '/v1/interpret'),
-            'provider' => env('MEDIA_GENERATION_INTERPRETER_PROVIDER', 'llm-gateway'),
-            'model' => env('MEDIA_GENERATION_INTERPRETER_MODEL', 'gpt-5.4'),
+            'provider' => env('MEDIA_GENERATION_INTERPRETER_PROVIDER', 'llm-adapter'),
+            'model' => env('MEDIA_GENERATION_INTERPRETER_MODEL', 'adapter-managed'),
             'timeout_seconds' => (float) env('MEDIA_GENERATION_INTERPRETER_TIMEOUT_SECONDS', 30),
             'connect_timeout_seconds' => (float) env('MEDIA_GENERATION_INTERPRETER_CONNECT_TIMEOUT_SECONDS', 10),
             'retry_attempts' => (int) env('MEDIA_GENERATION_INTERPRETER_RETRY_ATTEMPTS', 2),
@@ -62,10 +74,13 @@ return [
             'retry_sleep_milliseconds' => (int) env('MEDIA_GENERATION_PYTHON_RETRY_SLEEP_MILLISECONDS', 500),
         ],
         'delivery' => [
-            'base_url' => env('MEDIA_GENERATION_DELIVERY_BASE_URL'),
+            'base_url' => env(
+                'MEDIA_GENERATION_LLM_ADAPTER_BASE_URL',
+                env('MEDIA_GENERATION_DELIVERY_BASE_URL'),
+            ),
             'path' => env('MEDIA_GENERATION_DELIVERY_PATH', '/v1/respond'),
-            'provider' => env('MEDIA_GENERATION_DELIVERY_PROVIDER', 'llm-gateway'),
-            'model' => env('MEDIA_GENERATION_DELIVERY_MODEL', 'gpt-5.4'),
+            'provider' => env('MEDIA_GENERATION_DELIVERY_PROVIDER', 'llm-adapter'),
+            'model' => env('MEDIA_GENERATION_DELIVERY_MODEL', 'adapter-managed'),
             'timeout_seconds' => (float) env('MEDIA_GENERATION_DELIVERY_TIMEOUT_SECONDS', 30),
             'connect_timeout_seconds' => (float) env('MEDIA_GENERATION_DELIVERY_CONNECT_TIMEOUT_SECONDS', 10),
             'retry_attempts' => (int) env('MEDIA_GENERATION_DELIVERY_RETRY_ATTEMPTS', 2),

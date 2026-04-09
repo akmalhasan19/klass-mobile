@@ -125,6 +125,28 @@ class AuthReadiness(AdapterBaseModel):
     signature_algorithm: str
 
 
+class GovernanceRouteStatus(AdapterBaseModel):
+    route: Literal["interpret", "respond"]
+    enabled: bool
+    exhausted_action: Literal["deny", "degrade"]
+    request_limit_per_minute: int = Field(ge=0)
+    request_limit_per_hour: int = Field(ge=0)
+    daily_budget_usd: str
+    spent_budget_usd: str | None = None
+    remaining_budget_usd: str | None = None
+    projected_next_request_cost_usd: str
+    utilization_ratio: float | None = None
+    budget_status: Literal["healthy", "warning", "exhausted", "disabled", "unavailable"]
+    next_request_would_exhaust_budget: bool | None = None
+
+
+class GovernanceReadiness(AdapterBaseModel):
+    ready: bool
+    budget_warning_ratio: float = Field(ge=0, le=1)
+    routes: list[GovernanceRouteStatus] = Field(default_factory=list)
+    error: HealthError | None = None
+
+
 class HealthResponse(AdapterBaseModel):
     schema_version: str
     status: Literal["ready", "degraded"]
@@ -134,3 +156,58 @@ class HealthResponse(AdapterBaseModel):
     checked_at: str
     dependencies: DependencyReadiness
     auth: AuthReadiness
+    governance: GovernanceReadiness
+
+
+class OperatorSummaryWindow(AdapterBaseModel):
+    from_date: str
+    to_date: str
+    days: int = Field(ge=1)
+
+
+class OperatorActiveRoute(AdapterBaseModel):
+    route: Literal["interpret", "respond"]
+    provider: str = Field(min_length=1)
+    default_model: str = Field(min_length=1)
+    fallback_provider: str | None = None
+
+
+class OperatorRouteMetric(AdapterBaseModel):
+    route: Literal["interpret", "respond"]
+    request_count: int = Field(ge=0)
+    cache_hit_ratio: float = Field(ge=0, le=1)
+    deny_count: int = Field(ge=0)
+    deny_rate: float = Field(ge=0, le=1)
+    average_latency_ms: float | None = Field(default=None, ge=0)
+    retry_volume: int = Field(ge=0)
+    fallback_count: int = Field(ge=0)
+    error_count: int = Field(ge=0)
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+    total_estimated_cost_usd: str
+    last_request_at: str | None = None
+
+
+class OperatorProviderModelMetric(AdapterBaseModel):
+    route: Literal["interpret", "respond"]
+    provider: str = Field(min_length=1)
+    model: str = Field(min_length=1)
+    request_count: int = Field(ge=0)
+    cache_hit_ratio: float = Field(ge=0, le=1)
+    average_latency_ms: float | None = Field(default=None, ge=0)
+    fallback_count: int = Field(ge=0)
+    error_count: int = Field(ge=0)
+    total_estimated_cost_usd: str
+    last_request_at: str | None = None
+
+
+class OperatorSummaryResponse(AdapterBaseModel):
+    schema_version: str
+    service_name: str
+    service_version: str
+    generated_at: str
+    window: OperatorSummaryWindow
+    active_routes: list[OperatorActiveRoute] = Field(default_factory=list)
+    routes: list[OperatorRouteMetric] = Field(default_factory=list)
+    provider_models: list[OperatorProviderModelMetric] = Field(default_factory=list)

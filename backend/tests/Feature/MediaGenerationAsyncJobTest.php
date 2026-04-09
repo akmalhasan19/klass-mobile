@@ -41,16 +41,15 @@ class MediaGenerationAsyncJobTest extends TestCase
 
         config([
             'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
-            'services.media_generation.interpreter.base_url' => 'https://llm.example',
-            'services.media_generation.interpreter.provider' => 'llm-gateway',
-            'services.media_generation.interpreter.model' => 'gpt-5.4',
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
+            'services.media_generation.interpreter.provider' => 'llm-adapter',
+            'services.media_generation.interpreter.model' => 'adapter-managed',
             'services.media_generation.python.base_url' => 'https://python.example',
             'services.media_generation.python.shared_secret' => 'shared-secret',
             'services.media_generation.python.provider' => 'klass-python',
             'services.media_generation.python.model' => 'renderer-v1',
-            'services.media_generation.delivery.base_url' => 'https://llm.example',
-            'services.media_generation.delivery.provider' => 'llm-gateway',
-            'services.media_generation.delivery.model' => 'gpt-5.4',
+            'services.media_generation.delivery.provider' => 'llm-adapter',
+            'services.media_generation.delivery.model' => 'adapter-managed',
         ]);
 
         $teacher = User::factory()->teacher()->create();
@@ -73,7 +72,12 @@ class MediaGenerationAsyncJobTest extends TestCase
                         'content' => json_encode($this->interpretationPayload(), JSON_THROW_ON_ERROR),
                     ],
                 ]],
-            ], 200),
+            ], 200, [
+                'X-Klass-LLM-Provider' => 'gemini',
+                'X-Klass-LLM-Model' => 'gemini-2.0-flash',
+                'X-Klass-LLM-Primary-Provider' => 'gemini',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ]),
             'https://python.example/v1/generate' => Http::response([
                 'request_id' => 'render-async-123',
                 'artifact_metadata' => $this->artifactMetadata($artifactPath),
@@ -114,7 +118,7 @@ class MediaGenerationAsyncJobTest extends TestCase
                                 'response_meta' => [
                                     'generated_at' => now()->toISOString(),
                                     'llm_used' => true,
-                                    'provider' => 'llm-gateway',
+                                    'provider' => 'openai',
                                     'model' => 'gpt-5.4',
                                 ],
                                 'fallback' => [
@@ -125,7 +129,13 @@ class MediaGenerationAsyncJobTest extends TestCase
                             ], JSON_THROW_ON_ERROR),
                         ],
                     ]],
-                ], 200);
+                ], 200, [
+                    'X-Klass-LLM-Provider' => 'openai',
+                    'X-Klass-LLM-Model' => 'gpt-5.4',
+                    'X-Klass-LLM-Primary-Provider' => 'gemini',
+                    'X-Klass-LLM-Fallback-Used' => 'true',
+                    'X-Klass-LLM-Fallback-Reason' => 'provider_rate_limited',
+                ]);
             },
         ]);
 
@@ -145,9 +155,9 @@ class MediaGenerationAsyncJobTest extends TestCase
         $this->assertNotNull($generation->file_url);
         $this->assertNotNull($generation->thumbnail_url);
         $this->assertSame(MediaDeliveryResponseSchema::VERSION, data_get($generation->delivery_payload, 'schema_version'));
-        $this->assertSame('llm-gateway', data_get($generation->orchestration_audit_payload, 'provider_trace.interpretation.name'));
+        $this->assertSame('gemini', data_get($generation->orchestration_audit_payload, 'provider_trace.interpretation.name'));
         $this->assertSame('klass-media-generator', data_get($generation->orchestration_audit_payload, 'provider_trace.generator.name'));
-        $this->assertSame('llm-gateway', data_get($generation->orchestration_audit_payload, 'provider_trace.delivery.name'));
+        $this->assertSame('openai', data_get($generation->orchestration_audit_payload, 'provider_trace.delivery.name'));
         $this->assertSame('pdf', data_get($generation->orchestration_audit_payload, 'resolved_output_type'));
         $this->assertIsInt(data_get($generation->orchestration_audit_payload, 'timing.total_duration_ms'));
         $this->assertGreaterThanOrEqual(0, data_get($generation->orchestration_audit_payload, 'timing.total_duration_ms'));

@@ -125,16 +125,33 @@ class ProviderRouter:
         try:
             completion = await primary_client.complete(primary_request)
         except ProviderRequestError as exc:
-            if not policy.should_attempt_fallback(exc):
-                raise
+            primary_error = _augment_provider_request_error(
+                exc,
+                primary_provider=policy.primary_provider,
+                attempted_providers=(policy.primary_provider,),
+                fallback_used=False,
+                fallback_reason=None,
+            )
+
+            if not policy.should_attempt_fallback(primary_error):
+                raise primary_error
 
             fallback_provider = policy.fallback_provider
             if fallback_provider is None:
-                raise
+                raise primary_error
 
             fallback_client = self.registry.build_client(fallback_provider, self.settings)
             fallback_request = self._normalize_request(fallback_client, route, payload)
-            completion = await fallback_client.complete(fallback_request)
+            try:
+                completion = await fallback_client.complete(fallback_request)
+            except ProviderRequestError as fallback_exc:
+                raise _augment_provider_request_error(
+                    fallback_exc,
+                    primary_provider=policy.primary_provider,
+                    attempted_providers=policy.providers_in_order(),
+                    fallback_used=True,
+                    fallback_reason=primary_error.code,
+                ) from fallback_exc
 
             return ProviderExecutionResult(
                 completion=completion,
@@ -180,3 +197,30 @@ class ProviderRouter:
             )
 
         return client.normalize_delivery_request(payload)
+
+
+def _augment_provider_request_error(
+    error: ProviderRequestError,
+    *,
+    primary_provider: str,
+    attempted_providers: tuple[str, ...],
+    fallback_used: bool,
+    fallback_reason: str | None,
+) -> ProviderRequestError:
+    details = dict(error.details)
+    details.update(
+        {
+            "primary_provider": primary_provider,
+            "attempted_providers": list(attempted_providers),
+            "fallback_used": fallback_used,
+            "fallback_reason": fallback_reason,
+        }
+    )
+
+    return ProviderRequestError(
+        code=error.code,
+        message=error.message,
+        status_code=error.status_code,
+        details=details,
+        retryable=error.retryable,
+    )

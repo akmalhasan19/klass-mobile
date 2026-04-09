@@ -418,7 +418,7 @@ class MediaGenerationAuditTrailService
         $context = [];
 
         if ($throwable instanceof MediaGenerationServiceException || $throwable instanceof MediaGenerationContractException) {
-            foreach (['http_status', 'config', 'kind'] as $key) {
+            foreach (['http_status', 'config', 'kind', 'adapter_provider', 'adapter_model', 'adapter_primary_provider', 'adapter_fallback_used', 'adapter_fallback_reason'] as $key) {
                 $value = data_get($throwable->context(), $key);
 
                 if (is_scalar($value)) {

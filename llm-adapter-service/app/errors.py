@@ -22,3 +22,20 @@ class ProviderConfigurationError(AdapterError):
 
 class ProviderRequestError(AdapterError):
     pass
+
+
+class GovernancePolicyError(AdapterError):
+    pass
+
+
+class CostTrackingError(AdapterError):
+    pass
+
+
+def serialize_adapter_error(error: AdapterError) -> dict[str, object]:
+    return {
+        "code": error.code,
+        "message": error.message,
+        "details": error.details,
+        "retryable": error.retryable,
+    }

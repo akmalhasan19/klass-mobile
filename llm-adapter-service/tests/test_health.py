@@ -26,6 +26,13 @@ def test_health_endpoint_reports_ready_dependencies_and_auth(client) -> None:
     assert payload["auth"]["configured"] is True
     assert payload["auth"]["ready"] is True
     assert payload["auth"]["signature_algorithm"] == "hmac-sha256"
+    assert payload["governance"]["ready"] is True
+    assert payload["governance"]["budget_warning_ratio"] == 0.8
+    assert payload["governance"]["routes"][0]["route"] == "interpret"
+    assert payload["governance"]["routes"][0]["request_limit_per_minute"] == 30
+    assert payload["governance"]["routes"][0]["budget_status"] == "healthy"
+    assert payload["governance"]["routes"][1]["route"] == "respond"
+    assert payload["governance"]["routes"][1]["exhausted_action"] == "degrade"
 
 
 def test_versioned_health_endpoint_reports_same_contract(client) -> None:
@@ -39,6 +46,7 @@ def test_versioned_health_endpoint_reports_same_contract(client) -> None:
     assert payload["ready"] is True
     assert payload["dependencies"]["providers"]["interpretation"]["route"] == "interpret"
     assert payload["dependencies"]["providers"]["delivery"]["route"] == "respond"
+    assert payload["governance"]["routes"][1]["request_limit_per_hour"] == 1200
 
 
 def test_health_endpoint_reports_rotation_state_when_previous_secret_is_configured(client, monkeypatch) -> None:
@@ -66,6 +74,8 @@ def test_health_endpoint_returns_503_when_database_is_not_configured(client, mon
     assert payload["dependencies"]["postgres"]["configured"] is False
     assert payload["dependencies"]["postgres"]["ready"] is False
     assert payload["dependencies"]["postgres"]["error"]["code"] == "database_url_missing"
+    assert payload["governance"]["ready"] is False
+    assert payload["governance"]["routes"][0]["budget_status"] == "unavailable"
 
 
 def test_health_endpoint_returns_503_when_active_provider_is_missing_credentials(client, monkeypatch) -> None:
@@ -98,3 +108,17 @@ def test_health_endpoint_reports_openai_provider_ready_when_selected_via_active_
     assert payload["dependencies"]["providers"]["interpretation"]["ready"] is True
     assert payload["dependencies"]["providers"]["delivery"]["provider"] == "openai"
     assert payload["dependencies"]["providers"]["delivery"]["ready"] is True
+
+
+def test_health_endpoint_reports_delivery_route_disabled_for_operator_visibility(client, monkeypatch) -> None:
+    monkeypatch.setenv("LLM_ADAPTER_DELIVERY_ROUTE_ENABLED", "false")
+    clear_settings_cache()
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    delivery_route = payload["governance"]["routes"][1]
+    assert delivery_route["route"] == "respond"
+    assert delivery_route["enabled"] is False
+    assert delivery_route["budget_status"] == "disabled"

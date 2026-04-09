@@ -7,6 +7,7 @@ use App\MediaGeneration\MediaGenerationServiceException;
 use App\MediaGeneration\MediaPromptInterpretationRequestContract;
 use App\MediaGeneration\MediaPromptInterpretationSchema;
 use App\Models\MediaGeneration;
+use App\Services\Concerns\InteractsWithLlmAdapter;
 use Exception;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
@@ -15,6 +16,8 @@ use JsonException;
 
 class MediaPromptInterpretationService
 {
+    use InteractsWithLlmAdapter;
+
     public const AUDIT_SCHEMA_VERSION = 'media_prompt_interpretation_audit.v1';
 
     public function __construct(
@@ -36,13 +39,19 @@ class MediaPromptInterpretationService
 
         $rawContent = $this->extractRawInterpretationContent($response);
         $normalization = $this->normalizeInterpretationPayload($generation, $rawContent);
+        $adapterMetadata = $this->resolveLlmAdapterResponseMetadata(
+            $response,
+            $this->provider(),
+            $this->model(),
+        );
 
         $generation->forceFill([
-            'llm_provider' => $this->provider(),
-            'llm_model' => $this->model(),
+            'llm_provider' => $adapterMetadata['provider'],
+            'llm_model' => $adapterMetadata['model'],
             'interpretation_payload' => $normalization['payload'],
             'interpretation_audit_payload' => $this->buildAuditPayload(
                 generation: $generation,
+                providerMetadata: $adapterMetadata,
                 requestPayload: $requestPayload,
                 requestMeta: $this->buildRequestMeta($signedRequest),
                 response: $response,
@@ -63,17 +72,17 @@ class MediaPromptInterpretationService
      */
     protected function sendInterpretationRequest(array $signedRequest): Response
     {
-        $baseUrl = trim((string) config('services.media_generation.interpreter.base_url'));
+        $baseUrl = $this->llmAdapterBaseUrl('interpreter');
 
         if ($baseUrl === '') {
             throw MediaGenerationServiceException::llmContractFailed(
                 'Media interpretation service is not configured.',
-                ['config' => 'services.media_generation.interpreter.base_url']
+                ['config' => 'services.media_generation.llm_adapter.base_url']
             );
         }
 
         $request = $this->http()
-            ->baseUrl(rtrim($baseUrl, '/'))
+            ->baseUrl($baseUrl)
             ->acceptJson()
             ->timeout($this->timeoutSeconds())
             ->connectTimeout($this->connectTimeoutSeconds())
@@ -136,6 +145,7 @@ class MediaPromptInterpretationService
 
     protected function buildAuditPayload(
         MediaGeneration $generation,
+        array $providerMetadata,
         array $requestPayload,
         array $requestMeta,
         Response $response,
@@ -147,8 +157,12 @@ class MediaPromptInterpretationService
         return [
             'schema_version' => self::AUDIT_SCHEMA_VERSION,
             'provider' => [
-                'name' => $this->provider(),
-                'model' => $this->model(),
+                'name' => $providerMetadata['provider'],
+                'model' => $providerMetadata['model'],
+                'primary_provider' => $providerMetadata['primary_provider'],
+                'fallback_used' => $providerMetadata['fallback_used'],
+                'fallback_reason' => $providerMetadata['fallback_reason'],
+                'reported_by_adapter' => $providerMetadata['reported_by_adapter'],
             ],
             'request' => $requestPayload,
             'request_meta' => $requestMeta,
@@ -224,7 +238,7 @@ class MediaPromptInterpretationService
 
     /**
      * @param  array{request_id: string, timestamp: string, signature_algorithm: string, body_sha256: string}  $signedRequest
-     * @return array<string, string>
+     * @return array<string, mixed>
      */
     protected function buildRequestMeta(array $signedRequest): array
     {
@@ -234,6 +248,13 @@ class MediaPromptInterpretationService
             'timestamp' => $signedRequest['timestamp'],
             'signature_algorithm' => $signedRequest['signature_algorithm'],
             'body_sha256' => $signedRequest['body_sha256'],
+            'adapter' => [
+                'base_url' => trim((string) config('services.media_generation.llm_adapter.base_url')),
+                'service_name' => trim((string) config('services.media_generation.llm_adapter.service_name')),
+                'service_version' => trim((string) config('services.media_generation.llm_adapter.service_version')),
+                'request_max_age_seconds' => (int) config('services.media_generation.llm_adapter.request_max_age_seconds', 300),
+                'clock_skew_seconds' => (int) config('services.media_generation.llm_adapter.clock_skew_seconds', 30),
+            ],
         ];
     }
 
@@ -319,12 +340,12 @@ class MediaPromptInterpretationService
 
     protected function provider(): string
     {
-        return trim((string) config('services.media_generation.interpreter.provider', 'llm-gateway'));
+        return trim((string) config('services.media_generation.interpreter.provider', 'llm-adapter'));
     }
 
     protected function model(): string
     {
-        return trim((string) config('services.media_generation.interpreter.model', 'gpt-5.4'));
+        return trim((string) config('services.media_generation.interpreter.model', 'adapter-managed'));
     }
 
     protected function path(): string
