@@ -85,6 +85,21 @@ def test_openai_provider_uses_route_specific_default_model_when_request_model_is
     assert delivery_request.route == "respond"
 
 
+def test_openai_provider_augments_interpretation_instruction_with_contract_guardrails(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_ADAPTER_OPENAI_API_KEY", "test-openai-key")
+    clear_settings_cache()
+    settings = get_settings()
+    provider = ProviderRegistry().build_client("openai", settings)
+
+    interpretation_request = provider.normalize_interpretation_request(
+        InterpretationRequest.model_validate(interpretation_payload())
+    )
+
+    assert "Adapter contract guardrails:" in interpretation_request.instruction
+    assert "Only subject_context, sub_subject_context, and target_audience may be null." in interpretation_request.instruction
+    assert "output_type_candidates entries must be objects with type, score, and reason." in interpretation_request.instruction
+
+
 def test_openai_provider_maps_responses_api_payload_to_normalized_completion(monkeypatch) -> None:
     monkeypatch.setenv("LLM_ADAPTER_OPENAI_API_KEY", "test-openai-key")
     monkeypatch.setenv("LLM_ADAPTER_OPENAI_ORGANIZATION", "org-123")

@@ -137,7 +137,10 @@ class MediaGenerationService extends ChangeNotifier {
     _isPollingRequestInFlight = true;
 
     try {
-      final response = await _apiService.dio.get('/media-generations/$_generationId');
+      final response = await _apiService.dio.get(
+        '/media-generations/$_generationId',
+        options: Options(extra: {'forceRefresh': true}),
+      );
       final resource = _extractResource(response.data);
 
       if (resource == null) {

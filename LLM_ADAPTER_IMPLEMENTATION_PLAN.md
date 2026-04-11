@@ -349,21 +349,21 @@ Target akhir implementasi:
 
 ### 12.2 Backend Test Updates
 
-- [ ] Update `MediaGenerationOrchestrationServiceTest` agar mengunci boundary adapter.
-- [ ] Update `MediaGenerationPublicationAndDeliveryTest` agar mengunci boundary adapter.
-- [ ] Pastikan backend test tetap tidak mengasumsikan vendor LLM tertentu.
-- [ ] Tambahkan test bahwa provider swap tidak memerlukan perubahan di backend contract.
+- [x] Update `MediaGenerationOrchestrationServiceTest` agar mengunci boundary adapter.
+- [x] Update `MediaGenerationPublicationAndDeliveryTest` agar mengunci boundary adapter.
+- [x] Pastikan backend test tetap tidak mengasumsikan vendor LLM tertentu.
+- [x] Tambahkan test bahwa provider swap tidak memerlukan perubahan di backend contract.
 
 ### 12.3 Smoke and Manual Verification
 
-- [ ] Verifikasi adapter `GET /health` dan `GET /v1/health`.
-- [ ] Verifikasi adapter dapat reach Postgres eksternal.
-- [ ] Verifikasi adapter dapat memanggil Gemini end-to-end.
-- [ ] Verifikasi backend dapat reach adapter untuk interpretation.
-- [ ] Verifikasi backend dapat reach adapter untuk delivery.
-- [ ] Verifikasi worker backend tetap berjalan normal.
-- [ ] Verifikasi python renderer tetap menerima generation spec dari backend tanpa perubahan kontrak.
-- [ ] Verifikasi submit prompt dari Home Screen tetap menghasilkan artifact, publication, dan final result card.
+- [x] Verifikasi adapter `GET /health` dan `GET /v1/health`.
+- [x] Verifikasi adapter dapat reach Postgres eksternal.
+- [x] Verifikasi adapter dapat memanggil Gemini end-to-end.
+- [x] Verifikasi backend dapat reach adapter untuk interpretation.
+- [x] Verifikasi backend dapat reach adapter untuk delivery.
+- [x] Verifikasi worker backend tetap berjalan normal.
+- [x] Verifikasi python renderer tetap menerima generation spec dari backend tanpa perubahan kontrak.
+- [x] Verifikasi submit prompt dari Home Screen tetap menghasilkan artifact, publication, dan final result card.
 
 ## Phase 13 - Deployment and Cutover
 

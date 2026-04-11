@@ -85,6 +85,7 @@ return [
             'region' => env('SUPABASE_STORAGE_REGION', 'ap-southeast-1'),
             'bucket' => env('SUPABASE_STORAGE_BUCKET', 'klass-storage'),
             'endpoint' => env('SUPABASE_STORAGE_ENDPOINT'),
+            'public_base_url' => env('SUPABASE_URL'),
             'use_path_style_endpoint' => true,
             'throw' => true,
             'report' => true,

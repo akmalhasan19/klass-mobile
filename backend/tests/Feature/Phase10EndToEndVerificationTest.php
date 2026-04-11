@@ -47,17 +47,16 @@ class Phase10EndToEndVerificationTest extends TestCase
         $this->app->instance(ThumbnailGeneratorService::class, $this->fakeThumbnailGeneratorService());
 
         config([
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
             'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
-            'services.media_generation.interpreter.base_url' => 'https://llm.example',
-            'services.media_generation.interpreter.provider' => 'llm-gateway',
-            'services.media_generation.interpreter.model' => 'gpt-5.4',
+            'services.media_generation.interpreter.provider' => 'llm-adapter',
+            'services.media_generation.interpreter.model' => 'adapter-managed',
             'services.media_generation.python.base_url' => 'https://python.example',
             'services.media_generation.python.shared_secret' => 'shared-secret',
             'services.media_generation.python.provider' => 'klass-python',
             'services.media_generation.python.model' => 'renderer-v1',
-            'services.media_generation.delivery.base_url' => 'https://llm.example',
-            'services.media_generation.delivery.provider' => 'llm-gateway',
-            'services.media_generation.delivery.model' => 'gpt-5.4',
+            'services.media_generation.delivery.provider' => 'llm-adapter',
+            'services.media_generation.delivery.model' => 'adapter-managed',
         ]);
 
         $teacher = User::factory()->teacher()->create();

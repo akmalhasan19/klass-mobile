@@ -335,7 +335,7 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
         @unlink($artifactPath);
     }
 
-    public function test_media_delivery_response_service_calls_second_llm_with_metadata_only_and_saves_final_payload(): void
+    public function test_media_delivery_response_service_calls_adapter_boundary_with_metadata_only_and_saves_final_payload(): void
     {
         $this->seed(SubjectTaxonomySeeder::class);
 
@@ -495,6 +495,166 @@ class MediaGenerationPublicationAndDeliveryTest extends TestCase
                 && data_get($payload, 'input.artifact.binary') === null
                 && data_get($payload, 'input.artifact.base64') === null;
         });
+    }
+
+    public function test_media_delivery_response_service_keeps_adapter_request_contract_stable_when_reported_provider_changes(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+        $topic = Topic::create([
+            'title' => 'Handout Aljabar Kelas 8',
+            'teacher_id' => (string) $teacher->id,
+            'sub_subject_id' => $subSubject->id,
+            'thumbnail_url' => 'https://example.com/thumb.png',
+            'is_published' => true,
+            'order' => 0,
+        ]);
+        $content = Content::create([
+            'topic_id' => $topic->id,
+            'type' => 'brief',
+            'title' => 'Handout Aljabar Kelas 8',
+            'data' => [],
+            'media_url' => 'https://example.com/materials/handout-aljabar-kelas-8.docx',
+            'is_published' => true,
+            'order' => 0,
+        ]);
+        $project = RecommendedProject::create([
+            'title' => 'Handout Aljabar Kelas 8',
+            'description' => 'Handout singkat aljabar dasar untuk penguatan konsep.',
+            'thumbnail_url' => 'https://example.com/thumb.png',
+            'project_file_url' => 'https://example.com/materials/handout-aljabar-kelas-8.docx',
+            'ratio' => '16:9',
+            'project_type' => 'learning_material',
+            'tags' => ['Matematika', 'DOCX'],
+            'modules' => ['Konsep Dasar'],
+            'source_type' => RecommendedProject::SOURCE_AI_GENERATED,
+            'source_reference' => '1',
+            'source_payload' => [],
+            'display_priority' => 0,
+            'is_active' => true,
+            'created_by' => $teacher->id,
+            'updated_by' => $teacher->id,
+        ]);
+
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'subject_id' => $subSubject->subject_id,
+            'sub_subject_id' => $subSubject->id,
+            'topic_id' => $topic->id,
+            'content_id' => $content->id,
+            'recommended_project_id' => $project->id,
+            'raw_prompt' => 'Buatkan handout aljabar dasar untuk kelas 8.',
+            'preferred_output_type' => 'docx',
+            'resolved_output_type' => 'docx',
+            'status' => MediaGenerationLifecycle::COMPLETED,
+            'storage_path' => 'materials/handout-aljabar-kelas-8.docx',
+            'file_url' => 'https://example.com/materials/handout-aljabar-kelas-8.docx',
+            'thumbnail_url' => 'https://example.com/thumb.png',
+            'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'interpretation_payload' => $this->interpretationPayload(),
+            'generation_spec_payload' => [
+                'title' => 'Handout Aljabar Kelas 8',
+                'summary' => 'Handout singkat aljabar dasar untuk penguatan konsep.',
+            ],
+            'generator_service_response' => [
+                'response' => [
+                    'artifact_metadata' => [
+                        'filename' => 'handout-aljabar-kelas-8.docx',
+                    ],
+                ],
+            ],
+        ]);
+
+        config([
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
+            'services.media_generation.delivery.provider' => 'llm-adapter',
+            'services.media_generation.delivery.model' => 'adapter-managed',
+        ]);
+
+        $capturedPayloads = [];
+        $callIndex = 0;
+        $responseHeaders = [
+            [
+                'X-Klass-LLM-Provider' => 'gemini',
+                'X-Klass-LLM-Model' => 'gemini-2.0-flash',
+                'X-Klass-LLM-Primary-Provider' => 'gemini',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ],
+            [
+                'X-Klass-LLM-Provider' => 'openai',
+                'X-Klass-LLM-Model' => 'gpt-5.4',
+                'X-Klass-LLM-Primary-Provider' => 'openai',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ],
+        ];
+        $buildResponsePayload = function (string $provider, string $model) use ($topic, $content, $project): array {
+            return [
+                'schema_version' => MediaDeliveryResponseSchema::VERSION,
+                'title' => 'Handout Aljabar Kelas 8 siap digunakan',
+                'preview_summary' => 'Handout ini cocok untuk penguatan konsep dan latihan singkat di kelas 8.',
+                'teacher_message' => 'Materi sudah siap digunakan. Tinjau contoh soal sebelum dibagikan ke siswa.',
+                'recommended_next_steps' => [
+                    'Baca cepat struktur materi sebelum kelas dimulai.',
+                    'Bagikan file ke siswa setelah pengantar singkat.',
+                ],
+                'classroom_tips' => [
+                    'Mulai dengan contoh soal sebelum latihan mandiri.',
+                ],
+                'artifact' => [
+                    'output_type' => 'docx',
+                    'title' => 'Handout Aljabar Kelas 8',
+                    'file_url' => 'https://example.com/materials/handout-aljabar-kelas-8.docx',
+                    'thumbnail_url' => 'https://example.com/thumb.png',
+                    'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'filename' => 'handout-aljabar-kelas-8.docx',
+                ],
+                'publication' => [
+                    'topic' => ['id' => (string) $topic->id, 'title' => $topic->title],
+                    'content' => ['id' => (string) $content->id, 'title' => $content->title, 'type' => $content->type, 'media_url' => $content->media_url],
+                    'recommended_project' => ['id' => (string) $project->id, 'title' => $project->title, 'project_file_url' => $project->project_file_url],
+                ],
+                'response_meta' => [
+                    'generated_at' => now()->toISOString(),
+                    'llm_used' => true,
+                    'provider' => $provider,
+                    'model' => $model,
+                ],
+                'fallback' => [
+                    'triggered' => false,
+                    'reason_code' => null,
+                    'action' => null,
+                ],
+            ];
+        };
+
+        Http::fake([
+            'https://llm.example/*' => function (Request $request) use (&$capturedPayloads, &$callIndex, $responseHeaders, $buildResponsePayload) {
+                $capturedPayloads[] = json_decode($request->body(), true, 512, JSON_THROW_ON_ERROR);
+                $provider = $callIndex === 0 ? 'gemini' : 'openai';
+                $model = $callIndex === 0 ? 'gemini-2.0-flash' : 'gpt-5.4';
+
+                return Http::response($buildResponsePayload($provider, $model), 200, $responseHeaders[$callIndex++]);
+            },
+        ]);
+
+        $firstResult = (new MediaDeliveryResponseService())->compose($generation->fresh());
+        $secondResult = (new MediaDeliveryResponseService())->compose($generation->fresh());
+
+        $this->assertCount(2, $capturedPayloads);
+        $this->assertSame($capturedPayloads[0], $capturedPayloads[1]);
+        $this->assertSame('media_delivery_response', data_get($capturedPayloads[0], 'request_type'));
+        $this->assertSame('adapter-managed', data_get($capturedPayloads[0], 'model'));
+        $this->assertNull(data_get($capturedPayloads[0], 'input.artifact.binary'));
+        $this->assertNull(data_get($capturedPayloads[0], 'input.artifact.base64'));
+        $this->assertSame('gemini', data_get($firstResult->delivery_payload, 'response_meta.provider'));
+        $this->assertSame('gemini-2.0-flash', data_get($firstResult->delivery_payload, 'response_meta.model'));
+        $this->assertSame('openai', data_get($secondResult->delivery_payload, 'response_meta.provider'));
+        $this->assertSame('gpt-5.4', data_get($secondResult->delivery_payload, 'response_meta.model'));
+
+        Http::assertSentCount(2);
     }
 
     public function test_media_delivery_response_service_uses_fallback_payload_when_delivery_llm_is_not_configured(): void

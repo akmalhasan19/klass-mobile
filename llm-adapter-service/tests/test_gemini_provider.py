@@ -125,7 +125,9 @@ def test_gemini_provider_maps_request_response_usage_and_reference_metadata() ->
             "?key=test-gemini-api-key"
         )
         payload = json.loads(http_request.content.decode("utf-8"))
-        assert payload["systemInstruction"]["parts"][0]["text"] == "Return exactly one JSON object."
+        system_instruction = payload["systemInstruction"]["parts"][0]["text"]
+        assert system_instruction.startswith("Return exactly one JSON object.")
+        assert "Adapter contract guardrails:" in system_instruction
         assert json.loads(payload["contents"][0]["parts"][0]["text"]) == {
             "generation_id": "gen-123",
             "input": request.input_payload,

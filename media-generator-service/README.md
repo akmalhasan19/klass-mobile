@@ -36,7 +36,9 @@ Required Space secrets/variables:
 
 - `MEDIA_GENERATION_PYTHON_SHARED_SECRET`
 - `MEDIA_GENERATION_PYTHON_SHARED_SECRET_PREVIOUS` optional comma-separated grace-period secrets during rotation
+- `MEDIA_GENERATION_PYTHON_PUBLIC_BASE_URL` optional public base URL override for signed artifact download links
 - `MEDIA_GENERATION_PYTHON_REQUEST_MAX_AGE_SECONDS=300`
+- `MEDIA_GENERATION_PYTHON_ARTIFACT_URL_TTL_SECONDS=900`
 - `MEDIA_GENERATION_PYTHON_SERVICE_NAME=klass-media-generator`
 - `MEDIA_GENERATION_PYTHON_SERVICE_VERSION=0.1.0`
 - `MEDIA_GENERATION_PYTHON_LOG_LEVEL=info`
@@ -49,12 +51,15 @@ Smoke test endpoints:
 - `GET /health`
 - `GET /v1/health`
 - `POST /v1/generate`
+- `GET /v1/artifacts/download`
 
 ## Environment Variables
 
 - `MEDIA_GENERATION_PYTHON_SHARED_SECRET`: shared HMAC secret used by Laravel and the Python service.
 - `MEDIA_GENERATION_PYTHON_SHARED_SECRET_PREVIOUS`: optional comma-separated previous shared secrets accepted during zero-downtime rotation.
+- `MEDIA_GENERATION_PYTHON_PUBLIC_BASE_URL`: optional absolute public base URL used to build signed artifact download links. Default uses the incoming request base URL.
 - `MEDIA_GENERATION_PYTHON_REQUEST_MAX_AGE_SECONDS`: allowed timestamp skew for signed requests. Default `300`.
+- `MEDIA_GENERATION_PYTHON_ARTIFACT_URL_TTL_SECONDS`: signed artifact download URL lifetime in seconds. Default `900`.
 - `MEDIA_GENERATION_PYTHON_SERVICE_NAME`: metadata value returned in artifact responses. Default `klass-media-generator`.
 - `MEDIA_GENERATION_PYTHON_SERVICE_VERSION`: metadata value returned in artifact responses. Default `0.1.0`.
 - `MEDIA_GENERATION_PYTHON_LOG_LEVEL`: application log level. Default `info`.
@@ -103,7 +108,7 @@ Failure shape:
 - `error.laravel_error_code_hint`
 - `error.details`
 
-Current artifact delivery strategy is `temporary_path`, exposed through both `data.artifact_delivery` and `data.artifact_metadata.artifact_locator`.
+Current artifact delivery strategy is `signed_url`, exposed through both `data.artifact_delivery` and `data.artifact_metadata.artifact_locator`. The signed URL lets Laravel download the generated file from the Python service without assuming shared local filesystem access between containers.
 
 Laravel currently depends on these metadata fields being present and valid:
 

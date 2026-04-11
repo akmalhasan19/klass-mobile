@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+from psycopg.types.json import Jsonb
+
 from app.cache import (
     AdapterCacheService,
     DELIVERY_CACHE_TABLE_NAME,
@@ -167,8 +169,8 @@ class _FakeCacheConnection:
         row = {
             "id": entry_id,
             "cache_key": cache_key,
-            "request_payload": dict(params["request_payload"]),
-            "response_payload": dict(params["response_payload"]),
+            "request_payload": _unwrap_json_payload(params["request_payload"]),
+            "response_payload": _unwrap_json_payload(params["response_payload"]),
             "created_at": params["created_at"],
             "expires_at": params["expires_at"],
             "hit_count": 0,
@@ -341,6 +343,10 @@ def test_build_cache_upsert_params_uses_route_specific_expiration(monkeypatch) -
 
     assert params["created_at"] == created_at
     assert params["expires_at"] == created_at + timedelta(seconds=1800)
+    assert isinstance(params["request_payload"], Jsonb)
+    assert isinstance(params["response_payload"], Jsonb)
+    assert params["request_payload"].obj == {"request": 1}
+    assert params["response_payload"].obj == {"response": 1}
 
 
 def test_cache_service_store_and_lookup_entry_updates_hit_count(monkeypatch) -> None:
@@ -531,3 +537,10 @@ def test_cache_service_advisory_lock_round_trip() -> None:
 
     assert lock.acquired is True
     assert released is True
+
+
+def _unwrap_json_payload(value: object) -> dict[str, object]:
+    if isinstance(value, Jsonb):
+        return dict(value.obj)
+
+    return dict(value)

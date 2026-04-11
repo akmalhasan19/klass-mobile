@@ -3,9 +3,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-from pathlib import Path
+from urllib.parse import parse_qs, urlencode, urlparse
 
-from tests.helpers import cleanup_artifact, signed_request_content
+from tests.helpers import artifact_path_from_metadata, cleanup_artifact, signed_request_content
 
 
 def test_health_endpoint_reports_supported_formats(client) -> None:
@@ -30,11 +30,24 @@ def test_generate_pdf_returns_artifact_metadata_with_page_count(client) -> None:
     payload = response.json()
     assert payload["status"] == "completed"
     assert payload["schema_version"] == "media_generator_response.v1"
-    assert payload["data"]["artifact_delivery"]["kind"] == "temporary_path"
+    assert payload["data"]["artifact_delivery"]["kind"] == "signed_url"
     assert payload["data"]["artifact_metadata"]["export_format"] == "pdf"
     assert payload["data"]["artifact_metadata"]["mime_type"] == "application/pdf"
     assert payload["data"]["artifact_metadata"]["page_count"] >= 1
-    assert Path(payload["data"]["artifact_metadata"]["artifact_locator"]["value"]).is_file()
+    assert payload["data"]["artifact_metadata"]["artifact_locator"]["kind"] == "signed_url"
+
+    local_artifact_path = artifact_path_from_metadata(payload["data"]["artifact_metadata"])
+    assert local_artifact_path is not None
+    assert local_artifact_path.is_file()
+
+    artifact_url = payload["data"]["artifact_metadata"]["artifact_locator"]["value"]
+    parsed_url = urlparse(artifact_url)
+    assert parsed_url.path == "/v1/artifacts/download"
+    assert parse_qs(parsed_url.query)["generation_id"][0] == payload["data"]["generation_id"]
+
+    download_response = client.get(f"{parsed_url.path}?{parsed_url.query}")
+    assert download_response.status_code == 200
+    assert download_response.content.startswith(b"%PDF")
 
     cleanup_artifact(payload["data"]["artifact_metadata"])
 
@@ -50,7 +63,12 @@ def test_generate_docx_returns_artifact_metadata_without_requiring_page_count(cl
     assert payload["data"]["artifact_metadata"]["extension"] == "docx"
     assert payload["data"]["artifact_metadata"]["mime_type"] == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     assert payload["data"]["artifact_metadata"]["page_count"] is None
-    assert Path(payload["data"]["artifact_metadata"]["artifact_locator"]["value"]).is_file()
+
+    artifact_url = payload["data"]["artifact_metadata"]["artifact_locator"]["value"]
+    parsed_url = urlparse(artifact_url)
+    download_response = client.get(f"{parsed_url.path}?{parsed_url.query}")
+    assert download_response.status_code == 200
+    assert download_response.content.startswith(b"PK")
 
     cleanup_artifact(payload["data"]["artifact_metadata"])
 
@@ -65,8 +83,33 @@ def test_generate_pptx_returns_artifact_metadata_with_slide_count(client) -> Non
     assert payload["data"]["artifact_metadata"]["export_format"] == "pptx"
     assert payload["data"]["artifact_metadata"]["extension"] == "pptx"
     assert payload["data"]["artifact_metadata"]["slide_count"] == 4
-    assert payload["data"]["artifact_delivery"]["kind"] == "temporary_path"
-    assert Path(payload["data"]["artifact_metadata"]["artifact_locator"]["value"]).is_file()
+    assert payload["data"]["artifact_delivery"]["kind"] == "signed_url"
+
+    artifact_url = payload["data"]["artifact_metadata"]["artifact_locator"]["value"]
+    parsed_url = urlparse(artifact_url)
+    download_response = client.get(f"{parsed_url.path}?{parsed_url.query}")
+    assert download_response.status_code == 200
+    assert download_response.content.startswith(b"PK")
+
+    cleanup_artifact(payload["data"]["artifact_metadata"])
+
+
+def test_download_artifact_rejects_invalid_signature(client) -> None:
+    body, headers, _ = signed_request_content("pdf")
+
+    generate_response = client.post("/v1/generate", content=body, headers=headers)
+
+    assert generate_response.status_code == 200
+    payload = generate_response.json()
+    artifact_url = payload["data"]["artifact_metadata"]["artifact_locator"]["value"]
+    parsed_url = urlparse(artifact_url)
+    query = parse_qs(parsed_url.query)
+    query["signature"] = ["0" * 64]
+
+    response = client.get(f"{parsed_url.path}?{urlencode(query, doseq=True)}")
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "artifact_url_signature_invalid"
 
     cleanup_artifact(payload["data"]["artifact_metadata"])
 

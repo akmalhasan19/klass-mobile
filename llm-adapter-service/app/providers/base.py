@@ -12,6 +12,20 @@ from app.settings import Settings
 
 ProviderRoute = Literal["interpret", "respond"]
 
+INTERPRETATION_INSTRUCTION_GUARDRAILS = "\n".join(
+    [
+        "Adapter contract guardrails:",
+        "- Only subject_context, sub_subject_context, and target_audience may be null.",
+        "- teacher_intent, constraints, document_blueprint, confidence, and fallback must always be JSON objects.",
+        "- learning_objectives, output_type_candidates, assets, assessment_or_activity_blocks, constraints.must_include, constraints.avoid, requested_media_characteristics.format_preferences, and document_blueprint.sections must always be arrays, never null.",
+        "- subject_context keys must be subject_name and subject_slug.",
+        "- sub_subject_context keys must be sub_subject_name and sub_subject_slug.",
+        "- output_type_candidates entries must be objects with type, score, and reason.",
+        "- confidence must be an object with score, label, and rationale.",
+        "- If a required structure would otherwise be empty, emit the minimal valid JSON shape instead of null.",
+    ]
+)
+
 
 @dataclass(frozen=True)
 class ProviderDefinition:
@@ -120,7 +134,7 @@ class ProviderClient(ABC):
             request_type=payload.request_type,
             generation_id=payload.generation_id,
             requested_model=payload.model,
-            instruction=payload.instruction,
+            instruction=_augment_interpretation_instruction(payload.instruction),
             input_payload=payload.input.model_dump(mode="python"),
         )
 
@@ -167,3 +181,12 @@ class ProviderClient(ABC):
         http_client: httpx.AsyncClient | None = None,
     ) -> ProviderCompletion:
         raise NotImplementedError
+
+
+def _augment_interpretation_instruction(instruction: str) -> str:
+    normalized_instruction = instruction.strip()
+    if INTERPRETATION_INSTRUCTION_GUARDRAILS in normalized_instruction:
+        return normalized_instruction
+    if normalized_instruction == "":
+        return INTERPRETATION_INSTRUCTION_GUARDRAILS
+    return normalized_instruction + "\n" + INTERPRETATION_INSTRUCTION_GUARDRAILS

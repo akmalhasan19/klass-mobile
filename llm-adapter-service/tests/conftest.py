@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
+from psycopg.types.json import Jsonb
 from fastapi.testclient import TestClient
 
 from app.cache import DELIVERY_CACHE_TABLE_NAME, INTERPRETATION_CACHE_TABLE_NAME
@@ -415,8 +416,8 @@ class _FakeConnection:
         row = {
             "id": entry_id,
             "cache_key": cache_key,
-            "request_payload": dict(params["request_payload"]),
-            "response_payload": dict(params["response_payload"]),
+            "request_payload": _unwrap_json_payload(params["request_payload"]),
+            "response_payload": _unwrap_json_payload(params["response_payload"]),
             "created_at": params["created_at"],
             "expires_at": params["expires_at"],
             "hit_count": 0,
@@ -769,6 +770,13 @@ def _build_provider_model_latency_rows(
 
     result.sort(key=lambda row: (row["route"], row["provider"], row["model"]))
     return result
+
+
+def _unwrap_json_payload(value: object) -> dict[str, object]:
+    if isinstance(value, Jsonb):
+        return dict(value.obj)
+
+    return dict(value)
 
 
 def _build_route_deny_summary_rows(

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\FileUploadService;
 use App\MediaGeneration\MediaGenerationLifecycle;
 use App\Models\Content;
 use App\Models\MediaGeneration;
@@ -21,6 +22,14 @@ use Tests\TestCase;
 class MediaGenerationPersistenceAndPublicationTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_media_publication_related_url_columns_use_text_storage(): void
+    {
+        $this->assertSame('text', Schema::getColumnType('topics', 'thumbnail_url'));
+        $this->assertSame('text', Schema::getColumnType('contents', 'media_url'));
+        $this->assertSame('text', Schema::getColumnType('recommended_projects', 'thumbnail_url'));
+        $this->assertSame('text', Schema::getColumnType('recommended_projects', 'project_file_url'));
+    }
 
     public function test_media_generation_persistence_supports_phase_two_shape_and_active_duplicate_reuse(): void
     {
@@ -223,5 +232,37 @@ class MediaGenerationPersistenceAndPublicationTest extends TestCase
         $this->assertSame($project->title, $aiGeneratedItem['title']);
         $this->assertSame($subSubject->id, $aiGeneratedItem['sub_subject_id']);
         $this->assertNull($rawSystemTopicItem);
+    }
+
+    public function test_file_upload_service_generates_public_url_from_runtime_safe_config(): void
+    {
+        config([
+            'filesystems.disks.supabase.bucket' => 'klass-storage',
+            'filesystems.disks.supabase.public_base_url' => 'https://zcpfiryeowxsmvcqhssh.supabase.co',
+            'filesystems.disks.supabase.endpoint' => 'https://zcpfiryeowxsmvcqhssh.supabase.co/storage/v1/s3',
+        ]);
+
+        $url = (new FileUploadService())->generatePublicUrl('materials/generated/algebra.pdf');
+
+        $this->assertSame(
+            'https://zcpfiryeowxsmvcqhssh.supabase.co/storage/v1/object/public/klass-storage/materials/generated/algebra.pdf',
+            $url
+        );
+    }
+
+    public function test_file_upload_service_derives_public_url_from_storage_endpoint_when_project_base_url_is_unavailable(): void
+    {
+        config([
+            'filesystems.disks.supabase.bucket' => 'klass-storage',
+            'filesystems.disks.supabase.public_base_url' => null,
+            'filesystems.disks.supabase.endpoint' => 'https://zcpfiryeowxsmvcqhssh.supabase.co/storage/v1/s3',
+        ]);
+
+        $url = (new FileUploadService())->generatePublicUrl('gallery/generated/thumb.svg');
+
+        $this->assertSame(
+            'https://zcpfiryeowxsmvcqhssh.supabase.co/storage/v1/object/public/klass-storage/gallery/generated/thumb.svg',
+            $url
+        );
     }
 }

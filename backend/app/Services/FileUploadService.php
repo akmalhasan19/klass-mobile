@@ -185,17 +185,21 @@ class FileUploadService
      */
     public function generatePublicUrl(string $path): string
     {
-        $supabaseProjectUrl = env('SUPABASE_URL');
-        $bucket = config('filesystems.disks.supabase.bucket');
+        $bucket = (string) config('filesystems.disks.supabase.bucket', 'klass-storage');
+        $publicBaseUrl = trim((string) config('filesystems.disks.supabase.public_base_url', ''));
 
-        if ($supabaseProjectUrl) {
-            $supabaseProjectUrl = rtrim($supabaseProjectUrl, '/');
-            return "{$supabaseProjectUrl}/storage/v1/object/public/{$bucket}/{$path}";
+        if ($publicBaseUrl !== '') {
+            return rtrim($publicBaseUrl, '/') . "/storage/v1/object/public/{$bucket}/{$path}";
         }
 
-        // Fallback untuk development tanpa Supabase — construct URL dari disk config
-        $endpoint = rtrim(config('filesystems.disks.supabase.endpoint', ''), '/');
-        $bucket = config('filesystems.disks.supabase.bucket', 'klass-storage');
-        return "{$endpoint}/{$bucket}/{$path}";
+        $endpoint = rtrim((string) config('filesystems.disks.supabase.endpoint', ''), '/');
+
+        if ($endpoint !== '') {
+            $publicEndpoint = preg_replace('#/storage/v1/s3/?$#', '/storage/v1/object/public', $endpoint) ?: $endpoint;
+
+            return "{$publicEndpoint}/{$bucket}/{$path}";
+        }
+
+        return "/storage/v1/object/public/{$bucket}/{$path}";
     }
 }

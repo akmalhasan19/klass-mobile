@@ -14,6 +14,8 @@ class Settings:
     shared_secret: str
     accepted_shared_secrets: tuple[str, ...]
     request_max_age_seconds: int
+    artifact_url_ttl_seconds: int
+    public_base_url: str
     log_level: str
 
     @property
@@ -71,6 +73,12 @@ def get_settings() -> Settings:
             300,
             minimum=1,
         ),
+        artifact_url_ttl_seconds=_clean_int(
+            os.getenv("MEDIA_GENERATION_PYTHON_ARTIFACT_URL_TTL_SECONDS"),
+            900,
+            minimum=30,
+        ),
+        public_base_url=(os.getenv("MEDIA_GENERATION_PYTHON_PUBLIC_BASE_URL") or "").strip().rstrip("/"),
         log_level=_clean_str(os.getenv("MEDIA_GENERATION_PYTHON_LOG_LEVEL"), "info").lower(),
     )
 

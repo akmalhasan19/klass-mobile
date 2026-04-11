@@ -11,6 +11,7 @@ from typing import Any, Callable, Literal
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 from app.contracts import (
@@ -174,8 +175,8 @@ def build_cache_upsert_params(
 
     return {
         "cache_key": cache_key.strip(),
-        "request_payload": request_payload,
-        "response_payload": response_payload,
+        "request_payload": Jsonb(request_payload),
+        "response_payload": Jsonb(response_payload),
         "created_at": normalized_created_at,
         "expires_at": build_cache_expiration(
             route,

@@ -30,7 +30,7 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_prompt_interpretation_service_calls_llm_and_persists_normalized_and_audit_payloads(): void
+    public function test_prompt_interpretation_service_calls_adapter_boundary_and_persists_normalized_and_audit_payloads(): void
     {
         $this->seed(SubjectTaxonomySeeder::class);
 
@@ -125,6 +125,69 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
                     ],
                 ];
         });
+    }
+
+    public function test_prompt_interpretation_service_keeps_adapter_request_contract_stable_when_reported_provider_changes(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'subject_id' => $subSubject->subject_id,
+            'sub_subject_id' => $subSubject->id,
+            'raw_prompt' => 'Buatkan handout pecahan untuk kelas 5 dengan contoh dan latihan singkat.',
+            'preferred_output_type' => 'auto',
+            'status' => MediaGenerationLifecycle::INTERPRETING,
+        ]);
+
+        config([
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
+            'services.media_generation.interpreter.model' => 'adapter-managed',
+            'services.media_generation.interpreter.provider' => 'llm-adapter',
+        ]);
+
+        $capturedPayloads = [];
+        $callIndex = 0;
+        $responseHeaders = [
+            [
+                'X-Klass-LLM-Provider' => 'gemini',
+                'X-Klass-LLM-Model' => 'gemini-2.0-flash',
+                'X-Klass-LLM-Primary-Provider' => 'gemini',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ],
+            [
+                'X-Klass-LLM-Provider' => 'openai',
+                'X-Klass-LLM-Model' => 'gpt-5.4',
+                'X-Klass-LLM-Primary-Provider' => 'openai',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ],
+        ];
+
+        Http::fake([
+            'https://llm.example/*' => function (Request $request) use (&$capturedPayloads, &$callIndex, $responseHeaders) {
+                $capturedPayloads[] = json_decode($request->body(), true, 512, JSON_THROW_ON_ERROR);
+
+                return Http::response($this->validInterpretationPayload(), 200, $responseHeaders[$callIndex++]);
+            },
+        ]);
+
+        $firstResult = (new MediaPromptInterpretationService())->interpret($generation->fresh());
+        $secondResult = (new MediaPromptInterpretationService())->interpret($generation->fresh());
+
+        $this->assertCount(2, $capturedPayloads);
+        $this->assertSame($capturedPayloads[0], $capturedPayloads[1]);
+        $this->assertSame('media_prompt_interpretation', data_get($capturedPayloads[0], 'request_type'));
+        $this->assertSame('adapter-managed', data_get($capturedPayloads[0], 'model'));
+        $this->assertSame('gemini', $firstResult->llm_provider);
+        $this->assertSame('gemini-2.0-flash', $firstResult->llm_model);
+        $this->assertSame('openai', $secondResult->llm_provider);
+        $this->assertSame('gpt-5.4', $secondResult->llm_model);
+        $this->assertTrue((bool) data_get($secondResult->interpretation_audit_payload, 'provider.reported_by_adapter'));
+
+        Http::assertSentCount(2);
     }
 
     public function test_prompt_interpretation_service_falls_back_when_llm_returns_partial_contract(): void

@@ -5,6 +5,7 @@ import hmac
 import json
 import time
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from app.contracts import (
     ARTIFACT_METADATA_VERSION,
@@ -127,12 +128,29 @@ def signed_request_content(
 
 
 def cleanup_artifact(metadata: dict[str, object]) -> None:
+    artifact_path = artifact_path_from_metadata(metadata)
+    if artifact_path is None:
+        return
+
+    artifact_path.unlink(missing_ok=True)
+
+
+def artifact_path_from_metadata(metadata: dict[str, object]) -> Path | None:
     locator = metadata.get("artifact_locator")
     if not isinstance(locator, dict):
-        return
+        return None
+
+    locator_kind = locator.get("kind")
 
     path_value = locator.get("value")
     if not isinstance(path_value, str) or path_value.strip() == "":
-        return
+        return None
 
-    Path(path_value).unlink(missing_ok=True)
+    if locator_kind == "signed_url":
+        query = parse_qs(urlparse(path_value).query)
+        path_value = (query.get("path") or [""])[0]
+
+    if not isinstance(path_value, str) or path_value.strip() == "":
+        return None
+
+    return Path(path_value)

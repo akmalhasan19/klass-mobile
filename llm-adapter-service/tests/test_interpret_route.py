@@ -155,6 +155,58 @@ def valid_interpretation_response_payload() -> dict[str, object]:
     }
 
 
+def near_valid_interpretation_response_payload() -> dict[str, object]:
+    return {
+        "schema_version": "media_prompt_understanding.v1",
+        "teacher_prompt": "Buatkan handout pecahan untuk kelas 5.",
+        "language": "id",
+        "teacher_intent": "Create a printable handout for grade 5 fraction practice.",
+        "learning_objectives": None,
+        "constraints": None,
+        "output_type_candidates": [
+            "pdf",
+            {
+                "type": "docx",
+                "score": "0.61",
+                "reason": "Editable option for teacher adjustments.",
+            },
+            "slides",
+        ],
+        "resolved_output_type_reasoning": "",
+        "document_blueprint": None,
+        "title": "Handout Pecahan Kelas 5",
+        "summary": "Ringkasan pecahan dasar untuk pengantar dan latihan singkat.",
+        "sections": [
+            {
+                "name": "Konsep Dasar",
+                "description": "Memperkenalkan pecahan sederhana.",
+                "items": ["Pembilang", "Penyebut"],
+                "length": "short",
+            },
+            "Latihan Singkat",
+        ],
+        "subject_context": {
+            "name": "Matematika",
+            "slug": "matematika",
+        },
+        "sub_subject_context": {
+            "name": "Pecahan",
+            "slug": "pecahan",
+        },
+        "target_audience": "Siswa kelas 5",
+        "requested_media_characteristics": {
+            "tone": "supportive",
+            "format_preferences": "printable",
+            "visual_density": "medium",
+        },
+        "assets": ["contoh soal pecahan"],
+        "assessment_or_activity_blocks": ["Latihan mandiri singkat"],
+        "teacher_delivery_summary": "Gunakan handout ini untuk pengantar lalu lanjutkan ke latihan.",
+        "confidence": "high",
+        "fallback": None,
+    }
+
+
 def build_execution_result(
     *,
     generation_id: str,
@@ -230,6 +282,54 @@ def test_interpret_route_returns_validated_payload_and_records_cache_and_ledger(
     ledger_row = fake_database_state.ledger_rows["req-interpret-success-1"]
     assert ledger_row["final_status"] == "success"
     assert ledger_row["cache_status"] == "miss"
+    assert ledger_row["error_code"] is None
+
+
+def test_interpret_route_repairs_near_valid_provider_payload_and_returns_validated_schema(client, fake_database_state, monkeypatch) -> None:
+    async def stub_execute(self, payload):
+        near_valid_payload = near_valid_interpretation_response_payload()
+        raw_completion = "```json\n" + json.dumps(near_valid_payload, ensure_ascii=False, separators=(",", ":")) + "\n```"
+        return build_execution_result(
+            generation_id=payload.generation_id,
+            raw_completion=raw_completion,
+            provider="openai",
+            model="openai/gpt-4o-mini",
+        )
+
+    monkeypatch.setattr("app.interpretation.ProviderRouter.execute_interpretation", stub_execute)
+    request_payload = interpretation_request_payload(generation_id="gen-repaired-contract-1")
+    body, headers = build_signed_request(
+        request_payload,
+        generation_id="gen-repaired-contract-1",
+        request_id="req-repaired-contract-1",
+    )
+
+    response = client.post("/v1/interpret", content=body, headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema_version"] == "media_prompt_understanding.v1"
+    assert payload["teacher_intent"]["type"] == "generate_learning_media"
+    assert payload["constraints"]["preferred_output_type"] == "pdf"
+    assert [candidate["type"] for candidate in payload["output_type_candidates"]] == ["pdf", "docx", "pptx"]
+    assert payload["document_blueprint"]["title"] == "Handout Pecahan Kelas 5"
+    assert payload["document_blueprint"]["sections"][0]["title"] == "Konsep Dasar"
+    assert payload["subject_context"] == {
+        "subject_name": "Matematika",
+        "subject_slug": "matematika",
+    }
+    assert payload["sub_subject_context"] == {
+        "sub_subject_name": "Pecahan",
+        "sub_subject_slug": "pecahan",
+    }
+    assert payload["target_audience"]["label"] == "Siswa kelas 5"
+    assert payload["assets"][0]["type"] == "text"
+    assert payload["assessment_or_activity_blocks"][0]["type"] == "activity"
+    assert payload["confidence"]["label"] == "high"
+    assert response.headers["X-Klass-LLM-Provider"] == "openai"
+    assert response.headers["X-Klass-LLM-Model"] == "openai/gpt-4o-mini"
+    ledger_row = fake_database_state.ledger_rows["req-repaired-contract-1"]
+    assert ledger_row["final_status"] == "success"
     assert ledger_row["error_code"] is None
 
 

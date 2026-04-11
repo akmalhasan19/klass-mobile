@@ -6,8 +6,13 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
+from app.artifact_download import (
+    build_signed_artifact_locator,
+    media_type_for_filename,
+    verify_artifact_download_request,
+)
 from app.auth import verify_request_signature
 from app.contracts import (
     ARTIFACT_METADATA_VERSION,
@@ -159,6 +164,16 @@ async def generate_artifact(
     render_document = build_render_document(payload.generation_spec)
     generator = registry.get(payload.generation_spec.export_format)
     artifact_metadata = generator.generate(payload, render_document, settings)
+    response_artifact_locator = build_signed_artifact_locator(
+        request,
+        generation_id=payload.generation_id,
+        artifact_metadata=artifact_metadata,
+        settings=settings,
+    )
+    response_artifact_metadata = {
+        **artifact_metadata,
+        "artifact_locator": response_artifact_locator,
+    }
 
     response = GenerateSuccessResponse.model_validate(
         {
@@ -167,8 +182,8 @@ async def generate_artifact(
             "status": "completed",
             "data": {
                 "generation_id": payload.generation_id,
-                "artifact_delivery": artifact_metadata["artifact_locator"],
-                "artifact_metadata": artifact_metadata,
+                "artifact_delivery": response_artifact_locator,
+                "artifact_metadata": response_artifact_metadata,
                 "contracts": {
                     "artifact_metadata": ARTIFACT_METADATA_VERSION,
                 },
@@ -177,3 +192,28 @@ async def generate_artifact(
     )
 
     return response.model_dump(mode="python")
+
+
+@app.get("/v1/artifacts/download", name="download_artifact")
+async def download_artifact(
+    generation_id: str,
+    path: str,
+    filename: str,
+    expires: int,
+    signature: str,
+    settings: Settings = Depends(get_settings),
+) -> FileResponse:
+    artifact_path = verify_artifact_download_request(
+        generation_id=generation_id,
+        artifact_path=path,
+        filename=filename,
+        expires=expires,
+        signature=signature,
+        settings=settings,
+    )
+
+    return FileResponse(
+        path=str(artifact_path),
+        media_type=media_type_for_filename(filename),
+        filename=filename,
+    )
