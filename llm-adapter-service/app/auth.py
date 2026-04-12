@@ -37,6 +37,9 @@ def resolve_route_type(path: str) -> str | None:
     if normalized_path.endswith("/v1/interpret"):
         return "interpret"
 
+    if normalized_path.endswith("/v1/draft"):
+        return "draft"
+
     if normalized_path.endswith("/v1/respond"):
         return "respond"
 

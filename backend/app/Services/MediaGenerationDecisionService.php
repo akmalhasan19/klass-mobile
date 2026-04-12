@@ -17,6 +17,11 @@ class MediaGenerationDecisionService
         'pptx' => 2,
     ];
 
+    public function __construct(
+        protected ?MediaContentDraftingService $contentDraftingService = null,
+    ) {
+    }
+
     public function resolve(MediaGeneration $generation): MediaGeneration
     {
         if (! is_array($generation->interpretation_payload)) {
@@ -28,17 +33,65 @@ class MediaGenerationDecisionService
 
         $interpretation = MediaPromptInterpretationSchema::validate($generation->interpretation_payload);
         $decision = $this->decide($interpretation, $generation->preferred_output_type);
-        $generationSpec = MediaGenerationSpecContract::fromInterpretation($interpretation, $decision['resolved_output_type']);
+        $contentDraft = $this->resolveContentDraft($generation, $decision, $interpretation);
+        $generationSpec = $contentDraft['payload'] !== null
+            ? MediaGenerationSpecContract::fromDraft($interpretation, $contentDraft['payload'], $decision['resolved_output_type'])
+            : MediaGenerationSpecContract::fromInterpretation($interpretation, $decision['resolved_output_type']);
 
         $generation->forceFill([
             'resolved_output_type' => $decision['resolved_output_type'],
-            'decision_payload' => $decision,
+            'decision_payload' => array_merge($decision, [
+                'content_draft' => $contentDraft['metadata'],
+            ]),
             'generation_spec_payload' => $generationSpec,
             'error_code' => null,
             'error_message' => null,
         ])->save();
 
         return $generation->fresh();
+    }
+
+    /**
+     * @param  array<string, mixed>  $decision
+     * @param  array<string, mixed>  $interpretation
+     * @return array{payload: array<string, mixed>|null, metadata: array<string, mixed>}
+     */
+    protected function resolveContentDraft(MediaGeneration $generation, array $decision, array $interpretation): array
+    {
+        if ($this->contentDraftingService === null) {
+            return [
+                'payload' => null,
+                'metadata' => [
+                    'source' => 'interpretation_only',
+                    'schema_version' => null,
+                    'fallback_error' => null,
+                    'adapter_provider' => null,
+                    'adapter_model' => null,
+                    'adapter_primary_provider' => null,
+                    'adapter_fallback_used' => false,
+                    'adapter_fallback_reason' => null,
+                ],
+            ];
+        }
+
+        $draftResult = $this->contentDraftingService->draft($generation, $decision);
+        $adapterMetadata = is_array($draftResult['adapter_metadata'] ?? null) ? $draftResult['adapter_metadata'] : [];
+
+        return [
+            'payload' => is_array($draftResult['payload'] ?? null) ? $draftResult['payload'] : null,
+            'metadata' => [
+                'source' => $draftResult['source'] ?? 'deterministic_fallback',
+                'schema_version' => data_get($draftResult, 'payload.schema_version'),
+                'fallback_error' => is_array($draftResult['fallback_error'] ?? null) ? $draftResult['fallback_error'] : null,
+                'adapter_provider' => data_get($adapterMetadata, 'provider'),
+                'adapter_model' => data_get($adapterMetadata, 'model'),
+                'adapter_primary_provider' => data_get($adapterMetadata, 'primary_provider'),
+                'adapter_fallback_used' => (bool) data_get($adapterMetadata, 'fallback_used', false),
+                'adapter_fallback_reason' => data_get($adapterMetadata, 'fallback_reason'),
+                'draft_fallback_triggered' => (bool) data_get($draftResult, 'payload.fallback.triggered', false),
+                'draft_fallback_reason_code' => data_get($draftResult, 'payload.fallback.reason_code'),
+            ],
+        ];
     }
 
     /**

@@ -80,6 +80,7 @@ class MediaGenerationWorkflowService
                     'step' => 'classification',
                     'decision_source' => data_get($generation->decision_payload, 'decision_source'),
                     'reason_code' => data_get($generation->decision_payload, 'reason_code'),
+                    'content_draft_source' => data_get($generation->decision_payload, 'content_draft.source'),
                     'resolved_output_type' => $generation->resolved_output_type,
                 ],
                 $attempt,

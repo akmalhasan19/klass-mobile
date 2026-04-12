@@ -9,6 +9,82 @@ final class MediaGenerationSpecContract
 {
     public const VERSION = 'media_generation_spec.v1';
 
+    public static function fromDraft(array $interpretationPayload, array $contentDraftPayload, ?string $preferredOutputType = null): array
+    {
+        $interpretation = MediaPromptInterpretationSchema::validate($interpretationPayload);
+        $contentDraft = MediaContentDraftSchema::validate($contentDraftPayload);
+        $exportFormat = self::resolveExportFormat($interpretation, $preferredOutputType);
+        $documentMode = $exportFormat === 'pptx' ? 'slide_deck' : 'document';
+        $unitType = $exportFormat === 'pptx' ? 'slide' : 'page';
+        $sections = array_map(static function (array $section): array {
+            return [
+                'title' => $section['title'],
+                'purpose' => $section['purpose'],
+                'body_blocks' => array_map(
+                    static fn (array $block): array => [
+                        'type' => $block['type'],
+                        'content' => $block['content'],
+                    ],
+                    $section['body_blocks']
+                ),
+                'emphasis' => $section['emphasis'],
+            ];
+        }, $contentDraft['sections']);
+
+        $assessmentBlocks = $interpretation['assessment_or_activity_blocks'];
+        $styleTone = $interpretation['requested_media_characteristics']['tone']
+            ?? $interpretation['constraints']['tone']
+            ?? 'clear_and_structured';
+        $formatPreferences = $interpretation['requested_media_characteristics']['format_preferences'];
+
+        if ($formatPreferences === []) {
+            $formatPreferences = [$exportFormat];
+        }
+
+        return self::validate([
+            'schema_version' => self::VERSION,
+            'source_interpretation_schema_version' => $interpretation['schema_version'],
+            'export_format' => $exportFormat,
+            'title' => $contentDraft['title'],
+            'language' => $interpretation['language'],
+            'summary' => $contentDraft['summary'],
+            'learning_objectives' => $contentDraft['learning_objectives'] !== []
+                ? $contentDraft['learning_objectives']
+                : $interpretation['learning_objectives'],
+            'sections' => $sections,
+            'layout_hints' => [
+                'document_mode' => $documentMode,
+                'visual_density' => $interpretation['requested_media_characteristics']['visual_density'] ?? 'medium',
+                'section_count' => count($sections),
+                'asset_count' => count($interpretation['assets']),
+                'assessment_block_count' => count($assessmentBlocks),
+            ],
+            'style_hints' => [
+                'tone' => $styleTone,
+                'audience_level' => $interpretation['target_audience']['level'] ?? 'general',
+                'format_preferences' => $formatPreferences,
+            ],
+            'page_or_slide_structure' => [
+                'unit_type' => $unitType,
+                'total_units' => 1 + count($sections) + (count($assessmentBlocks) > 0 ? 1 : 0),
+                'opening_unit' => true,
+                'section_units' => count($sections),
+                'closing_unit' => count($assessmentBlocks) > 0,
+            ],
+            'content_context' => [
+                'subject_context' => $interpretation['subject_context'],
+                'sub_subject_context' => $interpretation['sub_subject_context'],
+                'target_audience' => $interpretation['target_audience'],
+            ],
+            'assets' => $interpretation['assets'],
+            'assessment_or_activity_blocks' => $assessmentBlocks,
+            'teacher_delivery_summary' => $contentDraft['teacher_delivery_summary'],
+            'contract_versions' => [
+                'generator_output_metadata' => MediaArtifactMetadataContract::VERSION,
+            ],
+        ]);
+    }
+
     public static function fromInterpretation(array $interpretationPayload, ?string $preferredOutputType = null): array
     {
         $interpretation = MediaPromptInterpretationSchema::validate($interpretationPayload);

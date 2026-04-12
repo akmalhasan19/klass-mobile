@@ -52,6 +52,14 @@ def make_auth_client() -> TestClient:
             "trace_context": request.state.trace_context,
         }
 
+    @auth_app.post("/v1/draft")
+    async def draft(request: Request, _: None = Depends(verify_request_signature)) -> dict[str, object]:
+        return {
+            "request_id": request.state.request_id,
+            "actor_metadata": request.state.actor_metadata,
+            "trace_context": request.state.trace_context,
+        }
+
     @auth_app.post("/v1/respond")
     async def respond(request: Request, _: None = Depends(verify_request_signature)) -> dict[str, object]:
         return {
@@ -100,6 +108,21 @@ def test_signed_delivery_request_accepts_previous_rotated_secret(monkeypatch) ->
     payload = response.json()
     assert payload["trace_context"]["route_type"] == "respond"
     assert payload["trace_context"]["request_id"] == "req-delivery-1"
+
+
+def test_signed_content_draft_request_is_accepted_and_preserves_route_type() -> None:
+    client = make_auth_client()
+    body, headers = build_signed_request(
+        request_id="req-draft-1",
+        payload={"request_type": "media_content_draft"},
+    )
+
+    response = client.post("/v1/draft", content=body, headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["actor_metadata"]["route_type"] == "draft"
+    assert payload["trace_context"]["route_type"] == "draft"
 
 
 def test_request_without_valid_signature_is_rejected() -> None:

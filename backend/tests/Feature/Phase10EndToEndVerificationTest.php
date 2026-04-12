@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\ProcessMediaGenerationJob;
 use App\MediaGeneration\MediaArtifactMetadataContract;
+use App\MediaGeneration\MediaContentDraftSchema;
 use App\MediaGeneration\MediaDeliveryResponseSchema;
 use App\MediaGeneration\MediaGenerationLifecycle;
 use App\MediaGeneration\MediaPromptInterpretationSchema;
@@ -73,6 +74,18 @@ class Phase10EndToEndVerificationTest extends TestCase
                     ],
                 ]],
             ], 200),
+            'https://llm.example/v1/draft' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode($this->contentDraftPayload(), JSON_THROW_ON_ERROR),
+                    ],
+                ]],
+            ], 200, [
+                'X-Klass-LLM-Provider' => 'openai',
+                'X-Klass-LLM-Model' => 'gpt-5.4',
+                'X-Klass-LLM-Primary-Provider' => 'openai',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ]),
             'https://python.example/v1/generate' => Http::response([
                 'request_id' => 'phase10-render-123',
                 'artifact_metadata' => $this->artifactMetadata($artifactPath),
@@ -161,6 +174,7 @@ class Phase10EndToEndVerificationTest extends TestCase
         $this->assertSame('pptx', $generation->resolved_output_type);
         $this->assertSame(MediaPromptInterpretationSchema::VERSION, data_get($generation->interpretation_payload, 'schema_version'));
         $this->assertSame('pptx', data_get($generation->generation_spec_payload, 'export_format'));
+        $this->assertSame('adapter', data_get($generation->decision_payload, 'content_draft.source'));
         $this->assertSame(MediaArtifactMetadataContract::VERSION, data_get($generation->generator_service_response, 'response.artifact_metadata.schema_version'));
         $this->assertSame('pptx', data_get($generation->generator_service_response, 'response.artifact_metadata.extension'));
         $this->assertNotNull($generation->storage_path);
@@ -301,6 +315,60 @@ class Phase10EndToEndVerificationTest extends TestCase
                 'label' => 'high',
                 'rationale' => 'Prompt jelas dan menyebutkan konteks kelas serta kebutuhan latihan.',
             ],
+            'fallback' => [
+                'triggered' => false,
+                'reason_code' => null,
+                'action' => null,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function contentDraftPayload(): array
+    {
+        return [
+            'schema_version' => MediaContentDraftSchema::VERSION,
+            'title' => 'Deck Termodinamika Kelas 11',
+            'summary' => 'Slide deck pembuka termodinamika dengan contoh kalor sehari-hari dan latihan singkat di akhir.',
+            'learning_objectives' => [
+                'Siswa memahami konsep kalor dan perpindahan energi.',
+                'Siswa mencoba latihan singkat setelah paparan konsep.',
+            ],
+            'sections' => [
+                [
+                    'title' => 'Konsep Kalor',
+                    'purpose' => 'Menjelaskan dasar kalor dan perpindahan energi.',
+                    'body_blocks' => [
+                        [
+                            'type' => 'paragraph',
+                            'content' => 'Kalor adalah energi yang berpindah dari benda bersuhu lebih tinggi ke benda bersuhu lebih rendah. Dalam kehidupan sehari-hari, perpindahan kalor dapat diamati saat sendok logam yang diletakkan di teh panas ikut menjadi hangat.',
+                        ],
+                        [
+                            'type' => 'bullet',
+                            'content' => 'Perpindahan kalor terjadi sampai suhu kedua benda mendekati seimbang.',
+                        ],
+                    ],
+                    'emphasis' => 'short',
+                ],
+                [
+                    'title' => 'Latihan Cepat',
+                    'purpose' => 'Memberikan latihan singkat setelah paparan konsep.',
+                    'body_blocks' => [
+                        [
+                            'type' => 'paragraph',
+                            'content' => 'Setelah mempelajari definisi kalor, siswa diajak menghubungkan konsep tersebut dengan pengalaman sehari-hari. Guru dapat meminta siswa menyebutkan contoh perpindahan kalor yang pernah mereka lihat di rumah atau di sekolah.',
+                        ],
+                        [
+                            'type' => 'checklist',
+                            'content' => 'Sebutkan dua contoh perpindahan kalor dalam kehidupan sehari-hari lalu jelaskan arah perpindahan energinya.',
+                        ],
+                    ],
+                    'emphasis' => 'medium',
+                ],
+            ],
+            'teacher_delivery_summary' => 'Gunakan deck ini untuk membuka diskusi kelas sebelum latihan singkat.',
             'fallback' => [
                 'triggered' => false,
                 'reason_code' => null,

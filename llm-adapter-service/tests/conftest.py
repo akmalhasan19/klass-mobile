@@ -602,6 +602,10 @@ def configured_service(monkeypatch: pytest.MonkeyPatch, fake_database_state: _Fa
         lambda settings: _FakePool(fake_database_state),
     )
     monkeypatch.setattr(
+        "app.draft.get_database_pool",
+        lambda settings: _FakePool(fake_database_state),
+    )
+    monkeypatch.setattr(
         "app.costs.get_database_pool",
         lambda settings: _FakePool(fake_database_state),
     )

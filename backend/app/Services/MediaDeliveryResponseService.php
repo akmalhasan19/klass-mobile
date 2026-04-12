@@ -249,6 +249,7 @@ class MediaDeliveryResponseService
     protected function resolvePreviewSummary(MediaGeneration $generation): string
     {
         foreach ([
+            data_get($generation->generation_spec_payload, 'teacher_delivery_summary'),
             data_get($generation->interpretation_payload, 'teacher_delivery_summary'),
             data_get($generation->generation_spec_payload, 'summary'),
             $generation->recommendedProject?->description,

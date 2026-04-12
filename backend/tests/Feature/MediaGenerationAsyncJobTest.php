@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\ProcessMediaGenerationJob;
 use App\MediaGeneration\MediaArtifactMetadataContract;
+use App\MediaGeneration\MediaContentDraftSchema;
 use App\MediaGeneration\MediaDeliveryResponseSchema;
 use App\MediaGeneration\MediaGenerationErrorCode;
 use App\MediaGeneration\MediaGenerationLifecycle;
@@ -76,6 +77,18 @@ class MediaGenerationAsyncJobTest extends TestCase
                 'X-Klass-LLM-Provider' => 'gemini',
                 'X-Klass-LLM-Model' => 'gemini-2.0-flash',
                 'X-Klass-LLM-Primary-Provider' => 'gemini',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ]),
+            'https://llm.example/v1/draft' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode($this->contentDraftPayload(), JSON_THROW_ON_ERROR),
+                    ],
+                ]],
+            ], 200, [
+                'X-Klass-LLM-Provider' => 'openai',
+                'X-Klass-LLM-Model' => 'gpt-5.4',
+                'X-Klass-LLM-Primary-Provider' => 'openai',
                 'X-Klass-LLM-Fallback-Used' => 'false',
             ]),
             'https://python.example/v1/generate' => Http::response([
@@ -155,6 +168,7 @@ class MediaGenerationAsyncJobTest extends TestCase
         $this->assertNotNull($generation->file_url);
         $this->assertNotNull($generation->thumbnail_url);
         $this->assertSame(MediaDeliveryResponseSchema::VERSION, data_get($generation->delivery_payload, 'schema_version'));
+        $this->assertSame('adapter', data_get($generation->decision_payload, 'content_draft.source'));
         $this->assertSame('gemini', data_get($generation->orchestration_audit_payload, 'provider_trace.interpretation.name'));
         $this->assertSame('klass-media-generator', data_get($generation->orchestration_audit_payload, 'provider_trace.generator.name'));
         $this->assertSame('openai', data_get($generation->orchestration_audit_payload, 'provider_trace.delivery.name'));
@@ -332,6 +346,60 @@ class MediaGenerationAsyncJobTest extends TestCase
                 'label' => 'high',
                 'rationale' => 'Prompt explicitly asks for a printable algebra handout.',
             ],
+            'fallback' => [
+                'triggered' => false,
+                'reason_code' => null,
+                'action' => null,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function contentDraftPayload(): array
+    {
+        return [
+            'schema_version' => MediaContentDraftSchema::VERSION,
+            'title' => 'Handout Aljabar Kelas 8',
+            'summary' => 'Handout printable aljabar dasar untuk pengantar materi dan latihan cepat.',
+            'learning_objectives' => [
+                'Siswa memahami variabel dan ekspresi sederhana.',
+                'Siswa mencoba latihan aljabar dasar.',
+            ],
+            'sections' => [
+                [
+                    'title' => 'Konsep Dasar',
+                    'purpose' => 'Memperkenalkan variabel dan ekspresi sederhana.',
+                    'body_blocks' => [
+                        [
+                            'type' => 'paragraph',
+                            'content' => 'Variabel adalah simbol, biasanya huruf, yang mewakili suatu nilai. Dalam aljabar dasar, siswa mulai belajar bahwa huruf seperti x atau y dapat digunakan untuk menuliskan pola dan hubungan bilangan secara lebih ringkas.',
+                        ],
+                        [
+                            'type' => 'bullet',
+                            'content' => 'Contoh ekspresi sederhana: x + 3 dan 2y - 1.',
+                        ],
+                    ],
+                    'emphasis' => 'short',
+                ],
+                [
+                    'title' => 'Latihan Singkat',
+                    'purpose' => 'Memberikan latihan awal setelah penjelasan konsep.',
+                    'body_blocks' => [
+                        [
+                            'type' => 'paragraph',
+                            'content' => 'Setelah memahami arti variabel, siswa dapat berlatih dengan mengganti huruf menggunakan bilangan tertentu lalu menghitung hasil ekspresi. Guru dapat memandu satu contoh bersama sebelum siswa mencoba secara mandiri.',
+                        ],
+                        [
+                            'type' => 'checklist',
+                            'content' => 'Hitung nilai x + 3 jika x = 4, lalu jelaskan langkahnya secara singkat.',
+                        ],
+                    ],
+                    'emphasis' => 'medium',
+                ],
+            ],
+            'teacher_delivery_summary' => 'Gunakan handout ini untuk pengantar materi lalu lanjutkan dengan latihan mandiri singkat.',
             'fallback' => [
                 'triggered' => false,
                 'reason_code' => null,

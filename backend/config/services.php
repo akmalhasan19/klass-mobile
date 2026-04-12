@@ -61,6 +61,19 @@ return [
             'retry_attempts' => (int) env('MEDIA_GENERATION_INTERPRETER_RETRY_ATTEMPTS', 2),
             'retry_sleep_milliseconds' => (int) env('MEDIA_GENERATION_INTERPRETER_RETRY_SLEEP_MILLISECONDS', 250),
         ],
+        'drafting' => [
+            'base_url' => env(
+                'MEDIA_GENERATION_LLM_ADAPTER_BASE_URL',
+                env('MEDIA_GENERATION_DRAFTING_BASE_URL'),
+            ),
+            'path' => env('MEDIA_GENERATION_DRAFTING_PATH', '/v1/draft'),
+            'provider' => env('MEDIA_GENERATION_DRAFTING_PROVIDER', 'llm-adapter'),
+            'model' => env('MEDIA_GENERATION_DRAFTING_MODEL', env('MEDIA_GENERATION_DELIVERY_MODEL', 'adapter-managed')),
+            'timeout_seconds' => (float) env('MEDIA_GENERATION_DRAFTING_TIMEOUT_SECONDS', env('MEDIA_GENERATION_DELIVERY_TIMEOUT_SECONDS', 30)),
+            'connect_timeout_seconds' => (float) env('MEDIA_GENERATION_DRAFTING_CONNECT_TIMEOUT_SECONDS', env('MEDIA_GENERATION_DELIVERY_CONNECT_TIMEOUT_SECONDS', 10)),
+            'retry_attempts' => (int) env('MEDIA_GENERATION_DRAFTING_RETRY_ATTEMPTS', env('MEDIA_GENERATION_DELIVERY_RETRY_ATTEMPTS', 2)),
+            'retry_sleep_milliseconds' => (int) env('MEDIA_GENERATION_DRAFTING_RETRY_SLEEP_MILLISECONDS', env('MEDIA_GENERATION_DELIVERY_RETRY_SLEEP_MILLISECONDS', 250)),
+        ],
         'python' => [
             'base_url' => env('MEDIA_GENERATION_PYTHON_BASE_URL'),
             'generate_path' => env('MEDIA_GENERATION_PYTHON_GENERATE_PATH', '/v1/generate'),

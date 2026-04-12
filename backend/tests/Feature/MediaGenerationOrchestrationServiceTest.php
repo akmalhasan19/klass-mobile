@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\MediaGeneration\MediaArtifactMetadataContract;
+use App\MediaGeneration\MediaContentDraftSchema;
 use App\MediaGeneration\MediaDeliveryResponseSchema;
 use App\MediaGeneration\MediaGenerationErrorCode;
 use App\MediaGeneration\MediaGenerationLifecycle;
@@ -12,6 +13,7 @@ use App\MediaGeneration\MediaPromptInterpretationSchema;
 use App\Models\MediaGeneration;
 use App\Models\SubSubject;
 use App\Models\User;
+use App\Services\MediaContentDraftingService;
 use App\Services\MediaDeliveryResponseService;
 use App\Services\MediaGenerationAuditTrailService;
 use App\Services\MediaGenerationDecisionService;
@@ -226,6 +228,68 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
             MediaGenerationErrorCode::LLM_CONTRACT_FAILED,
             data_get($result->interpretation_audit_payload, 'response.fallback_error.error_code')
         );
+    }
+
+    public function test_content_drafting_service_calls_adapter_boundary_and_decision_service_uses_full_material_blocks(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'raw_prompt' => 'Buatkan handout pecahan untuk kelas 5 dengan contoh dan latihan singkat.',
+            'preferred_output_type' => 'auto',
+            'status' => MediaGenerationLifecycle::CLASSIFIED,
+            'interpretation_payload' => $this->validInterpretationPayload(),
+        ]);
+
+        config([
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
+            'services.media_generation.drafting.model' => 'adapter-managed',
+            'services.media_generation.drafting.provider' => 'llm-adapter',
+        ]);
+
+        Http::fake([
+            'https://llm.example/*' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => json_encode($this->validContentDraftPayload(), JSON_THROW_ON_ERROR),
+                        ],
+                    ],
+                ],
+            ], 200, [
+                'X-Klass-LLM-Provider' => 'openai',
+                'X-Klass-LLM-Model' => 'gpt-5.4',
+                'X-Klass-LLM-Primary-Provider' => 'openai',
+                'X-Klass-LLM-Fallback-Used' => 'false',
+            ]),
+        ]);
+
+        $result = (new MediaGenerationDecisionService(new MediaContentDraftingService()))->resolve($generation);
+
+        $this->assertSame('pdf', $result->resolved_output_type);
+        $this->assertSame('adapter', data_get($result->decision_payload, 'content_draft.source'));
+        $this->assertSame('openai', data_get($result->decision_payload, 'content_draft.adapter_provider'));
+        $this->assertSame('gpt-5.4', data_get($result->decision_payload, 'content_draft.adapter_model'));
+        $this->assertSame('paragraph', data_get($result->generation_spec_payload, 'sections.0.body_blocks.0.type'));
+        $this->assertStringContainsString(
+            'Pecahan senilai adalah dua pecahan yang nilainya sama',
+            (string) data_get($result->generation_spec_payload, 'sections.0.body_blocks.0.content')
+        );
+        $this->assertSame(
+            'Gunakan handout ini untuk membangun pemahaman konsep sebelum siswa mengerjakan latihan mandiri.',
+            data_get($result->generation_spec_payload, 'teacher_delivery_summary')
+        );
+
+        Http::assertSent(function (Request $request) use ($generation): bool {
+            $payload = json_decode($request->body(), true, 512, JSON_THROW_ON_ERROR);
+
+            return $request->url() === 'https://llm.example/v1/draft'
+                && ($request->header('X-Klass-Generation-Id')[0] ?? null) === $generation->id
+                && data_get($payload, 'request_type') === 'media_content_draft'
+                && data_get($payload, 'input.resolved_output_type') === 'pdf'
+                && data_get($payload, 'input.interpretation.schema_version') === MediaPromptInterpretationSchema::VERSION;
+        });
     }
 
     public function test_media_generation_workflow_service_remains_primary_orchestrator(): void
@@ -658,6 +722,57 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
                 'label' => 'high',
                 'rationale' => 'The prompt explicitly asks for a printable handout with examples and exercises.',
             ],
+            'fallback' => [
+                'triggered' => false,
+                'reason_code' => null,
+                'action' => null,
+            ],
+        ];
+    }
+
+    private function validContentDraftPayload(): array
+    {
+        return [
+            'schema_version' => MediaContentDraftSchema::VERSION,
+            'title' => 'Handout Pecahan Kelas 5',
+            'summary' => 'Handout ini menjelaskan pecahan senilai melalui contoh sederhana, langkah membandingkan pecahan, dan latihan mandiri singkat.',
+            'learning_objectives' => [
+                'Students identify equivalent fractions.',
+                'Students solve simple fraction exercises.',
+            ],
+            'sections' => [
+                [
+                    'title' => 'Tujuan Belajar',
+                    'purpose' => 'Frame the lesson and expected outcomes.',
+                    'body_blocks' => [
+                        [
+                            'type' => 'paragraph',
+                            'content' => 'Pecahan senilai adalah dua pecahan yang nilainya sama walaupun ditulis dengan angka berbeda. Pada bagian ini, siswa diajak memahami bahwa 1/2 memiliki nilai yang sama dengan 2/4 melalui contoh konkret dan bahasa sederhana.',
+                        ],
+                        [
+                            'type' => 'bullet',
+                            'content' => 'Siswa mengenali contoh pecahan senilai pada gambar dan angka.',
+                        ],
+                    ],
+                    'emphasis' => 'short',
+                ],
+                [
+                    'title' => 'Contoh dan Latihan',
+                    'purpose' => 'Provide guided practice and independent work.',
+                    'body_blocks' => [
+                        [
+                            'type' => 'paragraph',
+                            'content' => 'Guru dapat memulai dengan menunjukkan satu gambar lingkaran yang dibagi menjadi dua bagian sama besar, lalu gambar lain yang dibagi menjadi empat bagian dengan dua bagian diarsir. Dari situ siswa melihat bahwa kedua gambar mewakili nilai yang sama.',
+                        ],
+                        [
+                            'type' => 'checklist',
+                            'content' => 'Bandingkan 1/2 dengan 2/4 dan jelaskan mengapa nilainya sama.',
+                        ],
+                    ],
+                    'emphasis' => 'medium',
+                ],
+            ],
+            'teacher_delivery_summary' => 'Gunakan handout ini untuk membangun pemahaman konsep sebelum siswa mengerjakan latihan mandiri.',
             'fallback' => [
                 'triggered' => false,
                 'reason_code' => null,

@@ -24,7 +24,8 @@ final class MediaDeliveryRequestContract
                 'artifact' => data_get($context, 'artifact', []),
                 'publication' => data_get($context, 'publication', []),
                 'preview_summary' => data_get($context, 'preview_summary'),
-                'teacher_delivery_summary' => data_get($generation->interpretation_payload, 'teacher_delivery_summary'),
+                'teacher_delivery_summary' => data_get($generation->generation_spec_payload, 'teacher_delivery_summary')
+                    ?? data_get($generation->interpretation_payload, 'teacher_delivery_summary'),
                 'generation_summary' => data_get($generation->generation_spec_payload, 'summary'),
             ],
         ]);

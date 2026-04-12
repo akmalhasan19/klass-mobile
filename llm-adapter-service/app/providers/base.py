@@ -7,7 +7,7 @@ from typing import Any, Callable, Literal
 
 import httpx
 
-from app.models import DeliveryRequest, InterpretationRequest
+from app.models import ContentDraftRequest, DeliveryRequest, InterpretationRequest
 from app.settings import Settings
 
 ProviderRoute = Literal["interpret", "respond"]
@@ -139,6 +139,16 @@ class ProviderClient(ABC):
         )
 
     def normalize_delivery_request(self, payload: DeliveryRequest) -> NormalizedProviderRequest:
+        return self._normalize_request(
+            route="respond",
+            request_type=payload.request_type,
+            generation_id=payload.generation_id,
+            requested_model=payload.model,
+            instruction=payload.instruction,
+            input_payload=payload.input.model_dump(mode="python"),
+        )
+
+    def normalize_content_draft_request(self, payload: ContentDraftRequest) -> NormalizedProviderRequest:
         return self._normalize_request(
             route="respond",
             request_type=payload.request_type,

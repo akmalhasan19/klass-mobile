@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.errors import ProviderConfigurationError, ProviderRequestError
-from app.models import DeliveryRequest, InterpretationRequest
+from app.models import ContentDraftRequest, DeliveryRequest, InterpretationRequest
 from app.providers.base import ProviderClient, ProviderExecutionResult, ProviderRoute
 from app.providers.registry import ProviderRegistry
 from app.settings import Settings
@@ -112,11 +112,17 @@ class ProviderRouter:
     ) -> ProviderExecutionResult:
         return await self._execute(route="respond", payload=payload)
 
+    async def execute_content_draft(
+        self,
+        payload: ContentDraftRequest,
+    ) -> ProviderExecutionResult:
+        return await self._execute(route="respond", payload=payload)
+
     async def _execute(
         self,
         *,
         route: ProviderRoute,
-        payload: InterpretationRequest | DeliveryRequest,
+        payload: InterpretationRequest | DeliveryRequest | ContentDraftRequest,
     ) -> ProviderExecutionResult:
         policy = self.policy_for_route(route)
         primary_client = self.registry.build_client(policy.primary_provider, self.settings)
@@ -173,7 +179,7 @@ class ProviderRouter:
         self,
         client: ProviderClient,
         route: ProviderRoute,
-        payload: InterpretationRequest | DeliveryRequest,
+        payload: InterpretationRequest | DeliveryRequest | ContentDraftRequest,
     ):
         if route == "interpret":
             if not isinstance(payload, InterpretationRequest):
@@ -186,6 +192,12 @@ class ProviderRouter:
                 )
 
             return client.normalize_interpretation_request(payload)
+
+        if isinstance(payload, DeliveryRequest):
+            return client.normalize_delivery_request(payload)
+
+        if isinstance(payload, ContentDraftRequest):
+            return client.normalize_content_draft_request(payload)
 
         if not isinstance(payload, DeliveryRequest):
             raise ProviderConfigurationError(

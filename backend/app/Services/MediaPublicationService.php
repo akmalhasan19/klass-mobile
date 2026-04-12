@@ -747,7 +747,8 @@ class MediaPublicationService
             'file_url' => $generation->file_url,
             'thumbnail_url' => $generation->thumbnail_url,
             'summary' => $this->resolvePublicationDescription($generation),
-            'teacher_delivery_summary' => data_get($generation->interpretation_payload, 'teacher_delivery_summary'),
+            'teacher_delivery_summary' => data_get($generation->generation_spec_payload, 'teacher_delivery_summary')
+                ?? data_get($generation->interpretation_payload, 'teacher_delivery_summary'),
             'section_titles' => $this->buildProjectModules($generation),
         ];
     }
@@ -924,6 +925,7 @@ class MediaPublicationService
     protected function resolvePublicationDescription(MediaGeneration $generation): ?string
     {
         $candidates = [
+            data_get($generation->generation_spec_payload, 'teacher_delivery_summary'),
             data_get($generation->interpretation_payload, 'teacher_delivery_summary'),
             data_get($generation->generation_spec_payload, 'summary'),
         ];

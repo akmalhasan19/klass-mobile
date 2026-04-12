@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\MediaGeneration\MediaArtifactMetadataContract;
+use App\MediaGeneration\MediaContentDraftRequestContract;
+use App\MediaGeneration\MediaContentDraftSchema;
 use App\MediaGeneration\MediaDeliveryRequestContract;
 use App\MediaGeneration\MediaDeliveryResponseSchema;
 use App\MediaGeneration\MediaGenerationContractException;
@@ -149,6 +151,7 @@ class MediaGenerationContractTest extends TestCase
                 'teacher_delivery_summary' => 'Bagikan file setelah pengantar singkat.',
             ],
             'generation_spec_payload' => [
+                'teacher_delivery_summary' => 'Gunakan handout ini untuk menjelaskan konsep inti lalu lanjutkan ke latihan singkat.',
                 'summary' => 'Handout untuk penguatan konsep pecahan.',
             ],
         ]);
@@ -178,10 +181,55 @@ class MediaGenerationContractTest extends TestCase
 
         $this->assertSame(MediaDeliveryRequestContract::REQUEST_TYPE, $payload['request_type']);
         $this->assertSame('gen-456', $payload['generation_id']);
-        $this->assertSame('Bagikan file setelah pengantar singkat.', $payload['input']['teacher_delivery_summary']);
+        $this->assertSame('Gunakan handout ini untuk menjelaskan konsep inti lalu lanjutkan ke latihan singkat.', $payload['input']['teacher_delivery_summary']);
         $this->assertSame('Handout untuk penguatan konsep pecahan.', $payload['input']['generation_summary']);
         $this->assertArrayNotHasKey('binary', $payload['input']['artifact']);
         $this->assertArrayNotHasKey('base64', $payload['input']['artifact']);
+    }
+
+    public function test_content_draft_schema_validates_full_material_contract_and_instruction(): void
+    {
+        $payload = MediaContentDraftSchema::decodeAndValidate(json_encode($this->validContentDraftPayload(), JSON_THROW_ON_ERROR));
+
+        $this->assertSame(MediaContentDraftSchema::VERSION, $payload['schema_version']);
+        $this->assertSame('paragraph', $payload['sections'][0]['body_blocks'][0]['type']);
+        $this->assertFalse($payload['fallback']['triggered']);
+        $this->assertStringContainsString('Write actual teaching content', MediaContentDraftSchema::llmInstruction());
+    }
+
+    public function test_content_draft_schema_can_build_deterministic_fallback_from_interpretation(): void
+    {
+        $payload = MediaContentDraftSchema::fallbackFromInterpretation(
+            $this->validInterpretationPayload(),
+            'pdf',
+            'drafting_service_unconfigured',
+        );
+
+        $this->assertSame(MediaContentDraftSchema::VERSION, $payload['schema_version']);
+        $this->assertTrue($payload['fallback']['triggered']);
+        $this->assertSame('drafting_service_unconfigured', $payload['fallback']['reason_code']);
+        $this->assertSame('paragraph', $payload['sections'][0]['body_blocks'][0]['type']);
+        $this->assertNotEmpty($payload['sections'][0]['body_blocks'][0]['content']);
+    }
+
+    public function test_content_draft_request_contract_builds_adapter_payload_from_generation_interpretation(): void
+    {
+        $generation = new MediaGeneration([
+            'interpretation_payload' => $this->validInterpretationPayload(),
+        ]);
+        $generation->id = 'gen-draft-456';
+
+        $payload = MediaContentDraftRequestContract::fromGeneration(
+            $generation,
+            ['resolved_output_type' => 'pdf'],
+            'gpt-5.4',
+            'Return exactly one JSON object.'
+        );
+
+        $this->assertSame(MediaContentDraftRequestContract::REQUEST_TYPE, $payload['request_type']);
+        $this->assertSame('gen-draft-456', $payload['generation_id']);
+        $this->assertSame('pdf', $payload['input']['resolved_output_type']);
+        $this->assertSame(MediaPromptInterpretationSchema::VERSION, data_get($payload, 'input.interpretation.schema_version'));
     }
 
     public function test_delivery_request_contract_rejects_binary_fields(): void
@@ -255,6 +303,24 @@ class MediaGenerationContractTest extends TestCase
 
         $this->assertSame('pptx', $metadata['extension']);
         $this->assertSame(12, $metadata['slide_count']);
+    }
+
+    public function test_generation_spec_contract_can_build_from_full_content_draft(): void
+    {
+        $spec = MediaGenerationSpecContract::fromDraft(
+            $this->validInterpretationPayload(),
+            $this->validContentDraftPayload(),
+            'pdf',
+        );
+
+        $this->assertSame('pdf', $spec['export_format']);
+        $this->assertSame('Handout Pecahan Kelas 5', $spec['title']);
+        $this->assertSame('paragraph', $spec['sections'][0]['body_blocks'][0]['type']);
+        $this->assertStringContainsString('Pecahan senilai adalah', $spec['sections'][0]['body_blocks'][0]['content']);
+        $this->assertSame(
+            'Gunakan handout ini untuk membangun pemahaman konsep sebelum siswa mengerjakan latihan mandiri.',
+            $spec['teacher_delivery_summary']
+        );
     }
 
     public function test_python_metadata_contract_rejects_mismatched_extension(): void
@@ -421,6 +487,57 @@ class MediaGenerationContractTest extends TestCase
                 'label' => 'high',
                 'rationale' => 'The prompt explicitly asks for a printable handout with examples and exercises.',
             ],
+            'fallback' => [
+                'triggered' => false,
+                'reason_code' => null,
+                'action' => null,
+            ],
+        ];
+    }
+
+    private function validContentDraftPayload(): array
+    {
+        return [
+            'schema_version' => MediaContentDraftSchema::VERSION,
+            'title' => 'Handout Pecahan Kelas 5',
+            'summary' => 'Handout ini menjelaskan pecahan senilai melalui contoh sederhana, langkah membandingkan pecahan, dan latihan mandiri singkat.',
+            'learning_objectives' => [
+                'Students identify equivalent fractions.',
+                'Students solve simple fraction exercises.',
+            ],
+            'sections' => [
+                [
+                    'title' => 'Tujuan Belajar',
+                    'purpose' => 'Frame the lesson and expected outcomes.',
+                    'body_blocks' => [
+                        [
+                            'type' => 'paragraph',
+                            'content' => 'Pecahan senilai adalah dua pecahan yang nilainya sama walaupun ditulis dengan angka berbeda. Pada bagian ini, siswa diajak memahami bahwa 1/2 memiliki nilai yang sama dengan 2/4 melalui contoh konkret dan bahasa sederhana.',
+                        ],
+                        [
+                            'type' => 'bullet',
+                            'content' => 'Siswa mengenali contoh pecahan senilai pada gambar dan angka.',
+                        ],
+                    ],
+                    'emphasis' => 'short',
+                ],
+                [
+                    'title' => 'Contoh dan Latihan',
+                    'purpose' => 'Provide guided practice and independent work.',
+                    'body_blocks' => [
+                        [
+                            'type' => 'paragraph',
+                            'content' => 'Guru dapat memulai dengan menunjukkan satu gambar lingkaran yang dibagi menjadi dua bagian sama besar, lalu gambar lain yang dibagi menjadi empat bagian dengan dua bagian diarsir. Dari situ siswa melihat bahwa kedua gambar mewakili nilai yang sama.',
+                        ],
+                        [
+                            'type' => 'checklist',
+                            'content' => 'Bandingkan 1/2 dengan 2/4 dan jelaskan mengapa nilainya sama.',
+                        ],
+                    ],
+                    'emphasis' => 'medium',
+                ],
+            ],
+            'teacher_delivery_summary' => 'Gunakan handout ini untuk membangun pemahaman konsep sebelum siswa mengerjakan latihan mandiri.',
             'fallback' => [
                 'triggered' => false,
                 'reason_code' => null,

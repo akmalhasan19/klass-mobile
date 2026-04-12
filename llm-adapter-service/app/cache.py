@@ -20,7 +20,7 @@ from app.contracts import (
     RESPOND_ROUTE,
 )
 from app.database import close_database_pool, get_database_pool
-from app.models import DeliveryRequest, InterpretationRequest
+from app.models import ContentDraftRequest, DeliveryRequest, InterpretationRequest
 from app.settings import Settings, get_settings
 
 CacheRoute = Literal["interpret", "respond"]
@@ -117,6 +117,24 @@ def build_delivery_cache_document(
     )
 
 
+def build_content_draft_cache_document(
+    payload: ContentDraftRequest,
+    *,
+    provider: str,
+    model: str,
+    schema_version: str = CACHE_KEY_SCHEMA_VERSION,
+) -> dict[str, Any]:
+    return _build_cache_document(
+        schema_version=schema_version,
+        route=RESPOND_ROUTE,
+        request_type=payload.request_type,
+        provider=provider,
+        model=model,
+        instruction=payload.instruction,
+        input_payload=payload.input.model_dump(mode="python"),
+    )
+
+
 def build_interpretation_cache_key(
     payload: InterpretationRequest,
     *,
@@ -143,6 +161,23 @@ def build_delivery_cache_key(
 ) -> str:
     return _hash_cache_document(
         build_delivery_cache_document(
+            payload,
+            provider=provider,
+            model=model,
+            schema_version=schema_version,
+        )
+    )
+
+
+def build_content_draft_cache_key(
+    payload: ContentDraftRequest,
+    *,
+    provider: str,
+    model: str,
+    schema_version: str = CACHE_KEY_SCHEMA_VERSION,
+) -> str:
+    return _hash_cache_document(
+        build_content_draft_cache_document(
             payload,
             provider=provider,
             model=model,
@@ -265,6 +300,20 @@ class AdapterCacheService:
         model: str,
     ) -> str:
         return build_delivery_cache_key(
+            payload,
+            provider=provider,
+            model=model,
+            schema_version=self.settings.cache_key_schema_version,
+        )
+
+    def build_content_draft_cache_key(
+        self,
+        payload: ContentDraftRequest,
+        *,
+        provider: str,
+        model: str,
+    ) -> str:
+        return build_content_draft_cache_key(
             payload,
             provider=provider,
             model=model,

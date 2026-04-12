@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.contracts import INTERPRET_REQUEST_TYPE, RESPOND_REQUEST_TYPE
+from app.contracts import DRAFT_REQUEST_TYPE, INTERPRET_REQUEST_TYPE, RESPOND_REQUEST_TYPE
 
 
 class AdapterBaseModel(BaseModel):
@@ -30,6 +30,19 @@ class InterpretationRequest(AdapterBaseModel):
     model: str = Field(min_length=1, max_length=200)
     instruction: str = Field(min_length=1, max_length=20000)
     input: InterpretationRequestInput
+
+
+class ContentDraftRequestInput(AdapterBaseModel):
+    resolved_output_type: Literal["docx", "pdf", "pptx"]
+    interpretation: dict[str, Any]
+
+
+class ContentDraftRequest(AdapterBaseModel):
+    request_type: Literal[DRAFT_REQUEST_TYPE]
+    generation_id: str = Field(min_length=1, max_length=100)
+    model: str = Field(min_length=1, max_length=200)
+    instruction: str = Field(min_length=1, max_length=20000)
+    input: ContentDraftRequestInput
 
 
 class DeliveryArtifact(AdapterBaseModel):

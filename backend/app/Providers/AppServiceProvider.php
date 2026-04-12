@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\MediaContentDraftingService;
+use App\Services\MediaGenerationDecisionService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -14,7 +16,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(MediaGenerationDecisionService::class, function ($app): MediaGenerationDecisionService {
+            return new MediaGenerationDecisionService(
+                $app->make(MediaContentDraftingService::class),
+            );
+        });
     }
 
     /**
