@@ -252,6 +252,130 @@ class MediaGenerationAsyncJobTest extends TestCase
         );
     }
 
+    public function test_process_media_generation_job_uses_safe_draft_fallback_when_adapter_returns_internal_prompt_text(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+        Storage::fake('supabase');
+        putenv('SUPABASE_URL=https://supabase.example');
+
+        $this->app->instance(ThumbnailGeneratorService::class, $this->fakeThumbnailGeneratorService());
+
+        config([
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
+            'services.media_generation.interpreter.provider' => 'llm-adapter',
+            'services.media_generation.interpreter.model' => 'adapter-managed',
+            'services.media_generation.python.base_url' => 'https://python.example',
+            'services.media_generation.python.shared_secret' => 'shared-secret',
+            'services.media_generation.python.provider' => 'klass-python',
+            'services.media_generation.python.model' => 'renderer-v1',
+            'services.media_generation.delivery.provider' => 'llm-adapter',
+            'services.media_generation.delivery.model' => 'adapter-managed',
+        ]);
+
+        $teacher = User::factory()->teacher()->create();
+        $subSubject = SubSubject::query()->where('slug', 'algebra')->firstOrFail();
+        $artifactPath = $this->createTempArtifactFile('pdf');
+
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'subject_id' => $subSubject->subject_id,
+            'sub_subject_id' => $subSubject->id,
+            'raw_prompt' => 'Buatkan handout printable aljabar dasar untuk kelas 8 dengan contoh soal singkat.',
+            'preferred_output_type' => 'pdf',
+            'status' => MediaGenerationLifecycle::QUEUED,
+        ]);
+
+        Http::fake([
+            'https://llm.example/v1/interpret' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode($this->interpretationPayload(), JSON_THROW_ON_ERROR),
+                    ],
+                ]],
+            ], 200),
+            'https://llm.example/v1/draft' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode($this->leakyContentDraftPayload(), JSON_THROW_ON_ERROR),
+                    ],
+                ]],
+            ], 200),
+            'https://python.example/v1/generate' => Http::response([
+                'request_id' => 'render-async-guard-1',
+                'artifact_metadata' => $this->artifactMetadata($artifactPath),
+            ], 200),
+            'https://llm.example/v1/respond' => function (Request $request) {
+                $payload = json_decode($request->body(), true, 512, JSON_THROW_ON_ERROR);
+
+                return Http::response([
+                    'choices' => [[
+                        'message' => [
+                            'content' => json_encode([
+                                'schema_version' => MediaDeliveryResponseSchema::VERSION,
+                                'title' => 'Handout Aljabar Kelas 8 siap digunakan',
+                                'preview_summary' => 'Handout siap dipakai untuk pengantar materi aljabar dasar.',
+                                'teacher_message' => 'Tinjau materi akhir sebelum dibagikan ke siswa.',
+                                'recommended_next_steps' => [
+                                    'Gunakan contoh pada bagian awal sebagai pembuka diskusi kelas.',
+                                ],
+                                'classroom_tips' => [
+                                    'Ajak siswa menjelaskan kembali arti variabel dengan bahasa mereka sendiri.',
+                                ],
+                                'artifact' => [
+                                    'output_type' => 'pdf',
+                                    'title' => 'Handout Aljabar Kelas 8',
+                                    'file_url' => data_get($payload, 'input.artifact.file_url'),
+                                    'thumbnail_url' => data_get($payload, 'input.artifact.thumbnail_url'),
+                                    'mime_type' => 'application/pdf',
+                                    'filename' => 'handout-aljabar-kelas-8.pdf',
+                                ],
+                                'publication' => [
+                                    'topic' => data_get($payload, 'input.publication.topic'),
+                                    'content' => data_get($payload, 'input.publication.content'),
+                                    'recommended_project' => data_get($payload, 'input.publication.recommended_project'),
+                                ],
+                                'response_meta' => [
+                                    'generated_at' => now()->toISOString(),
+                                    'llm_used' => true,
+                                    'provider' => 'openai',
+                                    'model' => 'gpt-5.4',
+                                ],
+                                'fallback' => [
+                                    'triggered' => false,
+                                    'reason_code' => null,
+                                    'action' => null,
+                                ],
+                            ], JSON_THROW_ON_ERROR),
+                        ],
+                    ]],
+                ], 200);
+            },
+        ]);
+
+        $job = new ProcessMediaGenerationJob($generation->id);
+        $job->handle(
+            app(MediaGenerationWorkflowService::class),
+            app(MediaGenerationAuditTrailService::class),
+        );
+
+        $generation = $generation->fresh();
+        $sectionText = collect(data_get($generation->generation_spec_payload, 'sections', []))
+            ->pluck('body_blocks')
+            ->flatten(1)
+            ->pluck('content')
+            ->implode(' ');
+
+        $this->assertSame(MediaGenerationLifecycle::COMPLETED, $generation->status);
+        $this->assertSame('deterministic_fallback', data_get($generation->decision_payload, 'content_draft.source'));
+        $this->assertTrue((bool) data_get($generation->decision_payload, 'content_draft.draft_fallback_triggered'));
+        $this->assertStringNotContainsString('Return exactly one JSON object', $sectionText);
+        $this->assertStringNotContainsString('schema_version', $sectionText);
+        $this->assertStringContainsStringIgnoringCase('aljabar', $sectionText);
+
+        @unlink($artifactPath);
+    }
+
     private function fakeThumbnailGeneratorService(): ThumbnailGeneratorService
     {
         return new class extends ThumbnailGeneratorService
@@ -406,6 +530,18 @@ class MediaGenerationAsyncJobTest extends TestCase
                 'action' => null,
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function leakyContentDraftPayload(): array
+    {
+        $payload = $this->contentDraftPayload();
+        $payload['sections'][0]['body_blocks'][0]['content'] = 'Return exactly one JSON object. Use schema_version media_content_draft.v1 and keep body_blocks.content as final output.';
+        $payload['sections'][1]['body_blocks'][0]['content'] = 'Do not wrap the JSON in markdown fences. Set fallback.triggered to false.';
+
+        return $payload;
     }
 
     /**

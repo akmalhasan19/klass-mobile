@@ -2,6 +2,7 @@
 
 namespace App\MediaGeneration;
 
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use JsonException;
@@ -34,6 +35,9 @@ final class MediaPromptInterpretationSchema
             'Always include these top-level keys: schema_version, teacher_prompt, language, teacher_intent, learning_objectives, constraints, output_type_candidates, resolved_output_type_reasoning, document_blueprint, subject_context, sub_subject_context, target_audience, requested_media_characteristics, assets, assessment_or_activity_blocks, teacher_delivery_summary, confidence, fallback.',
             'Use null for unavailable objects and [] for unavailable lists.',
             'Allowed output format values are only: docx, pdf, pptx.',
+            'The text in teacher_intent.goal, learning_objectives, document_blueprint, assessment_or_activity_blocks, and teacher_delivery_summary is not internal planning text. It is the authoring blueprint for the final file and must describe the lesson material that teacher and students are meant to read.',
+            'Design the document_blueprint for classroom-ready learning content. When relevant, include sections for topic introduction, concept explanation, formulas or rules, worked example, and short practice or reflection.',
+            'Never mention prompts, schema keys, JSON instructions, body_blocks, fallback flags, LLMs, adapters, renderers, or internal workflows in any teacher-facing field.',
         ]);
     }
 
@@ -85,32 +89,49 @@ final class MediaPromptInterpretationSchema
             );
         }
 
-        return self::normalize($payload);
+        $normalizedPayload = self::normalize($payload);
+
+        MediaGeneratedContentGuard::assertInterpretationPayload($normalizedPayload);
+
+        return $normalizedPayload;
     }
 
     public static function fallback(
         string $teacherPrompt,
         string $reasonCode = 'llm_contract_failed',
         ?string $preferredOutputType = null,
-        ?string $language = null
+        ?string $language = null,
+        ?array $subjectContext = null,
+        ?array $subSubjectContext = null,
     ): array {
         $resolvedPreferredOutputType = self::normalizePreferredOutputType($preferredOutputType);
         $candidateTypes = $resolvedPreferredOutputType === 'auto'
             ? self::allowedOutputFormats()
             : [$resolvedPreferredOutputType];
         $candidateScore = $resolvedPreferredOutputType === 'auto' ? 0.34 : 0.51;
+        $fallbackLanguage = self::resolveFallbackLanguage($language, $teacherPrompt);
+        $usesIndonesian = self::usesIndonesian($fallbackLanguage);
+        $normalizedSubjectContext = self::normalizeNamedContext($subjectContext, 'subject_name', 'subject_slug');
+        $topicLabel = self::resolveTopicLabel($teacherPrompt, $normalizedSubjectContext, $subSubjectContext);
+        $normalizedSubSubjectContext = self::normalizeSubSubjectContext($subSubjectContext, $topicLabel, $normalizedSubjectContext);
+        $targetAudience = self::resolveTargetAudience($teacherPrompt, $usesIndonesian);
+        $title = self::fallbackTitle($topicLabel, $targetAudience, $usesIndonesian);
+        $summary = self::fallbackSummary($topicLabel, $usesIndonesian);
+        $sections = self::fallbackSections($topicLabel, $usesIndonesian);
 
         return self::validate([
             'schema_version' => self::VERSION,
             'teacher_prompt' => $teacherPrompt,
-            'language' => $language !== null && trim($language) !== '' ? trim($language) : 'und',
+            'language' => $fallbackLanguage,
             'teacher_intent' => [
                 'type' => 'generate_learning_media',
-                'goal' => 'Retry prompt interpretation before sending any artifact request to the renderer.',
+                'goal' => $usesIndonesian
+                    ? 'Susun materi pembelajaran yang siap dibuka langsung oleh guru dan siswa untuk membahas ' . $topicLabel . '.'
+                    : 'Create classroom-ready learning material about ' . $topicLabel . ' that can be opened directly by the teacher and students.',
                 'preferred_delivery_mode' => 'digital_download',
-                'requires_clarification' => true,
+                'requires_clarification' => false,
             ],
-            'learning_objectives' => [],
+            'learning_objectives' => self::fallbackLearningObjectives($topicLabel, $usesIndonesian),
             'constraints' => [
                 'preferred_output_type' => $resolvedPreferredOutputType,
                 'must_include' => [],
@@ -122,43 +143,50 @@ final class MediaPromptInterpretationSchema
                 static fn (string $type): array => [
                     'type' => $type,
                     'score' => $candidateScore,
-                    'reason' => 'Fallback candidate produced after the LLM response failed contract validation.',
+                    'reason' => $usesIndonesian
+                        ? 'Format fallback dipilih agar materi tetap bisa dibuat dan dibuka langsung.'
+                        : 'Fallback format selected so the lesson can still be generated and opened directly.',
                 ],
                 $candidateTypes
             ),
-            'resolved_output_type_reasoning' => 'Fallback payload created because the prompt interpretation response was invalid or incomplete.',
+            'resolved_output_type_reasoning' => $usesIndonesian
+                ? 'Blueprint fallback aman dipakai agar materi tetap tersusun sebagai konten belajar yang siap digunakan.'
+                : 'A safe fallback blueprint is used so the lesson still becomes direct classroom material.',
             'document_blueprint' => [
-                'title' => 'Interpretation Retry Required',
-                'summary' => 'The teacher request must be interpreted again before any media file is rendered.',
-                'sections' => [
-                    [
-                        'title' => 'Retry Interpretation',
-                        'purpose' => 'Prevent renderer execution until the contract is valid again.',
-                        'bullets' => ['Re-run interpretation with JSON-only output.'],
-                        'estimated_length' => 'short',
-                    ],
-                ],
+                'title' => $title,
+                'summary' => $summary,
+                'sections' => $sections,
             ],
-            'subject_context' => null,
-            'sub_subject_context' => null,
-            'target_audience' => null,
+            'subject_context' => $normalizedSubjectContext,
+            'sub_subject_context' => $normalizedSubSubjectContext,
+            'target_audience' => $targetAudience,
             'requested_media_characteristics' => [
                 'tone' => null,
                 'format_preferences' => $resolvedPreferredOutputType === 'auto' ? [] : [$resolvedPreferredOutputType],
                 'visual_density' => null,
             ],
             'assets' => [],
-            'assessment_or_activity_blocks' => [],
-            'teacher_delivery_summary' => 'The prompt was received, but the interpretation contract failed validation and must be retried.',
+            'assessment_or_activity_blocks' => [
+                [
+                    'title' => $usesIndonesian ? 'Latihan atau Refleksi Singkat' : 'Short Practice or Reflection',
+                    'type' => 'activity',
+                    'instructions' => $usesIndonesian
+                        ? 'Ajak siswa menjawab pertanyaan singkat atau menyelesaikan satu latihan sederhana yang berkaitan dengan ' . $topicLabel . '.'
+                        : 'Ask students to answer a short question or solve one simple task related to ' . $topicLabel . '.',
+                ],
+            ],
+            'teacher_delivery_summary' => self::fallbackTeacherDeliverySummary($topicLabel, $usesIndonesian),
             'confidence' => [
                 'score' => 0.0,
                 'label' => 'low',
-                'rationale' => 'Fallback contract generated because the LLM response was invalid.',
+                'rationale' => $usesIndonesian
+                    ? 'Blueprint fallback aman dipakai karena respons model sebelumnya tidak dapat digunakan secara langsung.'
+                    : 'A safe fallback blueprint is used because the previous model response could not be used directly.',
             ],
             'fallback' => [
                 'triggered' => true,
                 'reason_code' => $reasonCode,
-                'action' => 'retry_interpretation',
+                'action' => 'use_safe_lesson_blueprint',
             ],
         ]);
     }
@@ -525,6 +553,359 @@ final class MediaPromptInterpretationSchema
     private static function normalizeNullableObject(mixed $value): ?array
     {
         return is_array($value) ? $value : null;
+    }
+
+    private static function resolveFallbackLanguage(?string $language, string $teacherPrompt): string
+    {
+        if (is_string($language) && trim($language) !== '' && trim($language) !== 'und') {
+            return trim($language);
+        }
+
+        return self::looksLikeIndonesianPrompt($teacherPrompt) ? 'id' : 'en';
+    }
+
+    private static function usesIndonesian(string $language): bool
+    {
+        return str_starts_with(strtolower(trim($language)), 'id');
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $subjectContext
+     * @return array<string, string|null>|null
+     */
+    private static function normalizeNamedContext(?array $subjectContext, string $nameKey, string $slugKey): ?array
+    {
+        if (! is_array($subjectContext)) {
+            return null;
+        }
+
+        $name = trim((string) ($subjectContext[$nameKey] ?? ''));
+
+        if ($name === '') {
+            return null;
+        }
+
+        $slug = trim((string) ($subjectContext[$slugKey] ?? ''));
+
+        return [
+            $nameKey => $name,
+            $slugKey => $slug !== '' ? $slug : Str::slug($name),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $subjectContext
+     * @param  array<string, mixed>|null  $subSubjectContext
+     */
+    private static function resolveTopicLabel(string $teacherPrompt, ?array $subjectContext, ?array $subSubjectContext): string
+    {
+        $subSubjectName = trim((string) data_get($subSubjectContext, 'sub_subject_name', ''));
+
+        if ($subSubjectName !== '') {
+            return $subSubjectName;
+        }
+
+        $extractedTopic = self::extractTopicFromPrompt($teacherPrompt);
+
+        if ($extractedTopic !== null) {
+            return $extractedTopic;
+        }
+
+        $subjectName = trim((string) data_get($subjectContext, 'subject_name', ''));
+
+        if ($subjectName !== '') {
+            return $subjectName;
+        }
+
+        return self::looksLikeIndonesianPrompt($teacherPrompt) ? 'materi pembelajaran' : 'the requested lesson topic';
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $subSubjectContext
+     * @param  array<string, mixed>|null  $subjectContext
+     * @return array<string, string|null>|null
+     */
+    private static function normalizeSubSubjectContext(?array $subSubjectContext, string $topicLabel, ?array $subjectContext): ?array
+    {
+        $normalized = self::normalizeNamedContext($subSubjectContext, 'sub_subject_name', 'sub_subject_slug');
+
+        if ($normalized !== null) {
+            return $normalized;
+        }
+
+        $subjectName = trim((string) data_get($subjectContext, 'subject_name', ''));
+
+        if ($topicLabel === '' || strcasecmp($topicLabel, $subjectName) === 0) {
+            return null;
+        }
+
+        return [
+            'sub_subject_name' => $topicLabel,
+            'sub_subject_slug' => Str::slug($topicLabel),
+        ];
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private static function resolveTargetAudience(string $teacherPrompt, bool $usesIndonesian): ?array
+    {
+        $normalizedPrompt = strtolower(trim($teacherPrompt));
+
+        if (preg_match('/\bkelas\s+(\d{1,2})\b/u', $teacherPrompt, $matches) === 1) {
+            $grade = trim($matches[1]);
+
+            return [
+                'label' => 'Siswa kelas ' . $grade,
+                'level' => self::gradeLevelFromNumber((int) $grade),
+                'age_range' => self::ageRangeFromNumber((int) $grade),
+            ];
+        }
+
+        if (preg_match('/\bgrade\s+(\d{1,2})\b/i', $teacherPrompt, $matches) === 1) {
+            $grade = trim($matches[1]);
+
+            return [
+                'label' => 'Grade ' . $grade . ' students',
+                'level' => self::gradeLevelFromNumber((int) $grade),
+                'age_range' => self::ageRangeFromNumber((int) $grade),
+            ];
+        }
+
+        if (str_contains($normalizedPrompt, 'sma') || str_contains($normalizedPrompt, 'highschool') || str_contains($normalizedPrompt, 'high school')) {
+            return [
+                'label' => $usesIndonesian ? 'Siswa SMA' : 'High school students',
+                'level' => 'high_school',
+                'age_range' => '15-18',
+            ];
+        }
+
+        if (str_contains($normalizedPrompt, 'smp') || str_contains($normalizedPrompt, 'middle school')) {
+            return [
+                'label' => $usesIndonesian ? 'Siswa SMP' : 'Middle school students',
+                'level' => 'middle_school',
+                'age_range' => '12-15',
+            ];
+        }
+
+        if (str_contains($normalizedPrompt, 'sd') || str_contains($normalizedPrompt, 'elementary')) {
+            return [
+                'label' => $usesIndonesian ? 'Siswa sekolah dasar' : 'Elementary students',
+                'level' => 'elementary',
+                'age_range' => '7-12',
+            ];
+        }
+
+        return null;
+    }
+
+    private static function gradeLevelFromNumber(int $grade): string
+    {
+        return match (true) {
+            $grade <= 6 => 'elementary',
+            $grade <= 9 => 'middle_school',
+            default => 'high_school',
+        };
+    }
+
+    private static function ageRangeFromNumber(int $grade): string
+    {
+        return match (true) {
+            $grade <= 1 => '6-7',
+            $grade <= 3 => '7-9',
+            $grade <= 6 => '9-12',
+            $grade <= 9 => '12-15',
+            default => '15-18',
+        };
+    }
+
+    private static function fallbackTitle(string $topicLabel, ?array $targetAudience, bool $usesIndonesian): string
+    {
+        $audienceLabel = trim((string) data_get($targetAudience, 'label', ''));
+
+        if ($usesIndonesian) {
+            return $audienceLabel !== ''
+                ? 'Materi ' . $topicLabel . ' untuk ' . $audienceLabel
+                : 'Materi Pembelajaran ' . $topicLabel;
+        }
+
+        return $audienceLabel !== ''
+            ? $topicLabel . ' Learning Material for ' . $audienceLabel
+            : 'Learning Material: ' . $topicLabel;
+    }
+
+    private static function fallbackSummary(string $topicLabel, bool $usesIndonesian): string
+    {
+        return $usesIndonesian
+            ? 'Materi ini merangkum konsep inti ' . $topicLabel . ', penjelasan pokok, contoh sederhana, dan latihan singkat agar siap dipakai dalam pembelajaran.'
+            : 'This material summarizes the core ideas of ' . $topicLabel . ', the main explanation, a simple example, and short practice so it is ready for classroom use.';
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private static function fallbackSections(string $topicLabel, bool $usesIndonesian): array
+    {
+        if ($usesIndonesian) {
+            return [
+                [
+                    'title' => 'Pengantar ' . $topicLabel,
+                    'purpose' => 'Membuka pembelajaran dengan gambaran umum, tujuan belajar, dan alasan pentingnya topik ini.',
+                    'bullets' => [
+                        'Pengertian awal tentang ' . $topicLabel,
+                        'Istilah utama yang perlu dikenali siswa',
+                    ],
+                    'estimated_length' => 'short',
+                ],
+                [
+                    'title' => 'Konsep dan Aturan Utama',
+                    'purpose' => 'Menjelaskan ide inti, aturan, rumus, atau langkah yang relevan dengan topik ini.',
+                    'bullets' => [
+                        'Konsep inti yang harus dipahami',
+                        'Aturan, rumus, atau langkah kerja yang relevan bila ada',
+                    ],
+                    'estimated_length' => 'medium',
+                ],
+                [
+                    'title' => 'Contoh Penerapan',
+                    'purpose' => 'Menunjukkan satu contoh yang dibahas langkah demi langkah agar siswa melihat penerapan konsep.',
+                    'bullets' => [
+                        'Satu contoh sederhana yang dekat dengan materi',
+                        'Penjelasan alasan di setiap langkah',
+                    ],
+                    'estimated_length' => 'medium',
+                ],
+                [
+                    'title' => 'Latihan Singkat dan Refleksi',
+                    'purpose' => 'Memberikan kesempatan kepada siswa untuk mencoba dan meninjau kembali ide utama.',
+                    'bullets' => [
+                        'Pertanyaan atau latihan singkat untuk menguji pemahaman',
+                        'Ajak siswa merangkum kembali ide utama dengan bahasa sendiri',
+                    ],
+                    'estimated_length' => 'short',
+                ],
+            ];
+        }
+
+        return [
+            [
+                'title' => 'Introduction to ' . $topicLabel,
+                'purpose' => 'Open the lesson with a clear overview, learning goals, and the importance of the topic.',
+                'bullets' => [
+                    'A simple starting explanation of ' . $topicLabel,
+                    'Key terms students need to recognize',
+                ],
+                'estimated_length' => 'short',
+            ],
+            [
+                'title' => 'Core Concepts and Rules',
+                'purpose' => 'Explain the main ideas, rules, formulas, or steps that matter for the topic.',
+                'bullets' => [
+                    'The central idea students need to understand',
+                    'Rules, formulas, or steps that apply when relevant',
+                ],
+                'estimated_length' => 'medium',
+            ],
+            [
+                'title' => 'Worked Example',
+                'purpose' => 'Show a simple example step by step so students can see the concept in use.',
+                'bullets' => [
+                    'A simple example connected to the lesson',
+                    'A short explanation for each step',
+                ],
+                'estimated_length' => 'medium',
+            ],
+            [
+                'title' => 'Short Practice and Reflection',
+                'purpose' => 'Give students a quick chance to practice and restate the main idea.',
+                'bullets' => [
+                    'One or two short tasks to check understanding',
+                    'A reflection prompt to restate the main idea',
+                ],
+                'estimated_length' => 'short',
+            ],
+        ];
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function fallbackLearningObjectives(string $topicLabel, bool $usesIndonesian): array
+    {
+        if ($usesIndonesian) {
+            return [
+                'Siswa memahami gagasan utama tentang ' . $topicLabel . '.',
+                'Siswa dapat menjelaskan istilah, aturan, atau langkah penting yang berkaitan dengan ' . $topicLabel . '.',
+                'Siswa mencoba contoh atau latihan singkat yang berhubungan dengan ' . $topicLabel . '.',
+            ];
+        }
+
+        return [
+            'Students understand the main idea of ' . $topicLabel . '.',
+            'Students explain the key terms, rules, or steps related to ' . $topicLabel . '.',
+            'Students try a short example or practice task connected to ' . $topicLabel . '.',
+        ];
+    }
+
+    private static function fallbackTeacherDeliverySummary(string $topicLabel, bool $usesIndonesian): string
+    {
+        return $usesIndonesian
+            ? 'Gunakan materi ini untuk membuka pembelajaran ' . $topicLabel . ', menegaskan konsep inti, lalu menutup dengan contoh dan latihan singkat.'
+            : 'Use this material to introduce ' . $topicLabel . ', reinforce the core concept, and close with an example and short practice.';
+    }
+
+    private static function looksLikeIndonesianPrompt(string $teacherPrompt): bool
+    {
+        return preg_match('/\b(buatkan|untuk|kelas|siswa|materi|pembelajaran|pelajaran|guru|ajar)\b/iu', $teacherPrompt) === 1;
+    }
+
+    private static function extractTopicFromPrompt(string $teacherPrompt): ?string
+    {
+        $patterns = [
+            '/(?:mata\s+pelajaran|pelajaran|materi|topik)\s+([\p{L}\p{N}\s\-]{3,80}?)(?:\s+(?:yang|untuk|dengan|agar|supaya)\b|[\.,!?]|$)/iu',
+            '/(?:tentang|mengenai|about)\s+([\p{L}\p{N}\s\-]{3,80}?)(?:\s+(?:yang|untuk|dengan|agar|supaya)\b|[\.,!?]|$)/iu',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $teacherPrompt, $matches) === 1) {
+                $candidate = trim($matches[1]);
+
+                if ($candidate !== '') {
+                    return Str::of($candidate)
+                        ->replaceMatches('/\s+/', ' ')
+                        ->trim()
+                        ->title()
+                        ->toString();
+                }
+            }
+        }
+
+        $stopwords = [
+            'buatkan', 'aku', 'saya', 'sebuah', 'suatu', 'pdf', 'docx', 'pptx', 'slide', 'slides', 'deck',
+            'materi', 'pembelajaran', 'belajar', 'pelajaran', 'mata', 'topik', 'tentang', 'mengenai',
+            'untuk', 'yang', 'dengan', 'agar', 'supaya', 'bisa', 'ku', 'ajarkan', 'ke', 'siswa', 'siswi',
+            'siswa-siswa', 'guru', 'handout', 'printable', 'file', 'create', 'make', 'lesson', 'learning',
+            'material', 'teaching', 'the', 'a', 'an', 'of', 'for', 'my', 'students', 'student', 'class',
+            'kelas', 'highschool', 'high', 'school', 'can', 'be', 'opened', 'langsung', 'siap', 'pakai',
+        ];
+
+        $tokens = preg_split('/[^\p{L}\p{N}\-]+/u', strtolower($teacherPrompt)) ?: [];
+        $candidates = array_values(array_filter($tokens, static function (string $token) use ($stopwords): bool {
+            return $token !== ''
+                && ! in_array($token, $stopwords, true)
+                && mb_strlen($token) >= 4
+                && ! ctype_digit($token);
+        }));
+
+        if ($candidates === []) {
+            return null;
+        }
+
+        return Str::of(implode(' ', array_slice($candidates, 0, 3)))
+            ->replaceMatches('/\s+/', ' ')
+            ->trim()
+            ->title()
+            ->toString();
     }
 
     private static function topLevelKeys(): array

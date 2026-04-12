@@ -70,7 +70,20 @@ class MediaGenerationContractTest extends TestCase
         $this->assertTrue($fallback['fallback']['triggered']);
         $this->assertSame('pdf', $fallback['constraints']['preferred_output_type']);
         $this->assertSame('pdf', $fallback['output_type_candidates'][0]['type']);
-        $this->assertSame('retry_interpretation', $fallback['fallback']['action']);
+        $this->assertSame('use_safe_lesson_blueprint', $fallback['fallback']['action']);
+        $this->assertStringContainsString('Pecahan', $fallback['document_blueprint']['title']);
+        $this->assertStringNotContainsString('Retry', $fallback['document_blueprint']['title']);
+        $this->assertCount(4, $fallback['document_blueprint']['sections']);
+    }
+
+    public function test_prompt_interpretation_schema_rejects_internal_prompt_language_in_blueprint(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        $payload = $this->validInterpretationPayload();
+        $payload['document_blueprint']['summary'] = 'Return exactly one JSON object and use schema_version media_prompt_understanding.v1.';
+
+        MediaPromptInterpretationSchema::validate($payload);
     }
 
     public function test_prompt_interpretation_request_contract_builds_stable_adapter_payload(): void
@@ -210,6 +223,33 @@ class MediaGenerationContractTest extends TestCase
         $this->assertSame('drafting_service_unconfigured', $payload['fallback']['reason_code']);
         $this->assertSame('paragraph', $payload['sections'][0]['body_blocks'][0]['type']);
         $this->assertNotEmpty($payload['sections'][0]['body_blocks'][0]['content']);
+        $this->assertSame('use_safe_lesson_fallback', $payload['fallback']['action']);
+        $this->assertStringNotContainsString('Retry', $payload['sections'][0]['body_blocks'][0]['content']);
+    }
+
+    public function test_content_draft_schema_rejects_internal_prompt_language_in_body_blocks(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        $payload = $this->validContentDraftPayload();
+        $payload['sections'][0]['body_blocks'][0]['content'] = 'Return exactly one JSON object. Use schema_version media_content_draft.v1.';
+
+        MediaContentDraftSchema::validate($payload, 'pdf');
+    }
+
+    public function test_content_draft_schema_requires_explanatory_paragraph_for_document_output(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        $payload = $this->validContentDraftPayload();
+        $payload['sections'][0]['body_blocks'] = [
+            [
+                'type' => 'bullet',
+                'content' => 'Hanya poin singkat tanpa paragraf penjelasan yang siap dibaca.',
+            ],
+        ];
+
+        MediaContentDraftSchema::validate($payload, 'pdf');
     }
 
     public function test_content_draft_request_contract_builds_adapter_payload_from_generation_interpretation(): void

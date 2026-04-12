@@ -22,15 +22,20 @@ final class MediaContentDraftSchema
             'Always include these top-level keys: schema_version, title, summary, learning_objectives, sections, teacher_delivery_summary, fallback.',
             'Each sections entry must include: title, purpose, body_blocks, emphasis.',
             'Each body_blocks entry must be an object with type and content.',
+            'The text in title, summary, learning_objectives, sections[].purpose, sections[].body_blocks[].content, and teacher_delivery_summary will be rendered directly into the opened file.',
             'Write actual teaching content inside body_blocks.content. Do not output planning notes, schema explanations, placeholders, or instructions about what should be written later.',
+            'Write the final lesson text that teachers and students should read, not directions for another system about how to generate that lesson.',
+            'For pdf and docx, every section must contain at least one explanatory paragraph that can be read directly as teaching material.',
+            'When the topic calls for definitions, formulas, rules, worked examples, or short exercises, include them in the content instead of describing them abstractly.',
             'Prefer paragraph blocks for explanations. Use bullet or checklist blocks only for lists, steps, or short exercises.',
             'Use the same language as input.interpretation.language.',
             'Keep the content aligned with input.resolved_output_type: fuller prose for pdf/docx, tighter points for pptx.',
+            'Never mention prompts, schema keys, JSON instructions, body_blocks, fallback flags, LLMs, adapters, renderers, or internal workflows in any teacher-facing text.',
             'Set fallback.triggered to false unless you explicitly need to signal degraded drafting.',
         ]);
     }
 
-    public static function decodeAndValidate(string $rawJson): array
+    public static function decodeAndValidate(string $rawJson, ?string $resolvedOutputType = null): array
     {
         $trimmed = trim($rawJson);
 
@@ -58,10 +63,10 @@ final class MediaContentDraftSchema
             );
         }
 
-        return self::validate($decoded);
+        return self::validate($decoded, $resolvedOutputType);
     }
 
-    public static function validate(array $payload): array
+    public static function validate(array $payload, ?string $resolvedOutputType = null): array
     {
         self::assertAllowedKeys($payload, self::topLevelKeys(), 'payload');
         self::assertNestedAllowedKeys($payload);
@@ -96,7 +101,11 @@ final class MediaContentDraftSchema
             );
         }
 
-        return self::normalize($payload);
+        $normalizedPayload = self::normalize($payload);
+
+        MediaGeneratedContentGuard::assertContentDraftPayload($normalizedPayload, $resolvedOutputType);
+
+        return $normalizedPayload;
     }
 
     public static function fallbackFromInterpretation(
@@ -116,7 +125,7 @@ final class MediaContentDraftSchema
                 static fn (array $section): array => [
                     'title' => $section['title'],
                     'purpose' => $section['purpose'],
-                    'body_blocks' => self::fallbackBodyBlocks($section, $normalizedOutputType),
+                    'body_blocks' => self::fallbackBodyBlocks($section, $normalizedOutputType, $interpretation),
                     'emphasis' => $section['estimated_length'],
                 ],
                 $interpretation['document_blueprint']['sections']
@@ -125,9 +134,9 @@ final class MediaContentDraftSchema
             'fallback' => [
                 'triggered' => true,
                 'reason_code' => $reasonCode,
-                'action' => 'use_interpretation_outline',
+                'action' => 'use_safe_lesson_fallback',
             ],
-        ]);
+        ], $normalizedOutputType);
     }
 
     private static function normalize(array $payload): array
@@ -265,43 +274,141 @@ final class MediaContentDraftSchema
      * @param  array<string, mixed>  $section
      * @return array<int, array<string, string>>
      */
-    private static function fallbackBodyBlocks(array $section, string $resolvedOutputType): array
+    private static function fallbackBodyBlocks(array $section, string $resolvedOutputType, array $interpretation): array
     {
+        $language = trim((string) ($interpretation['language'] ?? 'id'));
+        $usesIndonesian = str_starts_with(strtolower($language), 'id');
         $purpose = trim((string) ($section['purpose'] ?? ''));
         $bullets = array_values(array_filter(
             is_array($section['bullets'] ?? null) ? $section['bullets'] : [],
             static fn (mixed $bullet): bool => is_string($bullet) && trim($bullet) !== ''
         ));
         $title = trim((string) ($section['title'] ?? ''));
-        $content = $purpose;
+        $topicLabel = self::fallbackTopicLabel($interpretation, $usesIndonesian);
+        $audienceLabel = trim((string) data_get($interpretation, 'target_audience.label', ''));
 
-        if ($bullets !== []) {
-            $content .= ($content !== '' ? ' ' : '') . 'Pokok bahasan utama: ' . implode('; ', array_map(
-                static fn (string $bullet): string => trim($bullet),
-                $bullets
-            )) . '.';
-        }
-
-        if ($content === '') {
-            $content = $resolvedOutputType === 'pptx'
-                ? 'Soroti inti materi secara ringkas dan siap dipresentasikan.'
-                : 'Jelaskan inti materi ini secara runtut, jelas, dan siap dipakai di kelas.';
-        }
+        $content = self::fallbackParagraphContent(
+            title: $title,
+            purpose: $purpose,
+            bullets: $bullets,
+            topicLabel: $topicLabel,
+            audienceLabel: $audienceLabel,
+            resolvedOutputType: $resolvedOutputType,
+            usesIndonesian: $usesIndonesian,
+        );
 
         $blocks = [
             [
                 'type' => 'paragraph',
-                'content' => trim($title !== '' ? $title . ': ' . $content : $content),
+                'content' => $content,
             ],
         ];
 
         foreach ($bullets as $bullet) {
             $blocks[] = [
-                'type' => 'bullet',
+                'type' => self::isPracticeSection($title, $usesIndonesian) ? 'checklist' : 'bullet',
                 'content' => trim($bullet),
             ];
         }
 
+        if ($resolvedOutputType !== 'pptx') {
+            $blocks[] = [
+                'type' => 'note',
+                'content' => self::fallbackClosingNote($topicLabel, $usesIndonesian),
+            ];
+        }
+
         return $blocks;
+    }
+
+    /**
+     * @param  array<string, mixed>  $interpretation
+     */
+    private static function fallbackTopicLabel(array $interpretation, bool $usesIndonesian): string
+    {
+        $subSubject = trim((string) data_get($interpretation, 'sub_subject_context.sub_subject_name', ''));
+
+        if ($subSubject !== '') {
+            return $subSubject;
+        }
+
+        $subject = trim((string) data_get($interpretation, 'subject_context.subject_name', ''));
+
+        if ($subject !== '') {
+            return $subject;
+        }
+
+        $title = trim((string) data_get($interpretation, 'document_blueprint.title', ''));
+
+        if ($title !== '') {
+            return $title;
+        }
+
+        return $usesIndonesian ? 'materi ini' : 'this lesson topic';
+    }
+
+    /**
+     * @param  string[]  $bullets
+     */
+    private static function fallbackParagraphContent(
+        string $title,
+        string $purpose,
+        array $bullets,
+        string $topicLabel,
+        string $audienceLabel,
+        string $resolvedOutputType,
+        bool $usesIndonesian,
+    ): string {
+        $focusList = $bullets !== []
+            ? implode('; ', array_map(static fn (string $bullet): string => trim($bullet), $bullets))
+            : null;
+
+        if ($usesIndonesian) {
+            $audienceSentence = $audienceLabel !== ''
+                ? 'Bagian ini disusun untuk ' . $audienceLabel . '. '
+                : '';
+
+            $body = ($title !== '' ? $title . ' membahas ' . $topicLabel . '. ' : '')
+                . $audienceSentence
+                . ($purpose !== '' ? $purpose . ' ' : '')
+                . ($focusList !== null ? 'Fokus utamanya meliputi ' . $focusList . '. ' : '')
+                . ($resolvedOutputType === 'pptx'
+                    ? 'Sampaikan inti materinya secara singkat, jelas, dan mudah dipresentasikan.'
+                    : 'Jelaskan ide pokoknya secara runtut agar siswa dapat memahami konsep, melihat contoh penerapan, lalu siap mencoba latihan sederhana.');
+
+            return trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
+        }
+
+        $audienceSentence = $audienceLabel !== ''
+            ? 'This section is written for ' . $audienceLabel . '. '
+            : '';
+
+        $body = ($title !== '' ? $title . ' explains ' . $topicLabel . '. ' : '')
+            . $audienceSentence
+            . ($purpose !== '' ? $purpose . ' ' : '')
+            . ($focusList !== null ? 'The main focus includes ' . $focusList . '. ' : '')
+            . ($resolvedOutputType === 'pptx'
+                ? 'Keep the explanation concise, clear, and ready for presentation.'
+                : 'Present the main idea in sequence so students can understand the concept, see an example, and prepare for short practice.');
+
+        return trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
+    }
+
+    private static function isPracticeSection(string $title, bool $usesIndonesian): bool
+    {
+        $normalizedTitle = strtolower(trim($title));
+
+        if ($usesIndonesian) {
+            return str_contains($normalizedTitle, 'latihan') || str_contains($normalizedTitle, 'refleksi');
+        }
+
+        return str_contains($normalizedTitle, 'practice') || str_contains($normalizedTitle, 'reflection');
+    }
+
+    private static function fallbackClosingNote(string $topicLabel, bool $usesIndonesian): string
+    {
+        return $usesIndonesian
+            ? 'Dorong siswa merangkum kembali inti ' . $topicLabel . ' dengan kalimat mereka sendiri setelah bagian ini selesai dibahas.'
+            : 'Encourage students to restate the key idea of ' . $topicLabel . ' in their own words after this section.';
     }
 }

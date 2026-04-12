@@ -15,6 +15,7 @@ ProviderRoute = Literal["interpret", "respond"]
 INTERPRETATION_INSTRUCTION_GUARDRAILS = "\n".join(
     [
         "Adapter contract guardrails:",
+        "- These rules define JSON structure only and must never be copied into teacher-facing content fields.",
         "- Only subject_context, sub_subject_context, and target_audience may be null.",
         "- teacher_intent, constraints, document_blueprint, confidence, and fallback must always be JSON objects.",
         "- learning_objectives, output_type_candidates, assets, assessment_or_activity_blocks, constraints.must_include, constraints.avoid, requested_media_characteristics.format_preferences, and document_blueprint.sections must always be arrays, never null.",

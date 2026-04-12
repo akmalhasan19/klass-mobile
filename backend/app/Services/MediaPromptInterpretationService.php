@@ -132,6 +132,8 @@ class MediaPromptInterpretationService
                     teacherPrompt: (string) $generation->raw_prompt,
                     reasonCode: $exception->errorCode(),
                     preferredOutputType: $generation->preferred_output_type,
+                    subjectContext: $this->subjectContext($generation),
+                    subSubjectContext: $this->subSubjectContext($generation),
                 ),
                 'used_fallback' => true,
                 'fallback_error' => [
@@ -207,6 +209,40 @@ class MediaPromptInterpretationService
         }
 
         return trim($response->body());
+    }
+
+    /**
+     * @return array<string, string|null>|null
+     */
+    protected function subjectContext(MediaGeneration $generation): ?array
+    {
+        $subject = $generation->subject;
+
+        if ($subject === null || trim((string) $subject->name) === '') {
+            return null;
+        }
+
+        return [
+            'subject_name' => trim((string) $subject->name),
+            'subject_slug' => trim((string) $subject->slug) !== '' ? trim((string) $subject->slug) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, string|null>|null
+     */
+    protected function subSubjectContext(MediaGeneration $generation): ?array
+    {
+        $subSubject = $generation->subSubject;
+
+        if ($subSubject === null || trim((string) $subSubject->name) === '') {
+            return null;
+        }
+
+        return [
+            'sub_subject_name' => trim((string) $subSubject->name),
+            'sub_subject_slug' => trim((string) $subSubject->slug) !== '' ? trim((string) $subSubject->slug) : null,
+        ];
     }
 
     /**

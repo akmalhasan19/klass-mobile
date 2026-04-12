@@ -27,6 +27,8 @@ def test_docx_generator_renders_expected_sections_and_text() -> None:
     assert "Tujuan Belajar" in paragraph_text
     assert "Contoh dan Latihan" in paragraph_text
     assert "Latihan Mandiri" in paragraph_text
+    assert "schema_version" not in paragraph_text
+    assert "Return exactly one JSON object" not in paragraph_text
 
     cleanup_artifact(metadata)
 
@@ -38,10 +40,13 @@ def test_pdf_generator_writes_pdf_header_and_page_count() -> None:
 
     metadata = generator.generate(request_payload, render_document, get_settings())
     artifact_path = Path(metadata["artifact_locator"]["value"])
+    artifact_bytes = artifact_path.read_bytes()
 
-    assert artifact_path.read_bytes().startswith(b"%PDF")
+    assert artifact_bytes.startswith(b"%PDF")
     assert metadata["page_count"] >= 1
     assert metadata["mime_type"] == "application/pdf"
+    assert b"schema_version" not in artifact_bytes
+    assert b"Return exactly one JSON object" not in artifact_bytes
 
     cleanup_artifact(metadata)
 
@@ -76,5 +81,7 @@ def test_pptx_generator_renders_title_section_and_activity_slides() -> None:
     assert any("Handout Pecahan Kelas 5" in text for text in slide_texts)
     assert any("Tujuan Belajar" in text for text in slide_texts)
     assert any("Aktivitas dan Penilaian" in text for text in slide_texts)
+    assert all("schema_version" not in text for text in slide_texts)
+    assert all("Return exactly one JSON object" not in text for text in slide_texts)
 
     cleanup_artifact(metadata)

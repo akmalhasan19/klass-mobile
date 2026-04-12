@@ -50,7 +50,7 @@ class MediaContentDraftingService
             }
 
             $rawContent = $this->extractRawContent($response);
-            $draftPayload = MediaContentDraftSchema::decodeAndValidate($rawContent);
+            $draftPayload = MediaContentDraftSchema::decodeAndValidate($rawContent, $resolvedOutputType);
             $adapterMetadata = $this->resolveLlmAdapterResponseMetadata(
                 $response,
                 $this->provider(),

@@ -36,9 +36,10 @@ class MediaPromptInterpretationSchemaTest extends TestCase
         );
 
         $this->assertTrue($payload['fallback']['triggered']);
-        $this->assertSame('retry_interpretation', $payload['fallback']['action']);
+        $this->assertSame('use_safe_lesson_blueprint', $payload['fallback']['action']);
         $this->assertSame('docx', $payload['constraints']['preferred_output_type']);
         $this->assertSame('docx', $payload['output_type_candidates'][0]['type']);
+        $this->assertStringNotContainsString('Retry', $payload['document_blueprint']['title']);
     }
 
     /**
