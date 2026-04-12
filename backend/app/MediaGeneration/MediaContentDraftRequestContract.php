@@ -23,6 +23,7 @@ final class MediaContentDraftRequestContract
             'input' => [
                 'resolved_output_type' => data_get($decision, 'resolved_output_type'),
                 'interpretation' => $generation->interpretation_payload,
+                'taxonomy_hint' => MediaDraftTaxonomyHint::fromGeneration($generation),
             ],
         ]);
     }
@@ -40,6 +41,7 @@ final class MediaContentDraftRequestContract
             'input' => ['required', 'array'],
             'input.resolved_output_type' => ['required', 'string', Rule::in(MediaPromptInterpretationSchema::allowedOutputFormats())],
             'input.interpretation' => ['required', 'array'],
+            'input.taxonomy_hint' => ['nullable', 'array'],
         ]);
 
         if ($validator->fails()) {
@@ -58,6 +60,11 @@ final class MediaContentDraftRequestContract
             'input' => [
                 'resolved_output_type' => trim($payload['input']['resolved_output_type']),
                 'interpretation' => MediaPromptInterpretationSchema::validate((array) $payload['input']['interpretation']),
+                'taxonomy_hint' => MediaDraftTaxonomyHint::validate(
+                    is_array($payload['input']['taxonomy_hint'] ?? null)
+                        ? $payload['input']['taxonomy_hint']
+                        : null
+                ),
             ],
         ];
     }
@@ -73,7 +80,7 @@ final class MediaContentDraftRequestContract
 
         self::assertAllowedKeys(
             $payload['input'],
-            ['resolved_output_type', 'interpretation'],
+            ['resolved_output_type', 'interpretation', 'taxonomy_hint'],
             'input'
         );
     }

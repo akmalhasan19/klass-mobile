@@ -122,6 +122,41 @@ def content_draft_request_payload(
                     "action": None,
                 },
             },
+            "taxonomy_hint": {
+                "schema_version": "media_draft_taxonomy_hint.v1",
+                "source": "prompt_inference",
+                "confidence": {
+                    "score": 0.91,
+                    "label": "high",
+                },
+                "subject": {
+                    "id": None,
+                    "name": "IPA",
+                    "slug": "ipa",
+                },
+                "sub_subject": {
+                    "id": None,
+                    "subject_id": None,
+                    "name": "Sistem Pencernaan",
+                    "slug": "sistem-pencernaan",
+                },
+                "grade_context": {
+                    "jenjang": "sd",
+                    "kelas": "5",
+                    "semester": "2",
+                    "bab": "4",
+                },
+                "content_guidance": {
+                    "description": "Bahas organ utama, alur makanan, dan kebiasaan menjaga kesehatan pencernaan.",
+                    "structure": "Pengertian, urutan organ, contoh, lalu latihan singkat.",
+                    "structure_items": [
+                        "Pengertian sistem pencernaan",
+                        "Urutan organ pencernaan",
+                        "Latihan singkat",
+                    ],
+                },
+                "matched_signals": ["subject_phrase", "sub_subject_phrase", "kelas"],
+            },
         },
     }
 
@@ -205,9 +240,11 @@ def build_execution_result(
 
 def test_draft_route_returns_validated_payload_and_records_cache_and_ledger(client, fake_database_state, monkeypatch) -> None:
     calls: list[str] = []
+    taxonomy_sources: list[str | None] = []
 
     async def stub_execute(self, payload):
         calls.append(payload.generation_id)
+        taxonomy_sources.append(payload.input.taxonomy_hint.source if payload.input.taxonomy_hint else None)
         return build_execution_result(
             generation_id=payload.generation_id,
             raw_completion=json.dumps(valid_content_draft_response_payload(), ensure_ascii=False, separators=(",", ":")),
@@ -233,6 +270,7 @@ def test_draft_route_returns_validated_payload_and_records_cache_and_ledger(clie
     assert response.headers["X-Klass-LLM-Primary-Provider"] == "gemini"
     assert response.headers["X-Klass-LLM-Fallback-Used"] == "false"
     assert calls == ["gen-draft-success-1"]
+    assert taxonomy_sources == ["prompt_inference"]
     assert len(fake_database_state.cache_tables[DELIVERY_CACHE_TABLE_NAME]) == 1
     ledger_row = fake_database_state.ledger_rows["req-draft-success-1"]
     assert ledger_row["final_status"] == "success"

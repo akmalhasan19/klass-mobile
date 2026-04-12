@@ -50,6 +50,13 @@
                             />
 
                             <x-admin.nav-item
+                                :href="route('admin.media-generations.index')"
+                                :active="request()->routeIs('admin.media-generations.*')"
+                                label="Media Generation"
+                                icon="animation"
+                            />
+
+                            <x-admin.nav-item
                                 :href="route('admin.activity-logs.index')"
                                 :active="request()->routeIs('admin.activity-logs.*')"
                                 label="Activity Logs"

@@ -67,6 +67,7 @@ class AdminFeatureAccessRegressionTest extends TestCase
         $this->actingAs($user)->get(route('admin.tasks.index'))->assertForbidden();
         $this->actingAs($user)->get(route('admin.tasks.show', $task))->assertForbidden();
         $this->actingAs($user)->get(route('admin.media.index'))->assertForbidden();
+        $this->actingAs($user)->get(route('admin.media-generations.index'))->assertForbidden();
         $this->actingAs($user)->get(route('admin.activity-logs.index'))->assertForbidden();
         $this->actingAs($user)->get(route('admin.homepage-sections.index'))->assertForbidden();
 

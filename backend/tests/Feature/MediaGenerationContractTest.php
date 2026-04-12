@@ -270,6 +270,9 @@ class MediaGenerationContractTest extends TestCase
         $this->assertSame('gen-draft-456', $payload['generation_id']);
         $this->assertSame('pdf', $payload['input']['resolved_output_type']);
         $this->assertSame(MediaPromptInterpretationSchema::VERSION, data_get($payload, 'input.interpretation.schema_version'));
+        $this->assertSame('interpretation_context', data_get($payload, 'input.taxonomy_hint.source'));
+        $this->assertSame('Matematika', data_get($payload, 'input.taxonomy_hint.subject.name'));
+        $this->assertSame('Pecahan', data_get($payload, 'input.taxonomy_hint.sub_subject.name'));
     }
 
     public function test_delivery_request_contract_rejects_binary_fields(): void

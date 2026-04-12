@@ -25,6 +25,8 @@ final class MediaContentDraftSchema
             'The text in title, summary, learning_objectives, sections[].purpose, sections[].body_blocks[].content, and teacher_delivery_summary will be rendered directly into the opened file.',
             'Write actual teaching content inside body_blocks.content. Do not output planning notes, schema explanations, placeholders, or instructions about what should be written later.',
             'Write the final lesson text that teachers and students should read, not directions for another system about how to generate that lesson.',
+            'When input.taxonomy_hint is present, use it to align subject naming, grade scope, terminology, and topic focus.',
+            'If input.taxonomy_hint.content_guidance.structure_items is available, use those items as ordering hints when they fit the teacher request.',
             'For pdf and docx, every section must contain at least one explanatory paragraph that can be read directly as teaching material.',
             'When the topic calls for definitions, formulas, rules, worked examples, or short exercises, include them in the content instead of describing them abstractly.',
             'Prefer paragraph blocks for explanations. Use bullet or checklist blocks only for lists, steps, or short exercises.',

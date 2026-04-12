@@ -8,6 +8,8 @@ use App\MediaGeneration\MediaGenerationServiceException;
 use App\Models\Content;
 use App\Models\MediaGeneration;
 use App\Models\RecommendedProject;
+use App\Models\Subject;
+use App\Models\SubSubject;
 use App\Models\Topic;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -683,7 +685,7 @@ class MediaPublicationService
         return Topic::create([
             'title' => $this->resolvePublicationTitle($generation),
             'teacher_id' => (string) $generation->teacher_id,
-            'sub_subject_id' => $generation->sub_subject_id,
+            'sub_subject_id' => $this->resolveSubSubjectId($generation),
             'thumbnail_url' => $generation->thumbnail_url,
             'is_published' => true,
             'order' => 0,
@@ -740,7 +742,7 @@ class MediaPublicationService
             'teacher_id' => (string) $generation->teacher_id,
             'topic_id' => $topic->id,
             'subject_id' => $this->resolveSubjectId($generation),
-            'sub_subject_id' => $generation->sub_subject_id,
+            'sub_subject_id' => $this->resolveSubSubjectId($generation),
             'output_type' => $this->resolveOutputType($generation),
             'mime_type' => $generation->mime_type,
             'storage_path' => $generation->storage_path,
@@ -769,7 +771,7 @@ class MediaPublicationService
             'teacher_id' => (string) $generation->teacher_id,
             'owner_user_id' => $topic->owner_user_id,
             'subject_id' => $this->resolveSubjectId($generation),
-            'sub_subject_id' => $generation->sub_subject_id,
+            'sub_subject_id' => $this->resolveSubSubjectId($generation),
             'taxonomy' => $taxonomy,
             'personalization' => $topic->resolvePersonalizationContext(),
             'output_type' => $this->resolveOutputType($generation),
@@ -847,9 +849,10 @@ class MediaPublicationService
 
     protected function buildProjectTags(MediaGeneration $generation): array
     {
+        $resolvedTaxonomy = $this->resolvePublicationTaxonomy($generation);
         $tags = [
-            data_get($generation->subject, 'name'),
-            data_get($generation->subSubject, 'name'),
+            $resolvedTaxonomy['subject']?->name ?? data_get($generation->interpretation_payload, 'subject_context.subject_name'),
+            $resolvedTaxonomy['sub_subject']?->name ?? data_get($generation->interpretation_payload, 'sub_subject_context.sub_subject_name'),
             strtoupper($this->resolveOutputType($generation)),
         ];
 
@@ -863,8 +866,9 @@ class MediaPublicationService
 
     protected function buildTaxonomy(MediaGeneration $generation): ?array
     {
-        $subject = $generation->subSubject?->subject ?? $generation->subject;
-        $subSubject = $generation->subSubject;
+        $resolvedTaxonomy = $this->resolvePublicationTaxonomy($generation);
+        $subject = $resolvedTaxonomy['subject'];
+        $subSubject = $resolvedTaxonomy['sub_subject'];
 
         if (! $subSubject) {
             return null;
@@ -887,7 +891,68 @@ class MediaPublicationService
 
     protected function resolveSubjectId(MediaGeneration $generation): ?int
     {
-        return $generation->subSubject?->subject_id ?? $generation->subject_id;
+        $resolvedTaxonomy = $this->resolvePublicationTaxonomy($generation);
+
+        return $resolvedTaxonomy['subject']?->id ?? $resolvedTaxonomy['sub_subject']?->subject_id;
+    }
+
+    protected function resolveSubSubjectId(MediaGeneration $generation): ?int
+    {
+        return $this->resolvePublicationTaxonomy($generation)['sub_subject']?->id;
+    }
+
+    /**
+     * @return array{subject: Subject|null, sub_subject: SubSubject|null}
+     */
+    protected function resolvePublicationTaxonomy(MediaGeneration $generation): array
+    {
+        $subSubject = $generation->subSubject;
+        $subject = $subSubject?->subject ?? $generation->subject;
+
+        if ($subSubject !== null && $subject === null) {
+            $subSubject->loadMissing('subject');
+            $subject = $subSubject->subject;
+        }
+
+        if ($subject !== null || $subSubject !== null) {
+            return [
+                'subject' => $subject,
+                'sub_subject' => $subSubject,
+            ];
+        }
+
+        $inferredSubSubjectId = data_get($generation->interpretation_audit_payload, 'taxonomy_inference.best_match.sub_subject_id');
+        $inferredSubjectId = data_get($generation->interpretation_audit_payload, 'taxonomy_inference.best_match.subject_id');
+
+        if (is_numeric($inferredSubSubjectId)) {
+            $subSubject = SubSubject::query()
+                ->with('subject')
+                ->find((int) $inferredSubSubjectId);
+
+            if ($subSubject !== null) {
+                $subject = $subSubject->subject;
+                $generation->setRelation('subSubject', $subSubject);
+                $generation->setRelation('subject', $subject);
+
+                return [
+                    'subject' => $subject,
+                    'sub_subject' => $subSubject,
+                ];
+            }
+        }
+
+        if (is_numeric($inferredSubjectId)) {
+            $subject = Subject::query()->find((int) $inferredSubjectId);
+
+            if ($subject !== null) {
+                $generation->setRelation('subject', $subject);
+            }
+        }
+
+        return [
+            'subject' => $subject,
+            'sub_subject' => null,
+        ];
     }
 
     protected function resolveOutputType(MediaGeneration $generation): string

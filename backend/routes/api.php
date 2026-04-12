@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminMediaGenerationDebugController;
 use App\Http\Controllers\Api\AvatarController;
 use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\FileUploadController;
@@ -105,6 +106,8 @@ Route::middleware(['auth:sanctum', 'freelancer'])->group(function () {
 // Admin-Protected Write Routes
 // =========================================================================
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::get('/admin/media-generations/{mediaGeneration}/debug-taxonomy', [AdminMediaGenerationDebugController::class, 'show']);
+
     Route::match(['put', 'patch'], '/topics/{topic}', [TopicController::class, 'update']);
     Route::delete('/topics/{topic}', [TopicController::class, 'destroy']);
 

@@ -26,6 +26,8 @@ final class MediaGeneratedContentGuard
         '/retry prompt interpretation/iu' => 'pipeline_instruction',
         '/before any media file is rendered/iu' => 'pipeline_instruction',
         '/before sending any artifact request to the renderer/iu' => 'pipeline_instruction',
+        '/internal taxonomy guidance for alignment only/iu' => 'taxonomy_instruction',
+        '/curriculum-alignment hint/iu' => 'taxonomy_instruction',
     ];
 
     /**

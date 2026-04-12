@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminMediaGenerationController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminTopicController;
 use App\Http\Controllers\Admin\AdminContentController;
@@ -80,6 +81,9 @@ Route::prefix('admin')
         Route::post('/media', [AdminMediaController::class, 'store'])->name('media.store');
         Route::delete('/media/bulk', [AdminMediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
         Route::delete('/media/{media}', [AdminMediaController::class, 'destroy'])->name('media.destroy');
+
+        // Media Generation Debug
+        Route::get('/media-generations', [AdminMediaGenerationController::class, 'index'])->name('media-generations.index');
 
         // Activity Logs
         Route::get('/activity-logs', [AdminActivityLogController::class, 'index'])->name('activity-logs.index');

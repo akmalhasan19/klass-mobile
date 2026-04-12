@@ -277,6 +277,121 @@ class MediaGenerationApiTest extends TestCase
         foreach (['topic', 'content', 'recommended_project'] as $key) {
             $this->assertArrayHasKey($key, $resource['publication']);
         }
+
+        $response->assertJsonMissingPath('data.taxonomy_inference');
+        $response->assertJsonMissingPath('data.draft_taxonomy_hint');
+    }
+
+    public function test_admin_can_review_taxonomy_debug_surface_without_exposing_it_to_teacher_polling(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+        $admin = User::factory()->admin()->create();
+
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'raw_prompt' => 'Buatkan handout IPAS kelas 4 tentang gaya di sekitar kita.',
+            'preferred_output_type' => 'auto',
+            'resolved_output_type' => 'pdf',
+            'status' => MediaGenerationLifecycle::COMPLETED,
+            'interpretation_payload' => [
+                'subject_context' => [
+                    'subject_name' => 'IPAS',
+                    'subject_slug' => 'ipas-sd',
+                ],
+                'sub_subject_context' => [
+                    'sub_subject_name' => 'Gaya di Sekitar Kita',
+                    'sub_subject_slug' => 'gaya-sekitar-kita-kelas-4',
+                ],
+            ],
+            'interpretation_audit_payload' => [
+                'taxonomy_inference' => [
+                    'schema_version' => 'media_prompt_taxonomy_inference.v1',
+                    'source' => 'subjects.json',
+                    'confidence' => [
+                        'score' => 0.91,
+                        'label' => 'high',
+                        'sub_subject_attached' => true,
+                    ],
+                    'best_match' => [
+                        'jenjang' => 'sd',
+                        'kelas' => 4,
+                        'semester' => 2,
+                        'bab' => 6,
+                        'subject_name' => 'IPAS',
+                        'subject_slug' => 'ipas-sd',
+                        'subject_id' => null,
+                        'sub_subject_name' => 'Gaya di Sekitar Kita',
+                        'sub_subject_slug' => 'gaya-sekitar-kita-kelas-4',
+                        'sub_subject_id' => null,
+                        'description' => 'Membahas gaya dorong dan tarik dalam kehidupan sehari-hari.',
+                        'content_structure' => 'Pengertian, contoh, pengamatan, dan latihan singkat.',
+                        'structure_items' => ['Pengertian gaya', 'Contoh gaya dorong dan tarik', 'Latihan sederhana'],
+                        'matched_signals' => ['subject_phrase', 'sub_subject_phrase', 'kelas'],
+                    ],
+                    'candidate_matches' => [],
+                ],
+            ],
+            'decision_payload' => [
+                'content_draft' => [
+                    'source' => 'adapter',
+                    'schema_version' => 'media_content_draft.v1',
+                    'draft_fallback_triggered' => false,
+                    'draft_fallback_reason_code' => null,
+                    'taxonomy_hint' => [
+                        'schema_version' => 'media_draft_taxonomy_hint.v1',
+                        'source' => 'prompt_inference',
+                        'confidence' => [
+                            'score' => 0.91,
+                            'label' => 'high',
+                        ],
+                        'subject' => [
+                            'id' => null,
+                            'name' => 'IPAS',
+                            'slug' => 'ipas-sd',
+                        ],
+                        'sub_subject' => [
+                            'id' => null,
+                            'subject_id' => null,
+                            'name' => 'Gaya di Sekitar Kita',
+                            'slug' => 'gaya-sekitar-kita-kelas-4',
+                        ],
+                        'grade_context' => [
+                            'jenjang' => 'sd',
+                            'kelas' => '4',
+                            'semester' => '2',
+                            'bab' => '6',
+                        ],
+                        'content_guidance' => [
+                            'description' => 'Membahas gaya dorong dan tarik dalam kehidupan sehari-hari.',
+                            'structure' => 'Pengertian, contoh, pengamatan, dan latihan singkat.',
+                            'structure_items' => ['Pengertian gaya', 'Contoh gaya dorong dan tarik', 'Latihan sederhana'],
+                        ],
+                        'matched_signals' => ['subject_phrase', 'sub_subject_phrase', 'kelas'],
+                    ],
+                ],
+            ],
+        ]);
+
+        Sanctum::actingAs($teacher);
+
+        $this->getJson('/api/media-generations/' . $generation->id)
+            ->assertOk()
+            ->assertJsonMissingPath('data.taxonomy_inference')
+            ->assertJsonMissingPath('data.draft_taxonomy_hint');
+
+        $this->getJson('/api/admin/media-generations/' . $generation->id . '/debug-taxonomy')
+            ->assertForbidden();
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/admin/media-generations/' . $generation->id . '/debug-taxonomy')
+            ->assertOk()
+            ->assertJsonPath('data.id', $generation->id)
+            ->assertJsonPath('data.taxonomy_inference.best_match.subject_slug', 'ipas-sd')
+            ->assertJsonPath('data.taxonomy_inference.best_match.sub_subject_slug', 'gaya-sekitar-kita-kelas-4')
+            ->assertJsonPath('data.draft_taxonomy_hint.source', 'prompt_inference')
+            ->assertJsonPath('data.draft_taxonomy_hint.content_guidance.structure_items.0', 'Pengertian gaya')
+            ->assertJsonPath('data.drafting.source', 'adapter');
     }
 
     public function test_media_generation_error_code_registry_locks_stable_phase_three_contract(): void

@@ -19,8 +19,8 @@ class SubjectTaxonomyAndTopicOwnershipTest extends TestCase
     {
         $this->seed(SubjectTaxonomySeeder::class);
 
-        $this->assertSame(5, Subject::query()->count());
-        $this->assertSame(15, SubSubject::query()->count());
+        $this->assertGreaterThan(5, Subject::query()->count());
+        $this->assertGreaterThan(15, SubSubject::query()->count());
 
         $mathematics = Subject::query()
             ->where('slug', 'mathematics')
@@ -32,6 +32,8 @@ class SubjectTaxonomyAndTopicOwnershipTest extends TestCase
             ['Algebra', 'Geometry', 'Arithmetic'],
             $mathematics->subSubjects->pluck('name')->all(),
         );
+        $this->assertTrue(Subject::query()->where('slug', 'ipas-sd')->exists());
+        $this->assertTrue(SubSubject::query()->where('slug', 'gaya-sekitar-kita-kelas-4')->exists());
     }
 
     public function test_sub_subject_factory_creates_a_related_subject(): void

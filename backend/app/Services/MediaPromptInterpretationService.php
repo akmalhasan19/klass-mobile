@@ -23,13 +23,16 @@ class MediaPromptInterpretationService
     public function __construct(
         protected ?HttpFactory $http = null,
         protected ?InterServiceRequestSigner $requestSigner = null,
+        protected ?MediaPromptTaxonomyInferenceService $taxonomyInferenceService = null,
     )
     {
     }
 
     public function interpret(MediaGeneration $generation): MediaGeneration
     {
-        $requestPayload = $this->buildRequestPayload($generation);
+        $requestContext = $this->buildRequestContext($generation);
+        $requestPayload = $requestContext['payload'];
+        $taxonomyInference = $requestContext['taxonomy_inference'];
         $signedRequest = $this->buildSignedRequestContext($generation, $requestPayload);
         $response = $this->sendInterpretationRequest($signedRequest);
 
@@ -38,7 +41,7 @@ class MediaPromptInterpretationService
         }
 
         $rawContent = $this->extractRawInterpretationContent($response);
-        $normalization = $this->normalizeInterpretationPayload($generation, $rawContent);
+        $normalization = $this->normalizeInterpretationPayload($generation, $rawContent, $taxonomyInference);
         $adapterMetadata = $this->resolveLlmAdapterResponseMetadata(
             $response,
             $this->provider(),
@@ -59,6 +62,7 @@ class MediaPromptInterpretationService
                 normalizedPayload: $normalization['payload'],
                 usedFallback: $normalization['used_fallback'],
                 fallbackError: $normalization['fallback_error'],
+                taxonomyInference: $taxonomyInference,
             ),
             'error_code' => null,
             'error_message' => null,
@@ -106,23 +110,33 @@ class MediaPromptInterpretationService
         }
     }
 
-    protected function buildRequestPayload(MediaGeneration $generation): array
+    /**
+     * @return array{payload: array<string, mixed>, taxonomy_inference: array<string, mixed>|null}
+     */
+    protected function buildRequestContext(MediaGeneration $generation): array
     {
-        return MediaPromptInterpretationRequestContract::fromGeneration(
-            $generation,
-            $this->model(),
-            MediaPromptInterpretationSchema::llmInstruction(),
-        );
+        $taxonomyInference = $this->resolveTaxonomyInference($generation);
+
+        return [
+            'payload' => MediaPromptInterpretationRequestContract::fromGeneration(
+                $generation,
+                $this->model(),
+                MediaPromptInterpretationSchema::llmInstruction($taxonomyInference),
+            ),
+            'taxonomy_inference' => $taxonomyInference,
+        ];
     }
 
     /**
      * @return array{payload: array<string, mixed>, used_fallback: bool, fallback_error: array<string, mixed>|null}
      */
-    protected function normalizeInterpretationPayload(MediaGeneration $generation, string $rawContent): array
+    protected function normalizeInterpretationPayload(MediaGeneration $generation, string $rawContent, ?array $taxonomyInference = null): array
     {
         try {
+            $payload = MediaPromptInterpretationSchema::decodeAndValidate($rawContent);
+
             return [
-                'payload' => MediaPromptInterpretationSchema::decodeAndValidate($rawContent),
+                'payload' => $this->enrichInterpretationPayload($generation, $payload, $taxonomyInference),
                 'used_fallback' => false,
                 'fallback_error' => null,
             ];
@@ -132,8 +146,9 @@ class MediaPromptInterpretationService
                     teacherPrompt: (string) $generation->raw_prompt,
                     reasonCode: $exception->errorCode(),
                     preferredOutputType: $generation->preferred_output_type,
-                    subjectContext: $this->subjectContext($generation),
-                    subSubjectContext: $this->subSubjectContext($generation),
+                    subjectContext: $this->subjectContext($generation, $taxonomyInference),
+                    subSubjectContext: $this->subSubjectContext($generation, $taxonomyInference),
+                    taxonomyHint: $taxonomyInference,
                 ),
                 'used_fallback' => true,
                 'fallback_error' => [
@@ -155,6 +170,7 @@ class MediaPromptInterpretationService
         array $normalizedPayload,
         bool $usedFallback,
         ?array $fallbackError,
+        ?array $taxonomyInference,
     ): array {
         return [
             'schema_version' => self::AUDIT_SCHEMA_VERSION,
@@ -168,6 +184,7 @@ class MediaPromptInterpretationService
             ],
             'request' => $requestPayload,
             'request_meta' => $requestMeta,
+            'taxonomy_inference' => $taxonomyInference,
             'response' => [
                 'http_status' => $response->status(),
                 'raw_payload' => $this->decodedResponsePayload($response),
@@ -214,12 +231,23 @@ class MediaPromptInterpretationService
     /**
      * @return array<string, string|null>|null
      */
-    protected function subjectContext(MediaGeneration $generation): ?array
+    protected function subjectContext(MediaGeneration $generation, ?array $taxonomyInference = null): ?array
     {
         $subject = $generation->subject;
 
         if ($subject === null || trim((string) $subject->name) === '') {
-            return null;
+            $subjectName = trim((string) data_get($taxonomyInference, 'best_match.subject_name', ''));
+
+            if ($subjectName === '') {
+                return null;
+            }
+
+            $subjectSlug = trim((string) data_get($taxonomyInference, 'best_match.subject_slug', ''));
+
+            return [
+                'subject_name' => $subjectName,
+                'subject_slug' => $subjectSlug !== '' ? $subjectSlug : null,
+            ];
         }
 
         return [
@@ -231,18 +259,73 @@ class MediaPromptInterpretationService
     /**
      * @return array<string, string|null>|null
      */
-    protected function subSubjectContext(MediaGeneration $generation): ?array
+    protected function subSubjectContext(MediaGeneration $generation, ?array $taxonomyInference = null): ?array
     {
         $subSubject = $generation->subSubject;
 
         if ($subSubject === null || trim((string) $subSubject->name) === '') {
-            return null;
+            $subSubjectName = trim((string) data_get($taxonomyInference, 'best_match.sub_subject_name', ''));
+
+            if ($subSubjectName === '') {
+                return null;
+            }
+
+            $subSubjectSlug = trim((string) data_get($taxonomyInference, 'best_match.sub_subject_slug', ''));
+
+            return [
+                'sub_subject_name' => $subSubjectName,
+                'sub_subject_slug' => $subSubjectSlug !== '' ? $subSubjectSlug : null,
+            ];
         }
 
         return [
             'sub_subject_name' => trim((string) $subSubject->name),
             'sub_subject_slug' => trim((string) $subSubject->slug) !== '' ? trim((string) $subSubject->slug) : null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    protected function enrichInterpretationPayload(MediaGeneration $generation, array $payload, ?array $taxonomyInference = null): array
+    {
+        $resolvedSubjectContext = $this->subjectContext($generation, $taxonomyInference);
+        $resolvedSubSubjectContext = $this->subSubjectContext($generation, $taxonomyInference);
+        $enrichedPayload = $payload;
+
+        if (($enrichedPayload['subject_context'] ?? null) === null && $resolvedSubjectContext !== null) {
+            $enrichedPayload['subject_context'] = $resolvedSubjectContext;
+        }
+
+        if (($enrichedPayload['sub_subject_context'] ?? null) === null && $resolvedSubSubjectContext !== null) {
+            $enrichedPayload['sub_subject_context'] = $resolvedSubSubjectContext;
+        }
+
+        if ($enrichedPayload === $payload) {
+            return $payload;
+        }
+
+        return MediaPromptInterpretationSchema::validate($enrichedPayload);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function resolveTaxonomyInference(MediaGeneration $generation): ?array
+    {
+        $generation->loadMissing(['subject', 'subSubject.subject']);
+
+        if ($generation->subject !== null && $generation->subSubject !== null) {
+            return null;
+        }
+
+        return $this->taxonomyInferenceService()->infer((string) $generation->raw_prompt);
+    }
+
+    protected function taxonomyInferenceService(): MediaPromptTaxonomyInferenceService
+    {
+        return $this->taxonomyInferenceService ??= app(MediaPromptTaxonomyInferenceService::class);
     }
 
     /**

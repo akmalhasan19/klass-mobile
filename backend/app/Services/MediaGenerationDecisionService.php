@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\MediaGeneration\MediaGenerationContractException;
+use App\MediaGeneration\MediaDraftTaxonomyHint;
 use App\MediaGeneration\MediaGenerationSpecContract;
 use App\MediaGeneration\MediaPromptInterpretationSchema;
 use App\Models\MediaGeneration;
@@ -58,6 +59,8 @@ class MediaGenerationDecisionService
      */
     protected function resolveContentDraft(MediaGeneration $generation, array $decision, array $interpretation): array
     {
+        $taxonomyHint = MediaDraftTaxonomyHint::fromGeneration($generation);
+
         if ($this->contentDraftingService === null) {
             return [
                 'payload' => null,
@@ -70,6 +73,7 @@ class MediaGenerationDecisionService
                     'adapter_primary_provider' => null,
                     'adapter_fallback_used' => false,
                     'adapter_fallback_reason' => null,
+                    'taxonomy_hint' => $taxonomyHint,
                 ],
             ];
         }
@@ -90,6 +94,7 @@ class MediaGenerationDecisionService
                 'adapter_fallback_reason' => data_get($adapterMetadata, 'fallback_reason'),
                 'draft_fallback_triggered' => (bool) data_get($draftResult, 'payload.fallback.triggered', false),
                 'draft_fallback_reason_code' => data_get($draftResult, 'payload.fallback.reason_code'),
+                'taxonomy_hint' => $taxonomyHint,
             ],
         ];
     }

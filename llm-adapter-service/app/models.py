@@ -32,9 +32,52 @@ class InterpretationRequest(AdapterBaseModel):
     input: InterpretationRequestInput
 
 
+class DraftTaxonomyConfidence(AdapterBaseModel):
+    score: float | None = Field(default=None, ge=0, le=1)
+    label: str | None = Field(default=None, max_length=20)
+
+
+class DraftTaxonomySubject(AdapterBaseModel):
+    id: int | None = None
+    name: str = Field(min_length=1, max_length=100)
+    slug: str | None = Field(default=None, max_length=100)
+
+
+class DraftTaxonomySubSubject(AdapterBaseModel):
+    id: int | None = None
+    subject_id: int | None = None
+    name: str = Field(min_length=1, max_length=100)
+    slug: str | None = Field(default=None, max_length=100)
+
+
+class DraftTaxonomyGradeContext(AdapterBaseModel):
+    jenjang: str | None = Field(default=None, max_length=100)
+    kelas: str | None = Field(default=None, max_length=50)
+    semester: str | None = Field(default=None, max_length=50)
+    bab: str | None = Field(default=None, max_length=50)
+
+
+class DraftTaxonomyContentGuidance(AdapterBaseModel):
+    description: str | None = Field(default=None, max_length=500)
+    structure: str | None = Field(default=None, max_length=1000)
+    structure_items: list[str] = Field(default_factory=list)
+
+
+class DraftTaxonomyHint(AdapterBaseModel):
+    schema_version: Literal["media_draft_taxonomy_hint.v1"]
+    source: Literal["submission_context", "prompt_inference", "interpretation_context"]
+    confidence: DraftTaxonomyConfidence
+    subject: DraftTaxonomySubject
+    sub_subject: DraftTaxonomySubSubject | None = None
+    grade_context: DraftTaxonomyGradeContext
+    content_guidance: DraftTaxonomyContentGuidance
+    matched_signals: list[str] = Field(default_factory=list)
+
+
 class ContentDraftRequestInput(AdapterBaseModel):
     resolved_output_type: Literal["docx", "pdf", "pptx"]
     interpretation: dict[str, Any]
+    taxonomy_hint: DraftTaxonomyHint | None = None
 
 
 class ContentDraftRequest(AdapterBaseModel):

@@ -192,6 +192,58 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_prompt_interpretation_service_records_taxonomy_inference_when_subject_is_omitted(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $teacher = User::factory()->teacher()->create();
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'raw_prompt' => 'Buatkan PDF pembelajaran IPAS kelas 4 tentang Gaya di Sekitar Kita dengan contoh fenomena dan eksperimen aman.',
+            'preferred_output_type' => 'pdf',
+            'status' => MediaGenerationLifecycle::INTERPRETING,
+        ]);
+
+        config([
+            'services.media_generation.llm_adapter.base_url' => 'https://llm.example',
+            'services.media_generation.llm_adapter.shared_secret' => 'adapter-shared-secret',
+            'services.media_generation.interpreter.model' => 'adapter-managed',
+            'services.media_generation.interpreter.provider' => 'llm-adapter',
+        ]);
+
+        $payload = $this->validInterpretationPayload();
+        $payload['teacher_prompt'] = $generation->raw_prompt;
+        $payload['subject_context'] = null;
+        $payload['sub_subject_context'] = null;
+
+        Http::fake([
+            'https://llm.example/*' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => json_encode($payload, JSON_THROW_ON_ERROR),
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $result = (new MediaPromptInterpretationService())->interpret($generation);
+
+        $this->assertSame('ipas-sd', data_get($result->interpretation_audit_payload, 'taxonomy_inference.best_match.subject_slug'));
+        $this->assertSame('gaya-sekitar-kita-kelas-4', data_get($result->interpretation_audit_payload, 'taxonomy_inference.best_match.sub_subject_slug'));
+        $this->assertSame('Ilmu Pengetahuan Alam dan Sosial (IPAS)', data_get($result->interpretation_payload, 'subject_context.subject_name'));
+        $this->assertSame('Gaya di Sekitar Kita', data_get($result->interpretation_payload, 'sub_subject_context.sub_subject_name'));
+
+        Http::assertSent(function (Request $request): bool {
+            $requestPayload = json_decode($request->body(), true, 512, JSON_THROW_ON_ERROR);
+
+            return str_contains((string) data_get($requestPayload, 'instruction'), 'Internal taxonomy guidance for alignment only:')
+                && data_get($requestPayload, 'input.subject_context') === null
+                && data_get($requestPayload, 'input.sub_subject_context') === null;
+        });
+    }
+
     public function test_prompt_interpretation_service_falls_back_when_llm_returns_partial_contract(): void
     {
         $teacher = User::factory()->teacher()->create();
@@ -271,6 +323,8 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
         $this->assertSame('adapter', data_get($result->decision_payload, 'content_draft.source'));
         $this->assertSame('openai', data_get($result->decision_payload, 'content_draft.adapter_provider'));
         $this->assertSame('gpt-5.4', data_get($result->decision_payload, 'content_draft.adapter_model'));
+        $this->assertSame('interpretation_context', data_get($result->decision_payload, 'content_draft.taxonomy_hint.source'));
+        $this->assertSame('Matematika', data_get($result->decision_payload, 'content_draft.taxonomy_hint.subject.name'));
         $this->assertSame('paragraph', data_get($result->generation_spec_payload, 'sections.0.body_blocks.0.type'));
         $this->assertStringContainsString(
             'Pecahan senilai adalah dua pecahan yang nilainya sama',
@@ -288,7 +342,8 @@ class MediaGenerationOrchestrationServiceTest extends TestCase
                 && ($request->header('X-Klass-Generation-Id')[0] ?? null) === $generation->id
                 && data_get($payload, 'request_type') === 'media_content_draft'
                 && data_get($payload, 'input.resolved_output_type') === 'pdf'
-                && data_get($payload, 'input.interpretation.schema_version') === MediaPromptInterpretationSchema::VERSION;
+                && data_get($payload, 'input.interpretation.schema_version') === MediaPromptInterpretationSchema::VERSION
+                && data_get($payload, 'input.taxonomy_hint.subject.name') === 'Matematika';
         });
     }
 

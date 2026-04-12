@@ -24,9 +24,9 @@ final class MediaPromptInterpretationSchema
         ];
     }
 
-    public static function llmInstruction(): string
+    public static function llmInstruction(?array $taxonomyHint = null): string
     {
-        return implode("\n", [
+        $instructionLines = [
             'Interpret the teacher request for media generation.',
             'Return exactly one JSON object.',
             'Do not wrap the JSON in markdown fences.',
@@ -35,10 +35,18 @@ final class MediaPromptInterpretationSchema
             'Always include these top-level keys: schema_version, teacher_prompt, language, teacher_intent, learning_objectives, constraints, output_type_candidates, resolved_output_type_reasoning, document_blueprint, subject_context, sub_subject_context, target_audience, requested_media_characteristics, assets, assessment_or_activity_blocks, teacher_delivery_summary, confidence, fallback.',
             'Use null for unavailable objects and [] for unavailable lists.',
             'Allowed output format values are only: docx, pdf, pptx.',
+            'Default to semi-formal Bahasa Indonesia unless the teacher prompt clearly asks for another language.',
             'The text in teacher_intent.goal, learning_objectives, document_blueprint, assessment_or_activity_blocks, and teacher_delivery_summary is not internal planning text. It is the authoring blueprint for the final file and must describe the lesson material that teacher and students are meant to read.',
             'Design the document_blueprint for classroom-ready learning content. When relevant, include sections for topic introduction, concept explanation, formulas or rules, worked example, and short practice or reflection.',
+            'When internal taxonomy guidance is available, use it only as a curriculum-alignment hint for subject, grade band, topic scope, and content structure while still honoring the teacher prompt.',
             'Never mention prompts, schema keys, JSON instructions, body_blocks, fallback flags, LLMs, adapters, renderers, or internal workflows in any teacher-facing field.',
-        ]);
+        ];
+
+        if (is_array($taxonomyHint)) {
+            $instructionLines = array_merge($instructionLines, self::taxonomyInstructionLines($taxonomyHint));
+        }
+
+        return implode("\n", $instructionLines);
     }
 
     public static function decodeAndValidate(string $rawJson): array
@@ -103,6 +111,7 @@ final class MediaPromptInterpretationSchema
         ?string $language = null,
         ?array $subjectContext = null,
         ?array $subSubjectContext = null,
+        ?array $taxonomyHint = null,
     ): array {
         $resolvedPreferredOutputType = self::normalizePreferredOutputType($preferredOutputType);
         $candidateTypes = $resolvedPreferredOutputType === 'auto'
@@ -112,12 +121,12 @@ final class MediaPromptInterpretationSchema
         $fallbackLanguage = self::resolveFallbackLanguage($language, $teacherPrompt);
         $usesIndonesian = self::usesIndonesian($fallbackLanguage);
         $normalizedSubjectContext = self::normalizeNamedContext($subjectContext, 'subject_name', 'subject_slug');
-        $topicLabel = self::resolveTopicLabel($teacherPrompt, $normalizedSubjectContext, $subSubjectContext);
-        $normalizedSubSubjectContext = self::normalizeSubSubjectContext($subSubjectContext, $topicLabel, $normalizedSubjectContext);
+        $topicLabel = self::resolveTopicLabel($teacherPrompt, $normalizedSubjectContext, $subSubjectContext, $taxonomyHint);
+        $normalizedSubSubjectContext = self::normalizeSubSubjectContext($subSubjectContext, $topicLabel, $normalizedSubjectContext, $taxonomyHint);
         $targetAudience = self::resolveTargetAudience($teacherPrompt, $usesIndonesian);
         $title = self::fallbackTitle($topicLabel, $targetAudience, $usesIndonesian);
-        $summary = self::fallbackSummary($topicLabel, $usesIndonesian);
-        $sections = self::fallbackSections($topicLabel, $usesIndonesian);
+        $summary = self::fallbackSummary($topicLabel, $usesIndonesian, $taxonomyHint);
+        $sections = self::fallbackSections($topicLabel, $usesIndonesian, $taxonomyHint);
 
         return self::validate([
             'schema_version' => self::VERSION,
@@ -131,7 +140,7 @@ final class MediaPromptInterpretationSchema
                 'preferred_delivery_mode' => 'digital_download',
                 'requires_clarification' => false,
             ],
-            'learning_objectives' => self::fallbackLearningObjectives($topicLabel, $usesIndonesian),
+            'learning_objectives' => self::fallbackLearningObjectives($topicLabel, $usesIndonesian, $taxonomyHint),
             'constraints' => [
                 'preferred_output_type' => $resolvedPreferredOutputType,
                 'must_include' => [],
@@ -175,7 +184,7 @@ final class MediaPromptInterpretationSchema
                         : 'Ask students to answer a short question or solve one simple task related to ' . $topicLabel . '.',
                 ],
             ],
-            'teacher_delivery_summary' => self::fallbackTeacherDeliverySummary($topicLabel, $usesIndonesian),
+            'teacher_delivery_summary' => self::fallbackTeacherDeliverySummary($topicLabel, $usesIndonesian, $taxonomyHint),
             'confidence' => [
                 'score' => 0.0,
                 'label' => 'low',
@@ -597,7 +606,7 @@ final class MediaPromptInterpretationSchema
      * @param  array<string, mixed>|null  $subjectContext
      * @param  array<string, mixed>|null  $subSubjectContext
      */
-    private static function resolveTopicLabel(string $teacherPrompt, ?array $subjectContext, ?array $subSubjectContext): string
+    private static function resolveTopicLabel(string $teacherPrompt, ?array $subjectContext, ?array $subSubjectContext, ?array $taxonomyHint = null): string
     {
         $subSubjectName = trim((string) data_get($subSubjectContext, 'sub_subject_name', ''));
 
@@ -611,10 +620,22 @@ final class MediaPromptInterpretationSchema
             return $extractedTopic;
         }
 
+        $taxonomySubSubject = trim((string) data_get($taxonomyHint, 'best_match.sub_subject_name', ''));
+
+        if ($taxonomySubSubject !== '') {
+            return $taxonomySubSubject;
+        }
+
         $subjectName = trim((string) data_get($subjectContext, 'subject_name', ''));
 
         if ($subjectName !== '') {
             return $subjectName;
+        }
+
+        $taxonomySubject = trim((string) data_get($taxonomyHint, 'best_match.subject_name', ''));
+
+        if ($taxonomySubject !== '') {
+            return $taxonomySubject;
         }
 
         return self::looksLikeIndonesianPrompt($teacherPrompt) ? 'materi pembelajaran' : 'the requested lesson topic';
@@ -625,12 +646,23 @@ final class MediaPromptInterpretationSchema
      * @param  array<string, mixed>|null  $subjectContext
      * @return array<string, string|null>|null
      */
-    private static function normalizeSubSubjectContext(?array $subSubjectContext, string $topicLabel, ?array $subjectContext): ?array
+    private static function normalizeSubSubjectContext(?array $subSubjectContext, string $topicLabel, ?array $subjectContext, ?array $taxonomyHint = null): ?array
     {
         $normalized = self::normalizeNamedContext($subSubjectContext, 'sub_subject_name', 'sub_subject_slug');
 
         if ($normalized !== null) {
             return $normalized;
+        }
+
+        $taxonomySubSubject = trim((string) data_get($taxonomyHint, 'best_match.sub_subject_name', ''));
+
+        if ($taxonomySubSubject !== '') {
+            return [
+                'sub_subject_name' => $taxonomySubSubject,
+                'sub_subject_slug' => trim((string) data_get($taxonomyHint, 'best_match.sub_subject_slug', '')) !== ''
+                    ? trim((string) data_get($taxonomyHint, 'best_match.sub_subject_slug'))
+                    : Str::slug($taxonomySubSubject),
+            ];
         }
 
         $subjectName = trim((string) data_get($subjectContext, 'subject_name', ''));
@@ -734,8 +766,16 @@ final class MediaPromptInterpretationSchema
             : 'Learning Material: ' . $topicLabel;
     }
 
-    private static function fallbackSummary(string $topicLabel, bool $usesIndonesian): string
+    private static function fallbackSummary(string $topicLabel, bool $usesIndonesian, ?array $taxonomyHint = null): string
     {
+        $description = trim((string) data_get($taxonomyHint, 'best_match.description', ''));
+
+        if ($description !== '') {
+            return $usesIndonesian
+                ? $description . ' Materi disusun dengan penjelasan bertahap, contoh, dan latihan singkat agar siap dipakai di kelas.'
+                : $description . ' The lesson is organized with step-by-step explanation, examples, and short practice so it is ready for classroom use.';
+        }
+
         return $usesIndonesian
             ? 'Materi ini merangkum konsep inti ' . $topicLabel . ', penjelasan pokok, contoh sederhana, dan latihan singkat agar siap dipakai dalam pembelajaran.'
             : 'This material summarizes the core ideas of ' . $topicLabel . ', the main explanation, a simple example, and short practice so it is ready for classroom use.';
@@ -744,7 +784,35 @@ final class MediaPromptInterpretationSchema
     /**
      * @return array<int, array<string, mixed>>
      */
-    private static function fallbackSections(string $topicLabel, bool $usesIndonesian): array
+    private static function fallbackSections(string $topicLabel, bool $usesIndonesian, ?array $taxonomyHint = null): array
+    {
+        $structureItems = self::taxonomyStructureItems($taxonomyHint);
+
+        if ($structureItems !== []) {
+            $sections = self::fallbackSectionsFromStructure($topicLabel, $usesIndonesian, $structureItems);
+
+            if (count($sections) >= 4) {
+                return array_slice($sections, 0, 4);
+            }
+
+            foreach (self::defaultFallbackSections($topicLabel, $usesIndonesian) as $defaultSection) {
+                if (count($sections) >= 4) {
+                    break;
+                }
+
+                $sections[] = $defaultSection;
+            }
+
+            return $sections;
+        }
+
+        return self::defaultFallbackSections($topicLabel, $usesIndonesian);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private static function defaultFallbackSections(string $topicLabel, bool $usesIndonesian): array
     {
         if ($usesIndonesian) {
             return [
@@ -830,8 +898,33 @@ final class MediaPromptInterpretationSchema
     /**
      * @return string[]
      */
-    private static function fallbackLearningObjectives(string $topicLabel, bool $usesIndonesian): array
+    private static function fallbackLearningObjectives(string $topicLabel, bool $usesIndonesian, ?array $taxonomyHint = null): array
     {
+        $structureItems = self::taxonomyStructureItems($taxonomyHint);
+
+        if ($structureItems !== []) {
+            $firstStructureItem = $structureItems[0];
+            $secondStructureItem = $structureItems[1] ?? null;
+
+            if ($usesIndonesian) {
+                return array_values(array_filter([
+                    'Siswa memahami konsep utama tentang ' . $topicLabel . ' melalui bagian ' . $firstStructureItem . '.',
+                    $secondStructureItem !== null
+                        ? 'Siswa dapat menjelaskan aturan, langkah, atau rincian penting pada bagian ' . $secondStructureItem . '.'
+                        : null,
+                    'Siswa mencoba contoh, latihan, atau refleksi singkat yang berkaitan dengan ' . $topicLabel . '.',
+                ]));
+            }
+
+            return array_values(array_filter([
+                'Students understand the main ideas of ' . $topicLabel . ' through the ' . $firstStructureItem . ' section.',
+                $secondStructureItem !== null
+                    ? 'Students explain the relevant rules, steps, or important details from the ' . $secondStructureItem . ' section.'
+                    : null,
+                'Students try a short example, practice task, or reflection connected to ' . $topicLabel . '.',
+            ]));
+        }
+
         if ($usesIndonesian) {
             return [
                 'Siswa memahami gagasan utama tentang ' . $topicLabel . '.',
@@ -847,11 +940,214 @@ final class MediaPromptInterpretationSchema
         ];
     }
 
-    private static function fallbackTeacherDeliverySummary(string $topicLabel, bool $usesIndonesian): string
+    private static function fallbackTeacherDeliverySummary(string $topicLabel, bool $usesIndonesian, ?array $taxonomyHint = null): string
     {
+        $structureItems = self::taxonomyStructureItems($taxonomyHint);
+
+        if ($structureItems !== []) {
+            $structureFlow = implode(', ', array_slice($structureItems, 0, 4));
+
+            return $usesIndonesian
+                ? 'Gunakan materi ini untuk membahas ' . $topicLabel . ' dengan alur ' . $structureFlow . ', lalu tutup dengan latihan atau refleksi singkat.'
+                : 'Use this material to teach ' . $topicLabel . ' through the flow ' . $structureFlow . ', then close with short practice or reflection.';
+        }
+
         return $usesIndonesian
             ? 'Gunakan materi ini untuk membuka pembelajaran ' . $topicLabel . ', menegaskan konsep inti, lalu menutup dengan contoh dan latihan singkat.'
             : 'Use this material to introduce ' . $topicLabel . ', reinforce the core concept, and close with an example and short practice.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $taxonomyHint
+     * @return string[]
+     */
+    private static function taxonomyInstructionLines(array $taxonomyHint): array
+    {
+        $bestMatch = (array) data_get($taxonomyHint, 'best_match', []);
+        $instructionLines = ['Internal taxonomy guidance for alignment only:'];
+
+        foreach ([
+            'jenjang' => 'Grade band',
+            'kelas' => 'Class',
+            'semester' => 'Semester',
+            'bab' => 'Chapter',
+        ] as $key => $label) {
+            $value = data_get($bestMatch, $key);
+
+            if ($value !== null && $value !== '') {
+                $instructionLines[] = '- ' . $label . ': ' . $value;
+            }
+        }
+
+        foreach ([
+            'subject_name' => 'Subject',
+            'sub_subject_name' => 'Sub-subject',
+            'description' => 'Topic description',
+            'content_structure' => 'Expected content structure',
+        ] as $key => $label) {
+            $value = trim((string) data_get($bestMatch, $key, ''));
+
+            if ($value !== '') {
+                $instructionLines[] = '- ' . $label . ': ' . $value;
+            }
+        }
+
+        $confidenceScore = data_get($taxonomyHint, 'confidence.score');
+        $confidenceLabel = trim((string) data_get($taxonomyHint, 'confidence.label', ''));
+
+        if ($confidenceScore !== null || $confidenceLabel !== '') {
+            $instructionLines[] = '- Confidence: ' . trim(implode(' ', array_filter([
+                $confidenceLabel !== '' ? $confidenceLabel : null,
+                is_numeric($confidenceScore) ? '(' . number_format((float) $confidenceScore, 2) . ')' : null,
+            ])));
+        }
+
+        return $instructionLines;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private static function fallbackSectionsFromStructure(string $topicLabel, bool $usesIndonesian, array $structureItems): array
+    {
+        $sections = [];
+        $structureItems = array_slice($structureItems, 0, 4);
+        $lastIndex = count($structureItems) - 1;
+
+        foreach ($structureItems as $index => $structureItem) {
+            $sections[] = [
+                'title' => self::fallbackSectionTitleFromStructureItem($structureItem, $topicLabel, $usesIndonesian),
+                'purpose' => self::fallbackSectionPurposeFromStructureItem($structureItem, $topicLabel, $usesIndonesian),
+                'bullets' => self::fallbackSectionBulletsFromStructureItem($structureItem, $topicLabel, $usesIndonesian),
+                'estimated_length' => ($index === 0 || $index === $lastIndex) ? 'short' : 'medium',
+            ];
+        }
+
+        return $sections;
+    }
+
+    private static function fallbackSectionTitleFromStructureItem(string $structureItem, string $topicLabel, bool $usesIndonesian): string
+    {
+        return match (self::fallbackStructureKind($structureItem)) {
+            'concept' => $usesIndonesian ? 'Konsep Inti ' . $topicLabel : 'Core Concepts of ' . $topicLabel,
+            'rules' => Str::headline($structureItem),
+            'example' => Str::headline($structureItem),
+            'practice' => Str::headline($structureItem),
+            default => Str::headline($structureItem),
+        };
+    }
+
+    private static function fallbackSectionPurposeFromStructureItem(string $structureItem, string $topicLabel, bool $usesIndonesian): string
+    {
+        return match (self::fallbackStructureKind($structureItem)) {
+            'concept' => $usesIndonesian
+                ? 'Menjelaskan definisi, gagasan pokok, dan makna penting dari ' . $topicLabel . ' secara bertahap.'
+                : 'Explain the definition, central ideas, and key meaning of ' . $topicLabel . ' step by step.',
+            'rules' => $usesIndonesian
+                ? 'Merangkum aturan, rumus, prosedur, atau rincian kerja yang perlu diikuti saat mempelajari ' . $topicLabel . '.'
+                : 'Summarize the rules, formulas, procedures, or working details students need for ' . $topicLabel . '.',
+            'example' => $usesIndonesian
+                ? 'Menunjukkan contoh, kasus, atau penerapan nyata agar siswa melihat ' . $topicLabel . ' dalam praktik.'
+                : 'Show examples, cases, or practical application so students can see ' . $topicLabel . ' in use.',
+            'practice' => $usesIndonesian
+                ? 'Memberikan ruang latihan, diskusi, evaluasi, atau refleksi agar pemahaman siswa dapat dicek.'
+                : 'Provide practice, discussion, evaluation, or reflection so student understanding can be checked.',
+            default => $usesIndonesian
+                ? 'Mengembangkan bagian materi yang mendukung pemahaman menyeluruh tentang ' . $topicLabel . '.'
+                : 'Develop a lesson section that supports a complete understanding of ' . $topicLabel . '.',
+        };
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function fallbackSectionBulletsFromStructureItem(string $structureItem, string $topicLabel, bool $usesIndonesian): array
+    {
+        return match (self::fallbackStructureKind($structureItem)) {
+            'concept' => $usesIndonesian
+                ? [
+                    'Istilah utama yang perlu dikenali siswa pada topik ' . $topicLabel,
+                    'Hubungan konsep inti dengan situasi belajar sehari-hari',
+                ]
+                : [
+                    'Key terms students need to recognize in ' . $topicLabel,
+                    'How the central idea connects to classroom or everyday situations',
+                ],
+            'rules' => $usesIndonesian
+                ? [
+                    'Aturan, rumus, langkah, atau prosedur yang relevan',
+                    'Kapan dan bagaimana bagian ' . $structureItem . ' digunakan dalam materi',
+                ]
+                : [
+                    'Relevant rules, formulas, steps, or procedures',
+                    'When and how the ' . $structureItem . ' content is used in the lesson',
+                ],
+            'example' => $usesIndonesian
+                ? [
+                    'Contoh, kasus, atau fenomena yang dekat dengan ' . $topicLabel,
+                    'Penjelasan langkah atau alasan pada tiap tahap penerapan',
+                ]
+                : [
+                    'A concrete example, case, or phenomenon related to ' . $topicLabel,
+                    'A short explanation of the steps or reasoning in the application',
+                ],
+            'practice' => $usesIndonesian
+                ? [
+                    'Latihan singkat, diskusi, atau evaluasi untuk mengecek pemahaman',
+                    'Refleksi atau tindak lanjut sederhana setelah mempelajari ' . $topicLabel,
+                ]
+                : [
+                    'Short practice, discussion, or evaluation to check understanding',
+                    'A reflection or simple follow-up after learning ' . $topicLabel,
+                ],
+            default => $usesIndonesian
+                ? [
+                    'Poin penting yang mendukung pemahaman ' . $topicLabel,
+                    'Transisi yang membantu siswa mengikuti alur materi',
+                ]
+                : [
+                    'Supporting points that strengthen understanding of ' . $topicLabel,
+                    'Transitions that help students follow the lesson flow',
+                ],
+        };
+    }
+
+    private static function fallbackStructureKind(string $structureItem): string
+    {
+        $normalized = self::normalizeStructureLabel($structureItem);
+
+        return match (true) {
+            preg_match('/latihan|evaluasi|refleksi|diskusi|penugasan|quiz|kuis/u', $normalized) === 1 => 'practice',
+            preg_match('/contoh|fenomena|kasus|aplikasi|resep|bacaan|praktik|servis|troubleshooting/u', $normalized) === 1 => 'example',
+            preg_match('/rumus|hukum|teorema|sifat|landasan|prosedur|alat|bahan|keselamatan|k3|diagram|skema|prinsip|komponan|komponen|unsur|pembuktian|proof|metode/u', $normalized) === 1 => 'rules',
+            default => 'concept',
+        };
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function taxonomyStructureItems(?array $taxonomyHint): array
+    {
+        $structureItems = data_get($taxonomyHint, 'best_match.structure_items', []);
+
+        if (! is_array($structureItems)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $structureItem): string => Str::of((string) $structureItem)->trim()->toString(),
+            $structureItems
+        ), static fn (string $structureItem): bool => $structureItem !== ''));
+    }
+
+    private static function normalizeStructureLabel(string $value): string
+    {
+        $normalized = Str::ascii($value);
+        $normalized = strtolower($normalized);
+        $normalized = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $normalized) ?? $normalized;
+
+        return trim($normalized);
     }
 
     private static function looksLikeIndonesianPrompt(string $teacherPrompt): bool

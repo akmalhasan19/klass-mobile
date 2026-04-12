@@ -234,6 +234,70 @@ class MediaGenerationPersistenceAndPublicationTest extends TestCase
         $this->assertNull($rawSystemTopicItem);
     }
 
+    public function test_media_publication_service_can_use_inferred_taxonomy_from_interpretation_audit_payload(): void
+    {
+        $this->seed(SubjectTaxonomySeeder::class);
+
+        $teacher = User::factory()->teacher()->create();
+        $subject = Subject::query()->where('slug', 'ipas-sd')->firstOrFail();
+        $subSubject = SubSubject::query()->where('slug', 'gaya-sekitar-kita-kelas-4')->firstOrFail();
+        $generation = MediaGeneration::create([
+            'teacher_id' => $teacher->id,
+            'raw_prompt' => 'Buatkan PDF pembelajaran IPAS kelas 4 tentang Gaya di Sekitar Kita.',
+            'preferred_output_type' => 'pdf',
+            'resolved_output_type' => 'pdf',
+            'status' => MediaGenerationLifecycle::PUBLISHING,
+            'file_url' => 'https://example.com/materials/ipas-gaya-kelas-4.pdf',
+            'thumbnail_url' => 'https://example.com/materials/ipas-gaya-kelas-4.jpg',
+            'storage_path' => 'materials/generated/ipas-gaya-kelas-4.pdf',
+            'mime_type' => 'application/pdf',
+            'interpretation_payload' => [
+                'teacher_delivery_summary' => 'Gunakan materi ini untuk membahas pengaruh gaya terhadap benda.',
+                'subject_context' => [
+                    'subject_name' => 'Ilmu Pengetahuan Alam dan Sosial (IPAS)',
+                    'subject_slug' => 'ipas-sd',
+                ],
+                'sub_subject_context' => [
+                    'sub_subject_name' => 'Gaya di Sekitar Kita',
+                    'sub_subject_slug' => 'gaya-sekitar-kita-kelas-4',
+                ],
+                'document_blueprint' => [
+                    'title' => 'Materi Gaya di Sekitar Kita',
+                    'sections' => [
+                        ['title' => 'Konsep Inti'],
+                        ['title' => 'Contoh Fenomena'],
+                    ],
+                ],
+            ],
+            'interpretation_audit_payload' => [
+                'taxonomy_inference' => [
+                    'best_match' => [
+                        'subject_id' => $subject->id,
+                        'sub_subject_id' => $subSubject->id,
+                    ],
+                ],
+            ],
+            'generation_spec_payload' => [
+                'title' => 'Materi Gaya di Sekitar Kita',
+                'summary' => 'Ringkasan pembelajaran gaya untuk siswa kelas 4 SD.',
+                'export_format' => 'pdf',
+                'sections' => [
+                    ['title' => 'Konsep Inti'],
+                    ['title' => 'Contoh Fenomena'],
+                ],
+            ],
+        ]);
+
+        $publishedGeneration = (new MediaPublicationService())->publish($generation);
+        $topic = Topic::query()->findOrFail($publishedGeneration->topic_id);
+        $project = RecommendedProject::query()->findOrFail($publishedGeneration->recommended_project_id);
+
+        $this->assertSame($subSubject->id, $topic->sub_subject_id);
+        $this->assertSame($subject->id, data_get($project->source_payload, 'subject_id'));
+        $this->assertSame($subSubject->id, data_get($project->source_payload, 'sub_subject_id'));
+        $this->assertSame($subSubject->id, data_get($project->source_payload, 'taxonomy.sub_subject.id'));
+    }
+
     public function test_file_upload_service_generates_public_url_from_runtime_safe_config(): void
     {
         config([

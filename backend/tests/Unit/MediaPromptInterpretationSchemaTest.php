@@ -42,6 +42,25 @@ class MediaPromptInterpretationSchemaTest extends TestCase
         $this->assertStringNotContainsString('Retry', $payload['document_blueprint']['title']);
     }
 
+    public function test_fallback_can_follow_taxonomy_content_structure_when_hint_is_available(): void
+    {
+        $payload = MediaPromptInterpretationSchema::fallback(
+            'Buatkan PDF pembelajaran IPAS kelas 4 tentang gaya di sekitar kita.',
+            preferredOutputType: 'pdf',
+            taxonomyHint: [
+                'best_match' => [
+                    'description' => 'Memahami konsep gaya dan pengaruhnya terhadap benda, serta mengenal berbagai jenis gaya dalam kehidupan sehari-hari.',
+                    'structure_items' => ['Konsep', 'Hukum/Rumus', 'Contoh fenomena', 'Eksperimen aman bila relevan'],
+                ],
+            ],
+        );
+
+        $this->assertSame('pdf', $payload['constraints']['preferred_output_type']);
+        $this->assertCount(4, $payload['document_blueprint']['sections']);
+        $this->assertStringContainsString('Memahami konsep gaya', $payload['document_blueprint']['summary']);
+        $this->assertSame('Konsep Inti Gaya Di Sekitar Kita', $payload['document_blueprint']['sections'][0]['title']);
+    }
+
     /**
      * @return array<string, mixed>
      */
