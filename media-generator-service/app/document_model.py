@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
 
 from app.models import AssessmentBlock, Asset, BodyBlock, GenerationSpec, Section
 
@@ -45,18 +44,6 @@ def localized_label(language: str, key: str) -> str:
     return LABELS.get(language_key, LABELS["en"]).get(key, LABELS["en"].get(key, key.replace("_", " ").title()))
 
 
-def _pick_value(candidate: dict[str, object] | None, keys: Iterable[str]) -> str | None:
-    if not isinstance(candidate, dict):
-        return None
-
-    for key in keys:
-        value = candidate.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-
-    return None
-
-
 @dataclass(frozen=True)
 class RenderBlock:
     kind: str
@@ -96,7 +83,6 @@ class RenderDocument:
     visual_density: str
     format_preferences: list[str]
     learning_objectives: list[str]
-    context_rows: list[tuple[str, str]]
     sections: list[RenderSection]
     assets: list[RenderAsset]
     activity_blocks: list[RenderActivity]
@@ -138,29 +124,6 @@ def _map_activities(activity_blocks: list[AssessmentBlock]) -> list[RenderActivi
     ]
 
 
-def _context_rows(spec: GenerationSpec) -> list[tuple[str, str]]:
-    rows: list[tuple[str, str]] = []
-
-    subject = _pick_value(spec.content_context.subject_context, ["subject_name", "subject_slug"])
-    sub_subject = _pick_value(spec.content_context.sub_subject_context, ["sub_subject_name", "sub_subject_slug"])
-    audience = _pick_value(spec.content_context.target_audience, ["label", "level", "age_range"])
-    format_preferences = ", ".join(spec.style_hints.format_preferences)
-
-    if subject:
-        rows.append((localized_label(spec.language, "subject"), subject))
-
-    if sub_subject:
-        rows.append((localized_label(spec.language, "sub_subject"), sub_subject))
-
-    if audience:
-        rows.append((localized_label(spec.language, "audience"), audience))
-
-    rows.append((localized_label(spec.language, "tone"), spec.style_hints.tone))
-    rows.append((localized_label(spec.language, "format_preferences"), format_preferences))
-
-    return rows
-
-
 def build_render_document(spec: GenerationSpec) -> RenderDocument:
     return RenderDocument(
         title=spec.title,
@@ -172,7 +135,6 @@ def build_render_document(spec: GenerationSpec) -> RenderDocument:
         visual_density=spec.layout_hints.visual_density,
         format_preferences=list(spec.style_hints.format_preferences),
         learning_objectives=list(spec.learning_objectives),
-        context_rows=_context_rows(spec),
         sections=_map_sections(spec.sections),
         assets=_map_assets(spec.assets),
         activity_blocks=_map_activities(spec.assessment_or_activity_blocks),

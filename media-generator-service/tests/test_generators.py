@@ -24,9 +24,16 @@ def test_docx_generator_renders_expected_sections_and_text() -> None:
     paragraph_text = "\n".join(paragraph.text for paragraph in document.paragraphs if paragraph.text.strip())
 
     assert metadata["title"] == "Handout Pecahan Kelas 5"
+    assert "Handout ringkas untuk memperkenalkan pecahan senilai dan latihan dasar." in paragraph_text
     assert "Tujuan Belajar" in paragraph_text
     assert "Contoh dan Latihan" in paragraph_text
     assert "Latihan Mandiri" in paragraph_text
+    assert "Ringkasan" not in paragraph_text
+    assert "Konteks Kelas" not in paragraph_text
+    assert "Catatan untuk Guru" not in paragraph_text
+    assert "Aset Pendukung" not in paragraph_text
+    assert "Menjelaskan target belajar utama sebelum latihan dimulai." not in paragraph_text
+    assert "Memberi contoh singkat lalu latihan mandiri." not in paragraph_text
     assert "schema_version" not in paragraph_text
     assert "Return exactly one JSON object" not in paragraph_text
 
@@ -79,8 +86,14 @@ def test_pptx_generator_renders_title_section_and_activity_slides() -> None:
 
     assert metadata["slide_count"] == 4
     assert any("Handout Pecahan Kelas 5" in text for text in slide_texts)
+    assert any("Handout ringkas untuk memperkenalkan pecahan senilai dan latihan dasar." in text for text in slide_texts)
     assert any("Tujuan Belajar" in text for text in slide_texts)
     assert any("Aktivitas dan Penilaian" in text for text in slide_texts)
+    assert all("Konteks Kelas" not in text for text in slide_texts)
+    assert all("Catatan untuk Guru" not in text for text in slide_texts)
+    assert all("Aset Pendukung" not in text for text in slide_texts)
+    assert all("Menjelaskan target belajar utama sebelum latihan dimulai." not in text for text in slide_texts)
+    assert all("Memberi contoh singkat lalu latihan mandiri." not in text for text in slide_texts)
     assert all("schema_version" not in text for text in slide_texts)
     assert all("Return exactly one JSON object" not in text for text in slide_texts)
 

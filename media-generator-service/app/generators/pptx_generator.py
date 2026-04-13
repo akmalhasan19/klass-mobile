@@ -25,7 +25,7 @@ class PptxGenerator(BaseGenerator):
         self._add_title_slide(presentation, render_document)
 
         for section in render_document.sections:
-            self._add_section_slide(presentation, render_document, section.title, section.purpose, [
+            self._add_section_slide(presentation, render_document, section.title, "", [
                 self._normalize_block(block.kind, block.content) for block in section.blocks
             ])
 
@@ -38,7 +38,7 @@ class PptxGenerator(BaseGenerator):
                 presentation,
                 render_document,
                 localized_label(render_document.language, "activity_blocks"),
-                render_document.teacher_delivery_summary,
+                "",
                 activity_lines,
                 accent_rgb=RGBColor(56, 88, 152),
             )
@@ -63,7 +63,9 @@ class PptxGenerator(BaseGenerator):
         title_run.font.size = Pt(28)
         title_run.font.color.rgb = RGBColor(11, 31, 51)
 
-        summary_box = slide.shapes.add_textbox(Inches(0.78), Inches(1.8), Inches(7.15), Inches(1.55))
+        has_objectives = bool(render_document.learning_objectives)
+        summary_width = Inches(7.15) if has_objectives else Inches(11.55)
+        summary_box = slide.shapes.add_textbox(Inches(0.78), Inches(1.8), summary_width, Inches(1.8))
         summary_frame = summary_box.text_frame
         summary_frame.word_wrap = True
         summary_paragraph = summary_frame.paragraphs[0]
@@ -73,60 +75,37 @@ class PptxGenerator(BaseGenerator):
         summary_run.font.size = Pt(16)
         summary_run.font.color.rgb = RGBColor(31, 41, 51)
 
-        context_shape = slide.shapes.add_shape(
-            MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE,
-            Inches(8.45), Inches(0.7), Inches(4.1), Inches(5.5)
-        )
-        context_shape.fill.solid()
-        context_shape.fill.fore_color.rgb = RGBColor(255, 255, 255)
-        context_shape.line.color.rgb = RGBColor(188, 204, 220)
-
-        context_frame = context_shape.text_frame
-        context_frame.clear()
-        context_frame.word_wrap = True
-        context_frame.margin_left = Inches(0.18)
-        context_frame.margin_right = Inches(0.18)
-        context_frame.margin_top = Inches(0.15)
-
-        heading = context_frame.paragraphs[0]
-        heading.alignment = PP_ALIGN.LEFT
-        heading_run = heading.add_run()
-        heading_run.text = localized_label(render_document.language, "context")
-        heading_run.font.bold = True
-        heading_run.font.size = Pt(16)
-        heading_run.font.color.rgb = RGBColor(15, 76, 92)
-
-        for label, value in render_document.context_rows:
-            paragraph = context_frame.add_paragraph()
-            paragraph.alignment = PP_ALIGN.LEFT
-            label_run = paragraph.add_run()
-            label_run.text = f"{label}: "
-            label_run.font.bold = True
-            label_run.font.size = Pt(11)
-            label_run.font.color.rgb = RGBColor(11, 31, 51)
-            value_run = paragraph.add_run()
-            value_run.text = value
-            value_run.font.size = Pt(11)
-            value_run.font.color.rgb = RGBColor(31, 41, 51)
-
-        if render_document.assets:
-            assets_text = "; ".join(asset.description for asset in render_document.assets[:2])
-            ribbon = slide.shapes.add_shape(
+        if has_objectives:
+            objective_shape = slide.shapes.add_shape(
                 MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE,
-                Inches(0.78), Inches(5.85), Inches(7.15), Inches(0.7)
+                Inches(8.45), Inches(0.7), Inches(4.1), Inches(5.5)
             )
-            ribbon.fill.solid()
-            ribbon.fill.fore_color.rgb = RGBColor(217, 226, 236)
-            ribbon.line.color.rgb = RGBColor(217, 226, 236)
-            ribbon_frame = ribbon.text_frame
-            ribbon_frame.clear()
-            ribbon_frame.word_wrap = True
-            ribbon_frame.margin_left = Inches(0.18)
-            ribbon_paragraph = ribbon_frame.paragraphs[0]
-            ribbon_run = ribbon_paragraph.add_run()
-            ribbon_run.text = f"{localized_label(render_document.language, 'assets')}: {assets_text}"
-            ribbon_run.font.size = Pt(11)
-            ribbon_run.font.color.rgb = RGBColor(11, 31, 51)
+            objective_shape.fill.solid()
+            objective_shape.fill.fore_color.rgb = RGBColor(255, 255, 255)
+            objective_shape.line.color.rgb = RGBColor(188, 204, 220)
+
+            objective_frame = objective_shape.text_frame
+            objective_frame.clear()
+            objective_frame.word_wrap = True
+            objective_frame.margin_left = Inches(0.18)
+            objective_frame.margin_right = Inches(0.18)
+            objective_frame.margin_top = Inches(0.15)
+
+            heading = objective_frame.paragraphs[0]
+            heading.alignment = PP_ALIGN.LEFT
+            heading_run = heading.add_run()
+            heading_run.text = localized_label(render_document.language, "learning_objectives")
+            heading_run.font.bold = True
+            heading_run.font.size = Pt(16)
+            heading_run.font.color.rgb = RGBColor(15, 76, 92)
+
+            for objective in render_document.learning_objectives[:4]:
+                paragraph = objective_frame.add_paragraph()
+                paragraph.alignment = PP_ALIGN.LEFT
+                paragraph.text = objective
+                paragraph.level = 0
+                paragraph.font.size = Pt(11)
+                paragraph.font.color.rgb = RGBColor(31, 41, 51)
 
     def _add_section_slide(
         self,
@@ -158,14 +137,15 @@ class PptxGenerator(BaseGenerator):
         accent_bar.fill.fore_color.rgb = accent
         accent_bar.line.color.rgb = accent
 
-        subtitle_box = slide.shapes.add_textbox(Inches(0.78), Inches(1.55), Inches(11.6), Inches(0.7))
-        subtitle_frame = subtitle_box.text_frame
-        subtitle_frame.word_wrap = True
-        subtitle_paragraph = subtitle_frame.paragraphs[0]
-        subtitle_run = subtitle_paragraph.add_run()
-        subtitle_run.text = subtitle
-        subtitle_run.font.size = Pt(14)
-        subtitle_run.font.color.rgb = RGBColor(82, 96, 109)
+        if subtitle.strip():
+            subtitle_box = slide.shapes.add_textbox(Inches(0.78), Inches(1.55), Inches(11.6), Inches(0.7))
+            subtitle_frame = subtitle_box.text_frame
+            subtitle_frame.word_wrap = True
+            subtitle_paragraph = subtitle_frame.paragraphs[0]
+            subtitle_run = subtitle_paragraph.add_run()
+            subtitle_run.text = subtitle
+            subtitle_run.font.size = Pt(14)
+            subtitle_run.font.color.rgb = RGBColor(82, 96, 109)
 
         content_shape = slide.shapes.add_shape(
             MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE,

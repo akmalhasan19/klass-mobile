@@ -9,11 +9,11 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 from reportlab.pdfgen.canvas import Canvas
 
 from app.contracts import PDF_MIME_TYPE
-from app.document_model import RenderAsset, RenderDocument, RenderSection, localized_label
+from app.document_model import RenderDocument, RenderSection, localized_label
 from app.generators.base import BaseGenerator, RenderSummary
 
 
@@ -56,13 +56,8 @@ class PdfGenerator(BaseGenerator):
 
         story.append(Paragraph(escape(render_document.title), styles["title"]))
         story.append(Spacer(1, 6 * mm))
-        story.append(self._box_block(localized_label(render_document.language, "summary"), render_document.summary, styles))
+        story.append(Paragraph(escape(render_document.summary), styles["body"]))
         story.append(Spacer(1, 5 * mm))
-
-        if render_document.context_rows:
-            story.append(Paragraph(escape(localized_label(render_document.language, "context")), styles["section_heading"]))
-            story.append(self._context_table(render_document, styles))
-            story.append(Spacer(1, 4 * mm))
 
         if render_document.learning_objectives:
             story.append(Paragraph(escape(localized_label(render_document.language, "learning_objectives")), styles["section_heading"]))
@@ -73,26 +68,12 @@ class PdfGenerator(BaseGenerator):
         for section in render_document.sections:
             self._append_section(story, render_document, section, styles)
 
-        if render_document.assets:
-            story.append(Paragraph(escape(localized_label(render_document.language, "assets")), styles["section_heading"]))
-            for asset in render_document.assets:
-                story.append(Paragraph(escape(self._asset_line(render_document, asset)), styles["bullet"]))
-            story.append(Spacer(1, 4 * mm))
-
         if render_document.activity_blocks:
             story.append(Paragraph(escape(localized_label(render_document.language, "activity_blocks")), styles["section_heading"]))
             for block in render_document.activity_blocks:
                 story.append(Paragraph(escape(block.title), styles["sub_heading"]))
                 story.append(Paragraph(escape(block.instructions), styles["body"]))
                 story.append(Spacer(1, 2 * mm))
-
-        story.append(
-            self._box_block(
-                localized_label(render_document.language, "teacher_notes"),
-                render_document.teacher_delivery_summary,
-                styles,
-            )
-        )
 
         template = SimpleDocTemplate(
             str(output_path),
@@ -197,7 +178,6 @@ class PdfGenerator(BaseGenerator):
         styles: dict[str, ParagraphStyle],
     ) -> None:
         story.append(Paragraph(escape(section.title), styles["section_heading"]))
-        story.append(Paragraph(escape(section.purpose), styles["purpose"]))
 
         for block in section.blocks:
             if block.kind == "paragraph":
@@ -212,58 +192,3 @@ class PdfGenerator(BaseGenerator):
             story.append(Paragraph(escape(prefix + block.content), styles["bullet"]))
 
         story.append(Spacer(1, 3 * mm))
-
-    def _box_block(
-        self,
-        heading: str,
-        body: str,
-        styles: dict[str, ParagraphStyle],
-    ) -> Table:
-        table = Table(
-            [
-                [Paragraph(escape(heading), styles["label"])],
-                [Paragraph(escape(body), styles["body"])],
-            ],
-            colWidths=[178 * mm],
-        )
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#D9E2EC")),
-                    ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#F8FBFD")),
-                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#BCCCDC")),
-                    ("INNERPADDING", (0, 0), (-1, -1), 6),
-                ]
-            )
-        )
-        return table
-
-    def _context_table(
-        self,
-        render_document: RenderDocument,
-        styles: dict[str, ParagraphStyle],
-    ) -> Table:
-        rows = [
-            [Paragraph(escape(label), styles["label"]), Paragraph(escape(value), styles["body"])]
-            for label, value in render_document.context_rows
-        ]
-        table = Table(rows, colWidths=[45 * mm, 133 * mm])
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#EEF4F7")),
-                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#BCCCDC")),
-                    ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#D9E2EC")),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("INNERPADDING", (0, 0), (-1, -1), 5),
-                ]
-            )
-        )
-        return table
-
-    def _asset_line(self, render_document: RenderDocument, asset: RenderAsset) -> str:
-        requirement = localized_label(
-            render_document.language,
-            "required" if asset.required else "optional",
-        )
-        return f"{requirement} {asset.asset_type}: {asset.description}"

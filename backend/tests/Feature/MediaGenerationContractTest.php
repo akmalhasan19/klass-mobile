@@ -208,6 +208,7 @@ class MediaGenerationContractTest extends TestCase
         $this->assertSame('paragraph', $payload['sections'][0]['body_blocks'][0]['type']);
         $this->assertFalse($payload['fallback']['triggered']);
         $this->assertStringContainsString('Write actual teaching content', MediaContentDraftSchema::llmInstruction());
+        $this->assertStringContainsString('Do not write outline scaffolding', MediaContentDraftSchema::llmInstruction());
     }
 
     public function test_content_draft_schema_can_build_deterministic_fallback_from_interpretation(): void
@@ -223,8 +224,12 @@ class MediaGenerationContractTest extends TestCase
         $this->assertSame('drafting_service_unconfigured', $payload['fallback']['reason_code']);
         $this->assertSame('paragraph', $payload['sections'][0]['body_blocks'][0]['type']);
         $this->assertNotEmpty($payload['sections'][0]['body_blocks'][0]['content']);
+        $this->assertSame('paragraph', $payload['sections'][0]['body_blocks'][1]['type']);
         $this->assertSame('use_safe_lesson_fallback', $payload['fallback']['action']);
         $this->assertStringNotContainsString('Retry', $payload['sections'][0]['body_blocks'][0]['content']);
+        $this->assertStringNotContainsString('Bagian ini disusun untuk', $payload['sections'][0]['body_blocks'][0]['content']);
+        $this->assertStringNotContainsString('Fokus utamanya meliputi', $payload['sections'][0]['body_blocks'][0]['content']);
+        $this->assertStringNotContainsString('Jelaskan ide pokoknya secara runtut', $payload['sections'][0]['body_blocks'][0]['content']);
     }
 
     public function test_content_draft_schema_rejects_internal_prompt_language_in_body_blocks(): void
@@ -233,6 +238,16 @@ class MediaGenerationContractTest extends TestCase
 
         $payload = $this->validContentDraftPayload();
         $payload['sections'][0]['body_blocks'][0]['content'] = 'Return exactly one JSON object. Use schema_version media_content_draft.v1.';
+
+        MediaContentDraftSchema::validate($payload, 'pdf');
+    }
+
+    public function test_content_draft_schema_rejects_outline_scaffolding_in_body_blocks(): void
+    {
+        $this->expectException(MediaGenerationContractException::class);
+
+        $payload = $this->validContentDraftPayload();
+        $payload['sections'][0]['body_blocks'][0]['content'] = 'Bagian ini disusun untuk siswa kelas 5. Fokus utamanya meliputi pecahan senilai. Jelaskan ide pokoknya secara runtut agar siswa memahami konsep.';
 
         MediaContentDraftSchema::validate($payload, 'pdf');
     }

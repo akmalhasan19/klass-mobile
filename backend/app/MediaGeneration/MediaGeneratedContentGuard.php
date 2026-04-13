@@ -7,6 +7,22 @@ final class MediaGeneratedContentGuard
     /**
      * @var array<string, string>
      */
+    private const DRAFT_SCAFFOLD_PATTERNS = [
+        '/\bbagian ini disusun untuk\b/iu' => 'outline_scaffold',
+        '/\bfokus utamanya meliputi\b/iu' => 'outline_scaffold',
+        '/\bjelaskan ide pokoknya secara runtut\b/iu' => 'outline_scaffold',
+        '/\bsampaikan inti materinya secara singkat, jelas, dan mudah dipresentasikan\b/iu' => 'outline_scaffold',
+        '/\bdorong siswa merangkum kembali inti\b/iu' => 'outline_scaffold',
+        '/\bthis section is written for\b/iu' => 'outline_scaffold',
+        '/\bthe main focus includes\b/iu' => 'outline_scaffold',
+        '/\bpresent the main idea in sequence\b/iu' => 'outline_scaffold',
+        '/\bkeep the explanation concise, clear, and ready for presentation\b/iu' => 'outline_scaffold',
+        '/\bencourage students to restate the key idea\b/iu' => 'outline_scaffold',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
     private const FORBIDDEN_PATTERNS = [
         '/return exactly one json object/iu' => 'json_contract_instruction',
         '/do not wrap the json/iu' => 'json_contract_instruction',
@@ -83,6 +99,7 @@ final class MediaGeneratedContentGuard
         self::assertTextSafe('title', data_get($payload, 'title'));
         self::assertTextSafe('summary', data_get($payload, 'summary'));
         self::assertTextSafe('teacher_delivery_summary', data_get($payload, 'teacher_delivery_summary'));
+        self::assertDraftMaterialText('summary', data_get($payload, 'summary'));
 
         foreach (array_values((array) data_get($payload, 'learning_objectives', [])) as $index => $objective) {
             self::assertTextSafe('learning_objectives.' . $index, $objective);
@@ -94,6 +111,10 @@ final class MediaGeneratedContentGuard
 
             foreach (array_values((array) data_get($section, 'body_blocks', [])) as $blockIndex => $block) {
                 self::assertTextSafe('sections.' . $sectionIndex . '.body_blocks.' . $blockIndex . '.content', data_get($block, 'content'));
+                self::assertDraftMaterialText(
+                    'sections.' . $sectionIndex . '.body_blocks.' . $blockIndex . '.content',
+                    data_get($block, 'content')
+                );
             }
         }
 
@@ -155,6 +176,33 @@ final class MediaGeneratedContentGuard
             if (preg_match($pattern, $text) === 1) {
                 throw new MediaGenerationContractException(
                     'Generated content contains internal authoring instructions instead of classroom-ready material.',
+                    MediaGenerationErrorCode::LLM_CONTRACT_FAILED,
+                    [
+                        'path' => $path,
+                        'reason' => $reason,
+                        'matched_pattern' => $pattern,
+                    ]
+                );
+            }
+        }
+    }
+
+    private static function assertDraftMaterialText(string $path, mixed $value): void
+    {
+        if (! is_string($value)) {
+            return;
+        }
+
+        $text = trim($value);
+
+        if ($text === '') {
+            return;
+        }
+
+        foreach (self::DRAFT_SCAFFOLD_PATTERNS as $pattern => $reason) {
+            if (preg_match($pattern, $text) === 1) {
+                throw new MediaGenerationContractException(
+                    'Generated content is still outline scaffolding instead of final classroom-ready material.',
                     MediaGenerationErrorCode::LLM_CONTRACT_FAILED,
                     [
                         'path' => $path,

@@ -30,6 +30,7 @@ final class MediaContentDraftSchema
             'For pdf and docx, every section must contain at least one explanatory paragraph that can be read directly as teaching material.',
             'When the topic calls for definitions, formulas, rules, worked examples, or short exercises, include them in the content instead of describing them abstractly.',
             'Prefer paragraph blocks for explanations. Use bullet or checklist blocks only for lists, steps, or short exercises.',
+            'Do not write outline scaffolding such as "Bagian ini disusun untuk...", "Fokus utamanya meliputi...", or "Jelaskan ide pokoknya secara runtut...". Rewrite those ideas into final lesson prose.',
             'Use the same language as input.interpretation.language.',
             'Keep the content aligned with input.resolved_output_type: fuller prose for pdf/docx, tighter points for pptx.',
             'Never mention prompts, schema keys, JSON instructions, body_blocks, fallback flags, LLMs, adapters, renderers, or internal workflows in any teacher-facing text.',
@@ -280,7 +281,6 @@ final class MediaContentDraftSchema
     {
         $language = trim((string) ($interpretation['language'] ?? 'id'));
         $usesIndonesian = str_starts_with(strtolower($language), 'id');
-        $purpose = trim((string) ($section['purpose'] ?? ''));
         $bullets = array_values(array_filter(
             is_array($section['bullets'] ?? null) ? $section['bullets'] : [],
             static fn (mixed $bullet): bool => is_string($bullet) && trim($bullet) !== ''
@@ -291,7 +291,6 @@ final class MediaContentDraftSchema
 
         $content = self::fallbackParagraphContent(
             title: $title,
-            purpose: $purpose,
             bullets: $bullets,
             topicLabel: $topicLabel,
             audienceLabel: $audienceLabel,
@@ -306,17 +305,25 @@ final class MediaContentDraftSchema
             ],
         ];
 
+        $supportingParagraph = self::fallbackSupportingParagraph(
+            title: $title,
+            topicLabel: $topicLabel,
+            audienceLabel: $audienceLabel,
+            resolvedOutputType: $resolvedOutputType,
+            usesIndonesian: $usesIndonesian,
+        );
+
+        if ($supportingParagraph !== null) {
+            $blocks[] = [
+                'type' => 'paragraph',
+                'content' => $supportingParagraph,
+            ];
+        }
+
         foreach ($bullets as $bullet) {
             $blocks[] = [
                 'type' => self::isPracticeSection($title, $usesIndonesian) ? 'checklist' : 'bullet',
                 'content' => trim($bullet),
-            ];
-        }
-
-        if ($resolvedOutputType !== 'pptx') {
-            $blocks[] = [
-                'type' => 'note',
-                'content' => self::fallbackClosingNote($topicLabel, $usesIndonesian),
             ];
         }
 
@@ -354,46 +361,150 @@ final class MediaContentDraftSchema
      */
     private static function fallbackParagraphContent(
         string $title,
-        string $purpose,
         array $bullets,
         string $topicLabel,
         string $audienceLabel,
         string $resolvedOutputType,
         bool $usesIndonesian,
     ): string {
-        $focusList = $bullets !== []
-            ? implode('; ', array_map(static fn (string $bullet): string => trim($bullet), $bullets))
-            : null;
+        $sectionKind = self::fallbackSectionKind($title, $usesIndonesian);
+        $focusNarrative = self::fallbackFocusNarrative($bullets, $usesIndonesian);
 
         if ($usesIndonesian) {
             $audienceSentence = $audienceLabel !== ''
-                ? 'Bagian ini disusun untuk ' . $audienceLabel . '. '
+                ? 'Untuk ' . self::lowercaseFirst($audienceLabel) . ', '
                 : '';
 
-            $body = ($title !== '' ? $title . ' membahas ' . $topicLabel . '. ' : '')
-                . $audienceSentence
-                . ($purpose !== '' ? $purpose . ' ' : '')
-                . ($focusList !== null ? 'Fokus utamanya meliputi ' . $focusList . '. ' : '')
-                . ($resolvedOutputType === 'pptx'
-                    ? 'Sampaikan inti materinya secara singkat, jelas, dan mudah dipresentasikan.'
-                    : 'Jelaskan ide pokoknya secara runtut agar siswa dapat memahami konsep, melihat contoh penerapan, lalu siap mencoba latihan sederhana.');
+            $body = match ($sectionKind) {
+                'practice' => 'Latihan pada materi ' . $topicLabel . ' membantu siswa menerapkan konsep melalui langkah yang bertahap dan jelas. '
+                    . $audienceSentence
+                    . ($focusNarrative !== null
+                        ? $focusNarrative . '. '
+                        : 'Siswa mulai dari contoh yang sederhana lalu beranjak ke latihan yang lebih mandiri. '),
+                'intro' => 'Materi ' . $topicLabel . ' membuka pembelajaran dengan ide utama yang perlu dipahami sebelum siswa masuk ke contoh dan latihan. '
+                    . $audienceSentence
+                    . ($focusNarrative !== null
+                        ? $focusNarrative . '. '
+                        : 'Bagian ini menyiapkan dasar pemahaman agar pembahasan berikutnya terasa lebih mudah diikuti. '),
+                default => 'Pada bagian ini, ' . $topicLabel . ' dijelaskan secara runtut agar siswa melihat hubungan antara konsep, contoh, dan penerapannya. '
+                    . $audienceSentence
+                    . ($focusNarrative !== null
+                        ? $focusNarrative . '. '
+                        : 'Pembahasan bergerak dari gagasan utama menuju contoh yang lebih konkret. '),
+            };
 
             return trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
         }
 
         $audienceSentence = $audienceLabel !== ''
-            ? 'This section is written for ' . $audienceLabel . '. '
+            ? 'For ' . self::lowercaseFirst($audienceLabel) . ', '
             : '';
 
-        $body = ($title !== '' ? $title . ' explains ' . $topicLabel . '. ' : '')
-            . $audienceSentence
-            . ($purpose !== '' ? $purpose . ' ' : '')
-            . ($focusList !== null ? 'The main focus includes ' . $focusList . '. ' : '')
-            . ($resolvedOutputType === 'pptx'
-                ? 'Keep the explanation concise, clear, and ready for presentation.'
-                : 'Present the main idea in sequence so students can understand the concept, see an example, and prepare for short practice.');
+        $body = match ($sectionKind) {
+            'practice' => 'Practice in ' . $topicLabel . ' helps learners apply the concept through clear, step-by-step work. '
+                . $audienceSentence
+                . ($focusNarrative !== null
+                    ? $focusNarrative . '. '
+                    : 'Students start with a simple example and continue into more independent work. '),
+            'intro' => 'The lesson on ' . $topicLabel . ' opens with the main idea students need before moving into examples and practice. '
+                . $audienceSentence
+                . ($focusNarrative !== null
+                    ? $focusNarrative . '. '
+                    : 'This section builds the foundation so the rest of the material is easier to follow. '),
+            default => 'In this section, ' . $topicLabel . ' is explained in sequence so students can connect the concept, an example, and its use. '
+                . $audienceSentence
+                . ($focusNarrative !== null
+                    ? $focusNarrative . '. '
+                    : 'The explanation moves from the key idea toward a more concrete illustration. '),
+        };
 
         return trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
+    }
+
+    private static function fallbackSupportingParagraph(
+        string $title,
+        string $topicLabel,
+        string $audienceLabel,
+        string $resolvedOutputType,
+        bool $usesIndonesian,
+    ): ?string {
+        if ($resolvedOutputType === 'pptx') {
+            return null;
+        }
+
+        $sectionKind = self::fallbackSectionKind($title, $usesIndonesian);
+        $audienceLead = $audienceLabel !== ''
+            ? ($usesIndonesian
+                ? 'Bagi ' . self::lowercaseFirst($audienceLabel) . ', '
+                : 'For ' . self::lowercaseFirst($audienceLabel) . ', ')
+            : '';
+
+        if ($usesIndonesian) {
+            return match ($sectionKind) {
+                'practice' => $audienceLead . 'contoh yang bertahap membantu mereka menuliskan langkah, membandingkan jawaban, dan memeriksa alasan di balik setiap hasil pada topik ' . $topicLabel . '.',
+                'intro' => $audienceLead . 'contoh yang dekat dengan pengalaman belajar sehari-hari membuat ide utama pada ' . $topicLabel . ' lebih mudah dipahami dan diingat.',
+                default => $audienceLead . 'contoh yang konkret dan latihan singkat membantu mereka melihat bagaimana ' . $topicLabel . ' digunakan dalam pembahasan yang lebih nyata.',
+            };
+        }
+
+        return match ($sectionKind) {
+            'practice' => $audienceLead . 'step-by-step examples help learners write their process, compare answers, and check the reasoning behind each result in ' . $topicLabel . '.',
+            'intro' => $audienceLead . 'examples that connect to familiar learning situations make the main idea in ' . $topicLabel . ' easier to understand and remember.',
+            default => $audienceLead . 'concrete examples and short practice help learners see how ' . $topicLabel . ' appears in more realistic situations.',
+        };
+    }
+
+    /**
+     * @param  string[]  $bullets
+     */
+    private static function fallbackFocusNarrative(array $bullets, bool $usesIndonesian): ?string
+    {
+        $items = array_values(array_filter(array_map(
+            static function (string $bullet): string {
+                $trimmed = trim(preg_replace('/[\s.]+$/u', '', $bullet) ?? $bullet);
+
+                return $trimmed;
+            },
+            array_slice($bullets, 0, 3)
+        )));
+
+        if ($items === []) {
+            return null;
+        }
+
+        $normalizedItems = array_map(static fn (string $item): string => self::lowercaseFirst($item), $items);
+        $joined = self::joinPhrases($normalizedItems, $usesIndonesian ? 'dan' : 'and');
+
+        return $usesIndonesian
+            ? 'Hal penting yang ditekankan adalah ' . $joined
+            : 'Key points in this section are ' . $joined;
+    }
+
+    private static function fallbackSectionKind(string $title, bool $usesIndonesian): string
+    {
+        $normalizedTitle = strtolower(trim($title));
+
+        $practiceKeywords = $usesIndonesian
+            ? ['latihan', 'contoh', 'aktivitas', 'kuis', 'refleksi']
+            : ['practice', 'example', 'activity', 'quiz', 'reflection', 'exercise'];
+
+        foreach ($practiceKeywords as $keyword) {
+            if (str_contains($normalizedTitle, $keyword)) {
+                return 'practice';
+            }
+        }
+
+        $introKeywords = $usesIndonesian
+            ? ['tujuan', 'pengantar', 'pendahuluan', 'konsep dasar']
+            : ['goal', 'objective', 'introduction', 'overview', 'foundation'];
+
+        foreach ($introKeywords as $keyword) {
+            if (str_contains($normalizedTitle, $keyword)) {
+                return 'intro';
+            }
+        }
+
+        return 'explanation';
     }
 
     private static function isPracticeSection(string $title, bool $usesIndonesian): bool
@@ -407,10 +518,41 @@ final class MediaContentDraftSchema
         return str_contains($normalizedTitle, 'practice') || str_contains($normalizedTitle, 'reflection');
     }
 
-    private static function fallbackClosingNote(string $topicLabel, bool $usesIndonesian): string
+    /**
+     * @param  string[]  $items
+     */
+    private static function joinPhrases(array $items, string $conjunction): string
     {
-        return $usesIndonesian
-            ? 'Dorong siswa merangkum kembali inti ' . $topicLabel . ' dengan kalimat mereka sendiri setelah bagian ini selesai dibahas.'
-            : 'Encourage students to restate the key idea of ' . $topicLabel . ' in their own words after this section.';
+        $count = count($items);
+
+        if ($count === 0) {
+            return '';
+        }
+
+        if ($count === 1) {
+            return $items[0];
+        }
+
+        if ($count === 2) {
+            return $items[0] . ' ' . $conjunction . ' ' . $items[1];
+        }
+
+        $last = array_pop($items);
+
+        return implode(', ', $items) . ', ' . $conjunction . ' ' . $last;
+    }
+
+    private static function lowercaseFirst(string $value): string
+    {
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return $trimmed;
+        }
+
+        $firstCharacter = mb_substr($trimmed, 0, 1);
+        $remaining = mb_substr($trimmed, 1);
+
+        return mb_strtolower($firstCharacter) . $remaining;
     }
 }
