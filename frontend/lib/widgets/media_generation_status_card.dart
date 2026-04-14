@@ -9,15 +9,15 @@ class MediaGenerationStatusCard extends StatelessWidget {
     required this.service,
     this.onRefreshStatus,
     this.onDownload,
-    this.onOpen,
-    this.onShare,
+    this.onRegenerate,
+    this.onHireFreelancer,
   });
 
   final MediaGenerationService service;
   final Future<void> Function()? onRefreshStatus;
   final Future<void> Function()? onDownload;
-  final Future<void> Function()? onOpen;
-  final Future<void> Function()? onShare;
+  final Future<void> Function()? onRegenerate;
+  final Future<void> Function()? onHireFreelancer;
 
   @override
   Widget build(BuildContext context) {
@@ -182,8 +182,8 @@ class MediaGenerationStatusCard extends StatelessWidget {
               isIndonesian: isIndonesian,
               canAct: artifactUrl != null && artifactUrl.isNotEmpty,
               onDownload: onDownload,
-              onOpen: onOpen,
-              onShare: onShare,
+              onRegenerate: onRegenerate,
+              onHireFreelancer: onHireFreelancer,
             ),
             if (teacherMessage != null && teacherMessage.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -858,15 +858,15 @@ class _ActionCluster extends StatelessWidget {
     required this.isIndonesian,
     required this.canAct,
     required this.onDownload,
-    required this.onOpen,
-    required this.onShare,
+    required this.onRegenerate,
+    required this.onHireFreelancer,
   });
 
   final bool isIndonesian;
   final bool canAct;
   final Future<void> Function()? onDownload;
-  final Future<void> Function()? onOpen;
-  final Future<void> Function()? onShare;
+  final Future<void> Function()? onRegenerate;
+  final Future<void> Function()? onHireFreelancer;
 
   @override
   Widget build(BuildContext context) {
@@ -884,7 +884,7 @@ class _ActionCluster extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              elevation: 8,
+              elevation: 4,
               shadowColor: AppColors.primary.withValues(alpha: 0.25),
             ),
             icon: const Icon(Icons.download_rounded),
@@ -903,29 +903,29 @@ class _ActionCluster extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: canAct && onOpen != null ? () async => onOpen?.call() : null,
+                onPressed: canAct && onRegenerate != null ? () async => onRegenerate?.call() : null,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2), width: 1.6),
                   minimumSize: const Size(double.infinity, 52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: Text(isIndonesian ? 'Buka' : 'Open'),
+                icon: const Icon(Icons.autorenew_rounded),
+                label: Text(isIndonesian ? 'Regenerasi' : 'Regenerate'),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: canAct && onShare != null ? () async => onShare?.call() : null,
+                onPressed: canAct && onHireFreelancer != null ? () async => onHireFreelancer?.call() : null,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary,
-                  side: const BorderSide(color: AppColors.border, width: 1.6),
+                  foregroundColor: const Color(0xFFD97706),
+                  side: const BorderSide(color: Color(0xFFF4D8A9), width: 1.6),
                   minimumSize: const Size(double.infinity, 52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
-                icon: const Icon(Icons.share_rounded),
-                label: Text(isIndonesian ? 'Bagikan' : 'Share'),
+                icon: const Icon(Icons.work_outline_rounded),
+                label: Text(isIndonesian ? 'Sewa Freelancer' : 'Hire Freelancer'),
               ),
             ),
           ],

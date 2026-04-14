@@ -25,12 +25,12 @@ class AdminAccessFoundationTest extends TestCase
 
         $response
             ->assertCreated()
-            ->assertJsonPath('data.user.role', User::ROLE_USER)
+            ->assertJsonPath('data.user.role', User::ROLE_TEACHER)
             ->assertJsonPath('data.user.is_admin', false);
 
         $this->assertDatabaseHas('users', [
             'email' => 'phase1@example.com',
-            'role' => User::ROLE_USER,
+            'role' => User::ROLE_TEACHER,
         ]);
     }
 

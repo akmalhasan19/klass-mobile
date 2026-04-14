@@ -239,8 +239,8 @@ void main() {
   testWidgets('MediaGenerationStatusCard renders success state and wires CTA callbacks', (tester) async {
     ApiService().dio.httpClientAdapter = _MediaGenerationStatusAdapter();
     var downloadTapCount = 0;
-    var openTapCount = 0;
-    var shareTapCount = 0;
+    var regenerateTapCount = 0;
+    var hireFreelancerTapCount = 0;
 
     await tester.runAsync(() async {
       await service.submitPrompt(prompt: 'Buatkan deck termodinamika untuk kelas 11.');
@@ -254,8 +254,8 @@ void main() {
         MediaGenerationStatusCard(
           service: service,
           onDownload: () async => downloadTapCount += 1,
-          onOpen: () async => openTapCount += 1,
-          onShare: () async => shareTapCount += 1,
+          onRegenerate: () async => regenerateTapCount += 1,
+          onHireFreelancer: () async => hireFreelancerTapCount += 1,
         ),
       ),
     );
@@ -264,22 +264,22 @@ void main() {
     expect(find.text('Deck Termodinamika Kelas 11 siap digunakan'), findsOneWidget);
     expect(find.text('Artifact published successfully'), findsOneWidget);
     expect(find.text('Download File'), findsOneWidget);
-    expect(find.text('Open'), findsOneWidget);
-    expect(find.text('Share'), findsOneWidget);
+    expect(find.text('Regenerate'), findsOneWidget);
+    expect(find.text('Hire Freelancer'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Download File'));
     await tester.tap(find.text('Download File'));
     await tester.pump();
-    await tester.ensureVisible(find.text('Open'));
-    await tester.tap(find.text('Open'));
+    await tester.ensureVisible(find.text('Regenerate'));
+    await tester.tap(find.text('Regenerate'));
     await tester.pump();
-    await tester.ensureVisible(find.text('Share'));
-    await tester.tap(find.text('Share'));
+    await tester.ensureVisible(find.text('Hire Freelancer'));
+    await tester.tap(find.text('Hire Freelancer'));
     await tester.pump();
 
     expect(downloadTapCount, 1);
-    expect(openTapCount, 1);
-    expect(shareTapCount, 1);
+    expect(regenerateTapCount, 1);
+    expect(hireFreelancerTapCount, 1);
   });
 
   testWidgets('MediaGenerationStatusCard renders terminal error state from failed generation', (tester) async {

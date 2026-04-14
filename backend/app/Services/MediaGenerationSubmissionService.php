@@ -72,4 +72,24 @@ class MediaGenerationSubmissionService
             }
         });
     }
+
+    public function createRegeneration(
+        MediaGeneration $parentGeneration,
+        string $additionalPrompt
+    ): MediaGeneration {
+        $combinedPrompt = "Original Request:\n" . $parentGeneration->raw_prompt . "\n\nRefinement / Additional context:\n" . $additionalPrompt;
+
+        $newGeneration = MediaGeneration::create([
+            'teacher_id' => $parentGeneration->teacher_id,
+            'generated_from_id' => $parentGeneration->id,
+            'is_regeneration' => true,
+            'subject_id' => $parentGeneration->subject_id,
+            'sub_subject_id' => $parentGeneration->sub_subject_id,
+            'raw_prompt' => $combinedPrompt,
+            'preferred_output_type' => $parentGeneration->preferred_output_type,
+            'status' => MediaGenerationLifecycle::QUEUED,
+        ]);
+
+        return $newGeneration;
+    }
 }

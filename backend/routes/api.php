@@ -84,6 +84,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Media generation — teacher-only access enforced in controller for strict ownership semantics
     Route::post('/media-generations', [MediaGenerationController::class, 'store']);
     Route::get('/media-generations/{mediaGeneration}', [MediaGenerationController::class, 'show']);
+    Route::post('/media-generations/{mediaGeneration}/regenerate', [MediaGenerationController::class, 'regenerate']);
+    Route::post('/media-generations/{mediaGeneration}/suggest-freelancers', [\App\Http\Controllers\Api\FreelancerSuggestionController::class, 'suggest']);
+    Route::post('/media-generations/{mediaGeneration}/hire-freelancer', [\App\Http\Controllers\Api\FreelancerHiringController::class, 'hire']);
 });
 
 // =========================================================================

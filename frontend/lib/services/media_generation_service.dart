@@ -202,6 +202,84 @@ class MediaGenerationService extends ChangeNotifier {
     }
   }
 
+  Future<bool> regenerateWithPrompt(String parentId, String additionalPrompt) async {
+    final normalizedPrompt = additionalPrompt.trim();
+    if (normalizedPrompt.isEmpty) {
+      _setError('Prompt tambahan tidak boleh kosong.');
+      return false;
+    }
+
+    stopPolling();
+    _state = MediaGenerationViewState.loading;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.dio.post(
+        '/media-generations/$parentId/regenerate',
+        data: {'additional_prompt': normalizedPrompt},
+      );
+      
+      final resource = _extractResource(response.data);
+      if (resource != null) {
+        _applyResource(resource);
+        if (_state == MediaGenerationViewState.inProgress) {
+          _startPolling(immediate: false);
+        }
+        return true;
+      }
+      return false;
+    } on DioException catch (error) {
+      _setError(_resolveDioErrorMessage(error, endpoint: '/media-generations/$parentId/regenerate'));
+      return false;
+    } catch (error) {
+      _setError('Failed to regenerate: $error');
+      return false;
+    }
+  }
+
+  Future<List<FreelancerSuggestion>> suggestFreelancers(String generationId) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/media-generations/$generationId/suggest-freelancers',
+      );
+      
+      final data = response.data['data'] as List?;
+      if (data == null) {
+        return [];
+      }
+      return data.map((json) => FreelancerSuggestion.fromJson(json)).toList();
+    } catch (error) {
+      debugPrint('Error suggesting freelancers: $error');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> hireFreelancer(
+    String generationId, {
+    required String mode,
+    required String refinementDescription,
+    int? selectedFreelancerId,
+  }) async {
+    try {
+      final payload = <String, dynamic>{
+        'mode': mode,
+        'refinement_description': refinementDescription,
+      };
+      if (selectedFreelancerId != null) {
+        payload['selected_freelancer_id'] = selectedFreelancerId;
+      }
+      
+      final response = await _apiService.dio.post(
+        '/media-generations/$generationId/hire-freelancer',
+        data: payload,
+      );
+      return response.data['data'] as Map<String, dynamic>?;
+    } catch (error) {
+      debugPrint('Error hiring freelancer: $error');
+      rethrow;
+    }
+  }
+
   void _startPolling({required bool immediate}) {
     stopPolling();
 
@@ -376,3 +454,30 @@ class MediaGenerationService extends ChangeNotifier {
     return null;
   }
 }
+
+class FreelancerSuggestion {
+  final int id;
+  final String name;
+  final double rating;
+  final double matchScore;
+  final double successRate;
+
+  FreelancerSuggestion({
+    required this.id,
+    required this.name,
+    required this.rating,
+    required this.matchScore,
+    required this.successRate,
+  });
+
+  factory FreelancerSuggestion.fromJson(Map<String, dynamic> json) {
+    final freelancer = json['freelancer'] ?? {};
+    return FreelancerSuggestion(
+      id: freelancer['id'] ?? 0,
+      name: freelancer['name'] ?? 'Unknown',
+      rating: (freelancer['rating'] ?? 0.0).toDouble(),
+      matchScore: (json['match_score'] ?? 0.0).toDouble(),
+      successRate: (json['success_rate'] ?? 0.0).toDouble(),
+    );
+  }
+}

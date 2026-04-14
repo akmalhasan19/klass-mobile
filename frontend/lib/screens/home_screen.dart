@@ -21,7 +21,9 @@ import '../utils/auth_guard.dart';
 import '../utils/role_guard.dart';
 
 import '../widgets/skeleton_loaders.dart';
-
+import '../controllers/freelancer_hiring_flow_controller.dart';
+import '../widgets/regenerate_bottom_sheet.dart';
+import 'hiring/refinement_input_screen.dart';
 /// Home Screen — mereplikasi halaman utama Klass.
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
 /// project recommendations (bleed), top freelancers (bleed).
@@ -286,13 +288,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _promptFocusNode.unfocus();
   }
 
-  Future<void> _handleOpenGeneratedArtifact() async {
-    await _runArtifactAction(
-      action: () => _mediaGenerationActionService.openArtifact(_artifactUrl()!),
-      errorMessageId: 'open',
-    );
-  }
-
   Future<void> _handleDownloadGeneratedArtifact() async {
     await _runArtifactAction(
       action: () => _mediaGenerationActionService.downloadArtifact(_artifactUrl()!),
@@ -300,14 +295,30 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _handleShareGeneratedArtifact() async {
-    await _runArtifactAction(
-      action: () => _mediaGenerationActionService.shareArtifact(
-        title: _artifactTitle(),
-        url: _artifactUrl()!,
-        summary: _artifactSummary(),
+  void _showRegenerateSheet() {
+    if (_mediaGenerationService.generationId == null) return;
+    RegenerateBottomSheet.show(
+      context,
+      service: _mediaGenerationService,
+      parentGenerationId: _mediaGenerationService.generationId!,
+      originalPrompt: _mediaGenerationService.submittedPrompt ?? _mediaGenerationService.resource?['prompt'] ?? 'Original prompt not found',
+      onSuccess: () {
+        // Polling will automatically refresh UI if needed
+      },
+    );
+  }
+
+  void _startHiringFlow() {
+    if (_mediaGenerationService.generationId == null) return;
+    final controller = FreelancerHiringFlowController(
+      apiService: _mediaGenerationService,
+      generationId: _mediaGenerationService.generationId!,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RefinementInputScreen(controller: controller),
       ),
-      errorMessageId: 'share',
     );
   }
 
@@ -327,26 +338,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       _showGenerationMessage(_localizedArtifactMessage(errorMessageId));
     }
-  }
-
-  String _artifactTitle() {
-    final deliveryPayload = _mediaGenerationService.deliveryPayload;
-    final publication = _mediaGenerationService.publication;
-
-    return _stringAt(deliveryPayload, ['artifact', 'title'])
-        ?? _stringAt(deliveryPayload, ['title'])
-        ?? _stringAt(publication, ['recommended_project', 'title'])
-        ?? _stringAt(publication, ['topic', 'title'])
-        ?? (Localizations.localeOf(context).languageCode == 'id'
-            ? 'Media pembelajaran'
-            : 'Learning material');
-  }
-
-  String? _artifactSummary() {
-    final deliveryPayload = _mediaGenerationService.deliveryPayload;
-
-    return _stringAt(deliveryPayload, ['preview_summary'])
-        ?? _stringAt(deliveryPayload, ['teacher_message']);
   }
 
   String? _artifactUrl() {
@@ -842,11 +833,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onDownload: _mediaGenerationService.isSuccess
                                       ? _handleDownloadGeneratedArtifact
                                       : null,
-                                  onOpen: _mediaGenerationService.isSuccess
-                                      ? _handleOpenGeneratedArtifact
+                                  onRegenerate: _mediaGenerationService.isSuccess
+                                      ? () async => _showRegenerateSheet()
                                       : null,
-                                  onShare: _mediaGenerationService.isSuccess
-                                      ? _handleShareGeneratedArtifact
+                                  onHireFreelancer: _mediaGenerationService.isSuccess
+                                      ? () async => _startHiringFlow()
                                       : null,
                                 ),
                               ],

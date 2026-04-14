@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class MediaGeneration extends Model
@@ -17,6 +18,8 @@ class MediaGeneration extends Model
 
     protected $fillable = [
         'teacher_id',
+        'generated_from_id',
+        'is_regeneration',
         'subject_id',
         'sub_subject_id',
         'topic_id',
@@ -53,6 +56,7 @@ class MediaGeneration extends Model
             'teacher_id' => 'integer',
             'subject_id' => 'integer',
             'sub_subject_id' => 'integer',
+            'is_regeneration' => 'boolean',
             'interpretation_payload' => 'array',
             'interpretation_audit_payload' => 'array',
             'generation_spec_payload' => 'array',
@@ -89,6 +93,22 @@ class MediaGeneration extends Model
         return $this->belongsTo(User::class, 'teacher_id');
     }
 
+    /**
+     * The parent generation this was regenerated from (if any).
+     */
+    public function parentGeneration(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'generated_from_id');
+    }
+
+    /**
+     * All child generations that were regenerated from this one.
+     */
+    public function childGenerations(): HasMany
+    {
+        return $this->hasMany(self::class, 'generated_from_id');
+    }
+
     public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
@@ -112,6 +132,14 @@ class MediaGeneration extends Model
     public function recommendedProject(): BelongsTo
     {
         return $this->belongsTo(RecommendedProject::class);
+    }
+
+    /**
+     * FreelancerMatch records computed for this generation.
+     */
+    public function freelancerMatches(): HasMany
+    {
+        return $this->hasMany(FreelancerMatch::class);
     }
 
     public function scopeForTeacher(Builder $query, int $teacherId): Builder
@@ -142,6 +170,41 @@ class MediaGeneration extends Model
     public function isTerminal(): bool
     {
         return MediaGenerationLifecycle::isTerminal($this->status);
+    }
+
+    /**
+     * Check whether this generation is a regeneration of a previous one.
+     */
+    public function isRegeneration(): bool
+    {
+        return (bool) $this->is_regeneration;
+    }
+
+    /**
+     * Walk the parent chain upward to find the original root generation.
+     *
+     * Returns $this if this generation has no parent (i.e. it is the root).
+     */
+    public function getOriginalGeneration(): self
+    {
+        $current = $this;
+
+        // Safety limit to prevent infinite loops in case of data corruption
+        $maxDepth = 50;
+        $depth = 0;
+
+        while ($current->generated_from_id !== null && $depth < $maxDepth) {
+            $current = $current->parentGeneration;
+
+            if ($current === null) {
+                // Parent was deleted — return the last known generation
+                return $this;
+            }
+
+            $depth++;
+        }
+
+        return $current;
     }
 
     public function shouldPreventDuplicateSubmission(): bool
