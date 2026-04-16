@@ -52,8 +52,6 @@ class MediaGenerationStatusCard extends StatelessWidget {
     );
     final generationId = service.generationId;
     final retryable = _boolAt(resource, ['error', 'retryable']) ?? false;
-    final outputType = (_stringAt(deliveryPayload, ['artifact', 'output_type']) ?? _stringAt(resource, ['resolved_output_type']) ?? _stringAt(resource, ['preferred_output_type']) ?? 'auto').toUpperCase();
-    final filename = _stringAt(deliveryPayload, ['artifact', 'filename']) ?? _fileNameFromUrl(_stringAt(deliveryPayload, ['artifact', 'file_url'])) ?? _fileNameFromUrl(_stringAt(artifact, ['file_url']));
     final recommendedNextSteps = _stringListAt(deliveryPayload, ['recommended_next_steps']);
     final teacherMessage = _stringAt(deliveryPayload, ['teacher_message']);
     final fallbackTriggered = _boolAt(deliveryPayload, ['fallback', 'triggered']) ?? false;
@@ -83,18 +81,18 @@ class MediaGenerationStatusCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Wrap(
-                  spacing: 10,
+                  spacing: 12,
                   runSpacing: 10,
                   children: [
+                    _StatusBadge(
+                      label: title,
+                      backgroundColor: Colors.white.withValues(alpha: 0.88),
+                      textColor: AppColors.textPrimary,
+                    ),
                     _StatusBadge(
                       label: _statusBadgeLabel(isIndonesian: isIndonesian, state: service.state, status: status),
                       backgroundColor: theme.badgeBackground,
                       textColor: theme.badgeText,
-                    ),
-                    _StatusBadge(
-                      label: outputType,
-                      backgroundColor: Colors.white.withValues(alpha: 0.88),
-                      textColor: AppColors.textPrimary,
                     ),
                     if (generationId != null)
                       _StatusBadge(
@@ -106,78 +104,47 @@ class MediaGenerationStatusCard extends StatelessWidget {
                 ),
               ),
               if (service.isLoading || service.isInProgress)
-                SizedBox(
+                const SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.4,
-                    valueColor: AlwaysStoppedAnimation<Color>(theme.badgeText),
-                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 18),
-          Text(
-            title,
-            style: const TextStyle(
-              fontFamily: 'Mona_Sans',
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              height: 1.15,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-              height: 1.6,
-            ),
-          ),
           if (service.isLoading || service.isInProgress) ...[
-            const SizedBox(height: 18),
-            _ProgressTrack(
-              isIndonesian: isIndonesian,
-              status: status,
+            const SizedBox(height: 32),
+            Center(
+              child: _MediaGenerationGeometricLoader(
+                isIndonesian: isIndonesian,
+                status: status,
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
+          ] else ...[
+            const SizedBox(height: 18),
             Text(
-              isIndonesian
-                  ? 'Polling otomatis berjalan setiap 4 detik sampai status terminal.'
-                  : 'Automatic polling runs every 4 seconds until a terminal status is reached.',
+              title,
+              style: const TextStyle(
+                fontFamily: 'Mona_Sans',
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                height: 1.15,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              subtitle,
               style: const TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+                height: 1.6,
               ),
             ),
           ],
           if (service.isSuccess) ...[
             const SizedBox(height: 18),
-            _CompletionHeroPanel(
-              icon: Icons.check_circle_rounded,
-              iconColor: AppColors.primary,
-              iconBackground: AppColors.primaryLight,
-              eyebrow: isIndonesian ? 'HASIL BARU' : 'NEW RESULT',
-              title: isIndonesian ? 'Artifact berhasil dipublikasikan' : 'Artifact published successfully',
-              subtitle: isIndonesian
-                  ? 'Pola visual kartu ini mengikuti success treatment yang sudah dipakai di flow proyek agar hasil terasa konsisten.'
-                  : 'This card reuses the existing success treatment pattern so the result feels consistent with the project success flow.',
-            ),
-            const SizedBox(height: 14),
-            _DetailPanel(
-              icon: Icons.description_rounded,
-              title: isIndonesian ? 'Artifact final' : 'Final artifact',
-              description: filename != null
-                  ? '$filename${_stringAt(deliveryPayload, ['artifact', 'mime_type']) != null ? ' • ${_stringAt(deliveryPayload, ['artifact', 'mime_type'])}' : ''}'
-                  : (_stringAt(deliveryPayload, ['artifact', 'file_url']) ?? _stringAt(artifact, ['file_url']) ?? (isIndonesian ? 'File siap dibuka dari hasil akhir backend.' : 'The file is ready from the final backend payload.')),
-            ),
-            const SizedBox(height: 14),
             _ActionCluster(
               isIndonesian: isIndonesian,
               canAct: artifactUrl != null && artifactUrl.isNotEmpty,
@@ -569,6 +536,8 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontFamily: 'Inter',
           fontSize: 11,
@@ -581,8 +550,9 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-class _ProgressTrack extends StatelessWidget {
-  const _ProgressTrack({
+
+class _MediaGenerationGeometricLoader extends StatefulWidget {
+  const _MediaGenerationGeometricLoader({
     required this.isIndonesian,
     required this.status,
   });
@@ -591,82 +561,161 @@ class _ProgressTrack extends StatelessWidget {
   final String status;
 
   @override
+  State<_MediaGenerationGeometricLoader> createState() => _MediaGenerationGeometricLoaderState();
+}
+
+class _MediaGenerationGeometricLoaderState extends State<_MediaGenerationGeometricLoader> with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _textController;
+  int _textIndex = 0;
+
+  final List<String> _idMessages = [
+    'Menyusun silabus...',
+    'Mengumpulkan poin kunci...',
+    'Finalisasi tata letak...',
+  ];
+
+  final List<String> _enMessages = [
+    'Structuring syllabus...',
+    'Gathering key points...',
+    'Finalizing layout...',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+
+    _textController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          setState(() {
+            _textIndex = (_textIndex + 1) % _idMessages.length;
+          });
+          _textController.forward(from: 0);
+        }
+      });
+    _textController.forward();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final steps = [
-      isIndonesian ? 'Memahami prompt' : 'Understanding prompt',
-      isIndonesian ? 'Menentukan format' : 'Deciding format',
-      isIndonesian ? 'Membuat file' : 'Generating file',
-      isIndonesian ? 'Publikasi hasil' : 'Publishing result',
+    final messages = widget.isIndonesian ? _idMessages : _enMessages;
+    final primaryColor = const Color(0xFF09AA81);
+    final highlightColor = const Color(0xFFD1FAE5);
+
+    // Sequence delays from reference
+    final delays = [
+      0.0, 0.2, 0.4, // Row 1
+      0.1, 0.3, 0.5, // Row 2
+      0.2, 0.4, 0.6 // Row 3
     ];
-    final currentStep = _currentStep(status);
 
     return Column(
-      children: List.generate(steps.length, (index) {
-        final isDone = index < currentStep;
-        final isCurrent = index == currentStep;
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 90,
+          height: 90,
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+            ),
+            itemCount: 9,
+            itemBuilder: (context, index) {
+              final isPrimary = index % 2 == 0;
+              final delay = delays[index];
 
-        return Padding(
-          padding: EdgeInsets.only(bottom: index == steps.length - 1 ? 0 : 10),
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: isDone || isCurrent ? AppColors.primary : Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isDone || isCurrent ? AppColors.primary : AppColors.border,
-                    width: 1.8,
-                  ),
-                ),
-                child: isDone
-                    ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
-                    : isCurrent
-                        ? const Padding(
-                            padding: EdgeInsets.all(5),
-                            child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                          )
-                        : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  steps[index],
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-                    color: isCurrent || isDone ? AppColors.textPrimary : AppColors.textMuted,
-                  ),
-                ),
-              ),
-            ],
+              return AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  // Normalize the animation with delay
+                  double t = (_pulseController.value - (delay / 2.0));
+                  if (t < 0) t += 1.0;
+                  if (t > 1) t -= 1.0;
+
+                  // Pulse curve: 0 -> 1 -> 0 matching 0%, 50%, 100%
+                  final double pulse = t < 0.5 ? t * 2 : (1.0 - t) * 2;
+                  final double opacity = 0.3 + (pulse * 0.7);
+                  final double scale = 0.98 + (pulse * 0.04);
+
+                  return Transform.scale(
+                    scale: scale,
+                    child: Opacity(
+                      opacity: opacity,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isPrimary ? primaryColor : highlightColor,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
-        );
-      }),
+        ),
+        const SizedBox(height: 24),
+        AnimatedBuilder(
+          animation: _textController,
+          builder: (context, child) {
+            // Fade in and out matching the CSS @keyframes text-cycle
+            double opacity = 1.0;
+            if (_textController.value < 0.1) {
+              opacity = _textController.value / 0.1;
+            } else if (_textController.value > 0.9) {
+              opacity = (1.0 - _textController.value) / 0.1;
+            }
+
+            return Opacity(
+              opacity: opacity,
+              child: Text(
+                messages[_textIndex],
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Mona_Sans',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 6),
+        Text(
+          widget.isIndonesian ? 'Mengkurasi materi pembelajaran khusus Anda.' : 'Curating your customized learning material.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textMuted,
+          ),
+        ),
+      ],
     );
   }
-
-  int _currentStep(String status) {
-    switch (status) {
-      case 'classified':
-        return 1;
-      case 'generating':
-      case 'uploading':
-        return 2;
-      case 'publishing':
-      case 'completed':
-      case 'failed':
-        return 3;
-      case 'queued':
-      case 'interpreting':
-      default:
-        return 0;
-    }
-  }
 }
+
 
 class _DetailPanel extends StatelessWidget {
   const _DetailPanel({
@@ -911,7 +960,15 @@ class _ActionCluster extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
                 icon: const Icon(Icons.autorenew_rounded),
-                label: Text(isIndonesian ? 'Regenerasi' : 'Regenerate'),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Text(
+                    isIndonesian ? 'Regenerasi' : 'Regenerate',
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -925,7 +982,22 @@ class _ActionCluster extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
                 icon: const Icon(Icons.work_outline_rounded),
-                label: Text(isIndonesian ? 'Sewa Freelancer' : 'Hire Freelancer'),
+                label: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                        child: Text(
+                          isIndonesian ? 'Sewa Freelancer' : 'Hire Freelancer',
+                          maxLines: 2,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ],
