@@ -24,6 +24,7 @@ import '../widgets/skeleton_loaders.dart';
 import '../controllers/freelancer_hiring_flow_controller.dart';
 import '../widgets/regenerate_bottom_sheet.dart';
 import 'hiring/refinement_input_screen.dart';
+import 'generation_history_screen.dart';
 /// Home Screen — mereplikasi halaman utama Klass.
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
 /// project recommendations (bleed), top freelancers (bleed).
@@ -839,8 +840,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onHireFreelancer: _mediaGenerationService.isSuccess
                                       ? () async => _startHiringFlow()
                                       : null,
-                                ),
-                              ],
+                                  onViewHistory: _mediaGenerationService.generationId != null
+                                      ? () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => GenerationHistoryScreen(
+                                                generationId: _mediaGenerationService.generationId!,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      : null,
+                                  ),                              ],
                             ],
                           ],
                         ),

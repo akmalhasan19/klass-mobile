@@ -16,6 +16,7 @@ class FreelancerSuggestionsScreen extends StatefulWidget {
 class _FreelancerSuggestionsScreenState extends State<FreelancerSuggestionsScreen> {
   List<FreelancerSuggestion>? _suggestions;
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -24,12 +25,26 @@ class _FreelancerSuggestionsScreenState extends State<FreelancerSuggestionsScree
   }
 
   Future<void> _fetchSuggestions() async {
-    final results = await widget.controller.apiService.suggestFreelancers(widget.controller.generationId);
-    if (mounted) {
-      setState(() {
-        _suggestions = results;
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final results = await widget.controller.apiService.suggestFreelancers(widget.controller.generationId);
+      if (mounted) {
+        setState(() {
+          _suggestions = results;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -86,9 +101,47 @@ class _FreelancerSuggestionsScreenState extends State<FreelancerSuggestionsScree
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : _suggestions == null || _suggestions!.isEmpty
-              ? _buildEmptyState()
-              : _buildList(),
+          : _errorMessage != null
+              ? _buildErrorState()
+              : _suggestions == null || _suggestions!.isEmpty
+                  ? _buildEmptyState()
+                  : _buildList(),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline_rounded, size: 64, color: AppColors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'Gagal Memuat Saran',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _fetchSuggestions,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba Lagi'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

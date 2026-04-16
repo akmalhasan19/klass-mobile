@@ -248,9 +248,12 @@ class MediaGenerationService extends ChangeNotifier {
         return [];
       }
       return data.map((json) => FreelancerSuggestion.fromJson(json)).toList();
+    } on DioException catch (error) {
+      final message = _resolveDioErrorMessage(error, endpoint: '/media-generations/$generationId/suggest-freelancers');
+      throw Exception(message);
     } catch (error) {
       debugPrint('Error suggesting freelancers: $error');
-      return [];
+      throw Exception('Failed to suggest freelancers: $error');
     }
   }
 

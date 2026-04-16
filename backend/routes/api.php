@@ -82,6 +82,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/avatar', [AvatarController::class, 'store']);
 
     // Media generation — teacher-only access enforced in controller for strict ownership semantics
+    // GET  /media-generations?parent_id={uuid}  → parent-chain history (RF-05)
+    // GET  /media-generations?parent_id={uuid}  → 20 most-recent when no parent_id
+    Route::get('/media-generations', [MediaGenerationController::class, 'index']);
     Route::post('/media-generations', [MediaGenerationController::class, 'store']);
     Route::get('/media-generations/{mediaGeneration}', [MediaGenerationController::class, 'show']);
     Route::post('/media-generations/{mediaGeneration}/regenerate', [MediaGenerationController::class, 'regenerate']);

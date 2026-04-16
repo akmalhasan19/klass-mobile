@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/app_colors.dart';
+import '../screens/generation_history_screen.dart';
 import '../services/media_generation_service.dart';
 
 class MediaGenerationStatusCard extends StatelessWidget {
@@ -11,6 +12,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
     this.onDownload,
     this.onRegenerate,
     this.onHireFreelancer,
+    this.onViewHistory,
   });
 
   final MediaGenerationService service;
@@ -18,6 +20,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
   final Future<void> Function()? onDownload;
   final Future<void> Function()? onRegenerate;
   final Future<void> Function()? onHireFreelancer;
+  final VoidCallback? onViewHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +155,29 @@ class MediaGenerationStatusCard extends StatelessWidget {
               onRegenerate: onRegenerate,
               onHireFreelancer: onHireFreelancer,
             ),
+            if (onViewHistory != null) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: onViewHistory,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textMuted,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.history_rounded, size: 20),
+                  label: Text(
+                    isIndonesian ? 'Lihat Riwayat Generasi' : 'View Generation History',
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             if (teacherMessage != null && teacherMessage.isNotEmpty) ...[
               const SizedBox(height: 12),
               _DetailPanel(

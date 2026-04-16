@@ -20,6 +20,9 @@ class MediaGenerationResource extends JsonResource
 
         return [
             'id' => $this->id,
+            // Parent-chain tracking fields (RF-05: Generation History)
+            'generated_from_id' => $this->generated_from_id,
+            'is_regeneration' => (bool) $this->is_regeneration,
             'teacher_id' => $this->teacher_id,
             'prompt' => $this->raw_prompt,
             'preferred_output_type' => $this->preferred_output_type,

@@ -391,35 +391,38 @@ Menambahkan fitur post-media-generation yang memberikan teacher 2 opsi:
 
 ## Verification Checklist
 
+> **Verifikasi diperbarui**: 2026-04-16 | Metode: Code Audit + `flutter analyze` (No issues found)
+
 ### Post-Generation UI
-- [ ] After media generation completes, **MediaGenerationStatusCard shows**: Download, Regenerate, Hire Freelancer buttons
-- [ ] **Share & Open buttons removed** from UI
-- [ ] Buttons styled consistently with app design
+- [x] ✅ PGUI-01: After media generation completes, **MediaGenerationStatusCard shows**: Download, Regenerate, Hire Freelancer buttons
+- [x] ✅ PGUI-01: **Share & Open buttons removed** from UI
+- [x] ✅ PGUI-02: Buttons styled consistently with app design
 
 ### Regenerate Flow
-- [ ] Click Regenerate → **bottom sheet appears** with:
-  - [ ] Original prompt displayed (read-only)
-  - [ ] Input field for additional prompt
-- [ ] Input additional prompt → submit
-- [ ] **New generation starts**, loading state shown
-- [ ] Original generation **still accessible** in history/workspace
-- [ ] Both **original & additional prompts visible** in new generation details/logs
+- [x] ✅ RF-01: Click Regenerate → **bottom sheet appears** with:
+  - [x] ✅ RF-01: Original prompt displayed (read-only)
+  - [x] ✅ RF-01: Input field for additional prompt
+- [x] ✅ RF-02: Input additional prompt → validate + submit
+- [x] ✅ RF-03: **New generation starts**, loading state shown
+- [ ] ⚠️ RF-05: BLOCKED — Original generation **still accessible** in history/workspace (tidak ada history UI di frontend; singleton service)
+- [x] ✅ RF-04: Both **original & additional prompts visible** in new generation (parent-child di DB)
 
 ### Freelancer Hiring - Auto-Suggest
-- [ ] Click Hire Freelancer → **refinement input screen** appears
-- [ ] Input refinement description → navigate to next step
-- [ ] Select "Auto-Search Freelancers" → **suggestions screen appears**
-- [ ] **3-5 freelancer cards shown** with:
-  - [ ] Profile info (name, rating, success rate)
-  - [ ] Match score percentage
-  - [ ] Select button per card
-- [ ] Select freelancer → **confirmation dialog**
-- [ ] Confirm → **task created** with:
-  - [ ] `task_type = 'suggestion'`
-  - [ ] `suggested_freelancer_id` set to selected
-  - [ ] `status = 'assigned'`
-  - [ ] `refinement_description` stored
-- [ ] Freelancer **receives notification**
+- [x] ✅ FHAS-01: Click Hire Freelancer → **refinement input screen** appears (judul + maxLength 2000)
+- [x] ✅ FHAS-02: Input refinement description → navigate to next step (HiringModeScreen)
+- [x] ✅ FHAS-02: Select "Auto-Search Freelancers" → **suggestions screen appears**
+- [x] ✅ FHAS-03: **3-5 freelancer cards shown** with:
+  - [x] Profile info (name, rating, success rate)
+  - [x] Match score percentage
+  - [ ] ⚠️ portfolio summary (field tidak ada di model FreelancerSuggestion)
+  - [x] Select button per card
+- [x] ✅ FHAS-04: Select freelancer → **confirmation dialog** (AlertDialog)
+- [x] ✅ FHAS-05: Confirm → **task created** with:
+  - [x] `task_type = 'suggestion'`
+  - [x] `suggested_freelancer_id` set to selected
+  - [x] `status = 'assigned'`
+  - [x] `refinement_description` stored
+- [ ] ❌ FHAS-06: FAIL — Freelancer **receives notification** (perlu verifikasi manual E2E dengan server aktif)
 
 ### Freelancer Hiring - Manual Task
 - [ ] Click Hire Freelancer → **refinement input screen**
@@ -572,7 +575,7 @@ Menambahkan fitur post-media-generation yang memberikan teacher 2 opsi:
   - [ ] 4.2e: 0%
   - [x] 4.3: 100%
 
-- [ ] **Verification**: 0%
+- [/] **Verification**: ~65% (Post-Generation UI ✅, Regenerate Flow ✅ partial, FHAS ✅ partial — notifikasi & history perlu E2E)
 
 ---
 

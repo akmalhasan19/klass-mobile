@@ -8,9 +8,10 @@ import 'package:klass_app/services/media_generation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MediaGenerationAdapter implements HttpClientAdapter {
-  _MediaGenerationAdapter({this.failOnPoll = false});
+  _MediaGenerationAdapter({this.failOnPoll = false, this.failOnSuggest = false});
 
   final bool failOnPoll;
+  final bool failOnSuggest;
   int submitCount = 0;
   int pollCount = 0;
   String? submitPath;
@@ -22,6 +23,24 @@ class _MediaGenerationAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    if (options.method == 'POST' && options.path.contains('/suggest-freelancers')) {
+      if (failOnSuggest) {
+        return _jsonErrorResponse({
+          'error': {'message': 'System busy, try again later'}
+        }, 503);
+      }
+      return _jsonResponse({
+        'success': true,
+        'data': [
+          {
+            'freelancer': {'id': 1, 'name': 'John Doe', 'rating': 4.5},
+            'match_score': 0.85,
+            'success_rate': 0.95,
+          }
+        ]
+      });
+    }
+
     if (options.method == 'POST' && options.path.endsWith('/media-generations')) {
       submitCount += 1;
       submitPath = options.path;
@@ -187,6 +206,16 @@ class _MediaGenerationAdapter implements HttpClientAdapter {
     return _jsonResponse({'data': []});
   }
 
+  ResponseBody _jsonErrorResponse(Map<String, dynamic> payload, int statusCode) {
+    return ResponseBody.fromString(
+      jsonEncode(payload),
+      statusCode,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
   ResponseBody _jsonResponse(Map<String, dynamic> payload, [int statusCode = 200]) {
     return ResponseBody.fromString(
       jsonEncode(payload),
@@ -259,5 +288,28 @@ void main() {
     expect(service.state, MediaGenerationViewState.error);
     expect(service.currentStatus, 'failed');
     expect(service.errorMessage, 'File hasil generator tidak lolos validasi. Silakan coba lagi.');
+  });
+
+  group('suggestFreelancers', () {
+    test('returns list of suggestions on success', () async {
+      final adapter = _MediaGenerationAdapter();
+      ApiService().dio.httpClientAdapter = adapter;
+
+      final suggestions = await service.suggestFreelancers('gen-123');
+
+      expect(suggestions, isNotEmpty);
+      expect(suggestions.first.name, 'John Doe');
+      expect(suggestions.first.matchScore, 0.85);
+    });
+
+    test('throws Exception with resolved error message on DioException', () async {
+      final adapter = _MediaGenerationAdapter(failOnSuggest: true);
+      ApiService().dio.httpClientAdapter = adapter;
+
+      expect(
+        () => service.suggestFreelancers('gen-123'),
+        throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('System busy'))),
+      );
+    });
   });
 }
