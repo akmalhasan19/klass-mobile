@@ -1,28 +1,71 @@
 {
   "smp": {
-    "mathematics": {
-      "algebra": {
-        "expected_sections": ["introduction", "concepts", "worked_examples", "practice", "assessment"],
-        "tone": "academic",
-        "prohibited_phrases": ["follow these steps to teach", "prepare students by..."]
+    "kelas_7_mathematics": {
+      "topics": {
+        "linear_equations": {
+          "expected_learning_outcomes": [
+            "Memahami konsep dasar persamaan linear satu variabel",
+            "Mampu menyelesaikan masalah kontekstual yang dapat diubah menjadi bentuk persamaan linear satu variabel"
+          ],
+          "expected_section_types": [
+            "introduction",
+            "concept_definition",
+            "worked_examples",
+            "student_practice",
+            "assessment"
+          ],
+          "tone_expectation": "academic",
+          "prohibited_phrases": [
+            "Follow these steps...",
+            "The teacher should...",
+            "Guru harus mengawasi..."
+          ]
+        }
+      }
+    },
+    "kelas_8_science": {
+      "topics": {
+        "photosynthesis": {
+          "expected_learning_outcomes": [
+            "Memahami pengertian proses fotosintesis pada tumbuhan",
+            "Mengidentifikasi zat-zat yang dibutuhkan dan dihasilkan pada saat fotosintesis"
+          ],
+          "expected_section_types": [
+            "introduction",
+            "concept_definition",
+            "experiment_practice",
+            "assessment"
+          ],
+          "tone_expectation": "academic",
+          "prohibited_phrases": [
+            "Instruct students to...",
+            "Bagikan lembar kerja ini pada..."
+          ]
+        }
       }
     }
   },
   "sma": {
-    "biology": {
-      "photosynthesis": {
-        "expected_sections": ["introduction", "definition", "process", "experiment_practice", "assessment"],
-        "tone": "academic",
-        "prohibited_phrases": ["guide the teacher to", "instruct students to..."]
-      }
-    }
-  },
-  "smk": {
-    "accounting": {
-      "journal": {
-        "expected_sections": ["concept", "procedure", "practice", "assessment"],
-        "tone": "procedural",
-        "prohibited_phrases": ["make sure teachers do"]
+    "kelas_10_language": {
+      "topics": {
+        "recount_text": {
+          "expected_learning_outcomes": [
+            "Mampu memahami struktur dari recount text",
+            "Mampu menulis recount text tentang pengalaman pribadi"
+          ],
+          "expected_section_types": [
+            "introduction",
+            "structure_explanation",
+            "worked_examples",
+            "writing_practice",
+            "assessment"
+          ],
+          "tone_expectation": "conversational",
+          "prohibited_phrases": [
+            "Tugaskan siswa...",
+            "Pastikan guru..."
+          ]
+        }
       }
     }
   }

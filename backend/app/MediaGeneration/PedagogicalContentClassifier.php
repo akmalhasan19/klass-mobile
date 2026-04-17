@@ -16,7 +16,7 @@ class PedagogicalContentClassifier
         }
     }
 
-    public function classify(MediaGenerationSpecContract $spec): array
+    public function classify(array $spec): array
     {
         return [
             'content_types' => $this->detectContentTypes($spec),
@@ -26,43 +26,57 @@ class PedagogicalContentClassifier
         ];
     }
 
-    private function detectContentTypes(MediaGenerationSpecContract $spec): array
+    private function detectContentTypes(array $spec): array
     {
         $types = [];
+        $content = '';
         
-        $content = strtolower(json_encode($spec->body_blocks ?? []));
-        
-        if (preg_match('/\b(definisi|pengertian|adalah|merupakan|merujuk pada)\b/i', $content)) {
-            $types['definition'] = true;
+        if (isset($spec['sections']) && is_array($spec['sections'])) {
+            foreach ($spec['sections'] as $sec) {
+                $content .= ' ' . ($sec['purpose'] ?? '');
+                if (isset($sec['body_blocks']) && is_array($sec['body_blocks'])) {
+                    foreach ($sec['body_blocks'] as $bb) {
+                        $content .= ' ' . ($bb['content'] ?? '');
+                    }
+                }
+            }
         }
         
-        if (preg_match('/\b(contoh|misalnya|sebagai contoh|contoh soal|penyelesaian)\b/i', $content)) {
-            $types['worked_example'] = true;
+        if (isset($spec['assessment_or_activity_blocks']) && is_array($spec['assessment_or_activity_blocks'])) {
+            foreach ($spec['assessment_or_activity_blocks'] as $act) {
+                $content .= ' ' . ($act['instructions'] ?? '');
+            }
         }
         
-        if (preg_match('/\b(latihan|kerjakan|jawablah|tugas|praktik|hitunglah)\b/i', $content)) {
-            $types['exercise'] = true;
-        }
+        $content = strtolower($content);
         
-        if (preg_match('/\b(evaluasi|penilaian|uji kompetensi|ulangan)\b/i', $content)) {
-            $types['assessment'] = true;
-        }
+        $types['definition'] = (bool) preg_match('/\b(definisi|pengertian|adalah|merupakan|merujuk pada)\b/i', $content);
+        $types['worked_example'] = (bool) preg_match('/\b(contoh|misalnya|sebagai contoh|contoh soal|penyelesaian)\b/i', $content);
+        $types['exercise'] = (bool) preg_match('/\b(latihan|kerjakan|jawablah|tugas|praktik|hitunglah)\b/i', $content);
+        $types['assessment'] = (bool) preg_match('/\b(evaluasi|penilaian|uji kompetensi|ulangan)\b/i', $content);
 
         return $types;
     }
 
-    private function classifyTone(MediaGenerationSpecContract $spec): string
+    private function classifyTone(array $spec): string
     {
-        $content = strtolower(json_encode($spec->body_blocks ?? []));
+        $content = '';
+        if (isset($spec['sections']) && is_array($spec['sections'])) {
+            foreach ($spec['sections'] as $sec) {
+                if (isset($sec['body_blocks']) && is_array($sec['body_blocks'])) {
+                    foreach ($sec['body_blocks'] as $bb) {
+                        $content .= ' ' . ($bb['content'] ?? '');
+                    }
+                }
+            }
+        }
+        $content .= ' ' . ($spec['teacher_delivery_summary'] ?? '');
+        $content = strtolower($content);
         
-        // Procedural indicators (teacher-facing)
-        $proceduralCount = preg_match_all('/\b(pastikan|guru harus|instruksikan|beri waktu|bagikan|langkah-langkah mengajarkan)\b/i', $content);
-        
-        // Conversational indicators
-        $conversationalCount = preg_match_all('/\b(mari kita|ayo|bagaimana kalau|coba bayangkan|hai|halo|kamu tahu tidak)\b/i', $content);
-        
-        // Academic indicators (formal, objective)
-        $academicCount = preg_match_all('/\b(berdasarkan|diketahui|hipotesis|variabel|metode|analisis|kesimpulan)\b/i', $content);
+        // Specific first-person/perspective words as specified in 4.2
+        $proceduralCount = preg_match_all('/\b(pastikan|guru harus|instruksikan|beri waktu|bagikan|langkah-langkah mengajarkan|follow)\b/i', $content);
+        $conversationalCount = preg_match_all('/\b(mari kita|ayo|bagaimana kalau|coba bayangkan|hai|halo|kamu tahu tidak|here\'s)\b/i', $content);
+        $academicCount = preg_match_all('/\b(berdasarkan|diketahui|hipotesis|variabel|metode|analisis|kesimpulan|provides)\b/i', $content);
         
         if ($proceduralCount > max($conversationalCount, $academicCount)) {
             return 'procedural';
@@ -75,29 +89,28 @@ class PedagogicalContentClassifier
         return 'academic';
     }
 
-    private function calculateStructuralAlignment(MediaGenerationSpecContract $spec): float
+    private function calculateStructuralAlignment(array $spec): float
     {
         if (empty($this->kurikulumStructure)) {
             return 1.0;
         }
         
-        $score = 1.0;
         $types = $this->detectContentTypes($spec);
-        $requiredCount = 0;
         $presentCount = 0;
         
         $expected = ['definition', 'worked_example', 'exercise'];
+        $requiredCount = count($expected);
+        
         foreach ($expected as $e) {
-            $requiredCount++;
-            if (isset($types[$e]) && $types[$e]) {
+            if (isset($types[$e]) && $types[$e] === true) {
                 $presentCount++;
             }
         }
         
         if ($requiredCount > 0) {
-            $score = $presentCount / $requiredCount;
+            return (float) round($presentCount / $requiredCount, 2);
         }
         
-        return (float) round($score, 2);
+        return 1.0;
     }
 }

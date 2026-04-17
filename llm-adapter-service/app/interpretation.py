@@ -162,6 +162,7 @@ class InterpretationPayload(InterpretationContractModel):
     confidence: InterpretationConfidence
     fallback: InterpretationFallback = Field(default_factory=InterpretationFallback)
     content_integrity: InterpretationContentIntegrity | None = None
+    meta_repairs: dict[str, Any] | None = Field(default=None, alias="_meta_repairs")
 
     @model_validator(mode="after")
     def sort_candidates(self) -> "InterpretationPayload":
@@ -173,7 +174,7 @@ class InterpretationPayload(InterpretationContractModel):
         return self
 
 
-@dataclass(frozen=True)
+@dataclass
 class InterpretationContractValidationError(Exception):
     code: str
     message: str
@@ -813,7 +814,7 @@ def decode_and_validate_interpretation_completion(
             raw_completion=raw_completion,
         ) from exc
 
-    normalized = validated_payload.model_dump(mode="python")
+    normalized = validated_payload.model_dump(mode="python", by_alias=True)
     normalized["output_type_candidates"] = sorted(
         normalized["output_type_candidates"],
         key=lambda candidate: candidate["score"],

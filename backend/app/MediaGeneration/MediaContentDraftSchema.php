@@ -270,6 +270,7 @@ final class MediaContentDraftSchema
             'sections',
             'teacher_delivery_summary',
             'fallback',
+            'content_integrity',
         ];
     }
 

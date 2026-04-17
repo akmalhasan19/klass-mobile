@@ -61,6 +61,7 @@ class Settings:
     delivery_default_estimated_cost_usd: Decimal
     delivery_exhausted_action: str
     budget_warning_ratio: Decimal
+    content_integrity_threshold: Decimal
     gemini_api_key: str
     gemini_base_url: str
     gemini_api_version: str
@@ -336,6 +337,10 @@ def get_settings() -> Settings:
         budget_warning_ratio=_clean_ratio(
             os.getenv("LLM_ADAPTER_BUDGET_WARNING_RATIO"),
             Decimal("0.80"),
+        ),
+        content_integrity_threshold=_clean_decimal(
+            os.getenv("LLM_ADAPTER_CONTENT_INTEGRITY_THRESHOLD"),
+            Decimal("0.75"),
         ),
         gemini_api_key=_clean_str(os.getenv("LLM_ADAPTER_GEMINI_API_KEY")),
         gemini_base_url=_clean_str(os.getenv("LLM_ADAPTER_GEMINI_BASE_URL"), GEMINI_BASE_URL),
