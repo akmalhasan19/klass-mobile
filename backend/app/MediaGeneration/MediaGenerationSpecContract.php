@@ -41,6 +41,24 @@ final class MediaGenerationSpecContract
             $formatPreferences = [$exportFormat];
         }
 
+        $contentIntegrity = $contentDraftPayload['content_integrity'] ?? [
+            'integrity_score' => 1.0,
+            'violations' => [],
+            'classification_source' => 'unknown',
+            'metadata' => []
+        ];
+
+        $threshold = (float) config('content_integrity.classifier_confidence_threshold', 0.75);
+        $rejectionStrategy = config('content_integrity.rejection_strategy', 'warn');
+
+        if ($contentIntegrity['integrity_score'] < $threshold && $rejectionStrategy === 'strict') {
+            throw new MediaGenerationContractException(
+                'Draft content failed integrity score threshold.',
+                'content_integrity_failed',
+                ['content_integrity' => $contentIntegrity]
+            );
+        }
+
         return self::validate([
             'schema_version' => self::VERSION,
             'source_interpretation_schema_version' => $interpretation['schema_version'],
@@ -75,6 +93,12 @@ final class MediaGenerationSpecContract
                 'subject_context' => $interpretation['subject_context'],
                 'sub_subject_context' => $interpretation['sub_subject_context'],
                 'target_audience' => $interpretation['target_audience'],
+            ],
+            'content_integrity' => [
+                'integrity_score' => (float) $contentIntegrity['integrity_score'],
+                'violations' => $contentIntegrity['violations'] ?? [],
+                'classification_source' => $contentIntegrity['classification_source'] ?? 'adapter',
+                'metadata' => $contentIntegrity['metadata'] ?? null,
             ],
             'assets' => $interpretation['assets'],
             'assessment_or_activity_blocks' => $assessmentBlocks,
@@ -155,6 +179,12 @@ final class MediaGenerationSpecContract
                 'sub_subject_context' => $interpretation['sub_subject_context'],
                 'target_audience' => $interpretation['target_audience'],
             ],
+            'content_integrity' => [
+                'integrity_score' => 1.0,
+                'violations' => [],
+                'classification_source' => 'fallback',
+                'metadata' => ['synthetic' => true],
+            ],
             'assets' => $interpretation['assets'],
             'assessment_or_activity_blocks' => $assessmentBlocks,
             'teacher_delivery_summary' => $interpretation['teacher_delivery_summary'],
@@ -206,6 +236,11 @@ final class MediaGenerationSpecContract
             'content_context.subject_context' => ['nullable', 'array'],
             'content_context.sub_subject_context' => ['nullable', 'array'],
             'content_context.target_audience' => ['nullable', 'array'],
+            'content_integrity' => ['required', 'array'],
+            'content_integrity.integrity_score' => ['required', 'numeric', 'min:0', 'max:1'],
+            'content_integrity.violations' => ['present', 'array'],
+            'content_integrity.classification_source' => ['required', 'string'],
+            'content_integrity.metadata' => ['nullable', 'array'],
             'assets' => ['present', 'array'],
             'assets.*.type' => ['required', 'string', Rule::in(['text', 'image', 'table', 'chart', 'diagram', 'reference'])],
             'assets.*.description' => ['required', 'string', 'max:500'],
@@ -273,6 +308,12 @@ final class MediaGenerationSpecContract
                 'subject_context' => is_array($payload['content_context']['subject_context']) ? $payload['content_context']['subject_context'] : null,
                 'sub_subject_context' => is_array($payload['content_context']['sub_subject_context']) ? $payload['content_context']['sub_subject_context'] : null,
                 'target_audience' => is_array($payload['content_context']['target_audience']) ? $payload['content_context']['target_audience'] : null,
+            ],
+            'content_integrity' => [
+                'integrity_score' => (float) $payload['content_integrity']['integrity_score'],
+                'violations' => is_array($payload['content_integrity']['violations']) ? array_values($payload['content_integrity']['violations']) : [],
+                'classification_source' => trim((string) $payload['content_integrity']['classification_source']),
+                'metadata' => is_array($payload['content_integrity']['metadata']) ? $payload['content_integrity']['metadata'] : null,
             ],
             'assets' => array_values($payload['assets']),
             'assessment_or_activity_blocks' => array_values($payload['assessment_or_activity_blocks']),
@@ -346,6 +387,10 @@ final class MediaGenerationSpecContract
             self::assertAllowedKeys($payload['content_context'], ['subject_context', 'sub_subject_context', 'target_audience'], 'content_context');
         }
 
+        if (isset($payload['content_integrity']) && is_array($payload['content_integrity'])) {
+            self::assertAllowedKeys($payload['content_integrity'], ['integrity_score', 'violations', 'classification_source', 'metadata'], 'content_integrity');
+        }
+
         if (isset($payload['contract_versions']) && is_array($payload['contract_versions'])) {
             self::assertAllowedKeys($payload['contract_versions'], ['generator_output_metadata'], 'contract_versions');
         }
@@ -384,6 +429,7 @@ final class MediaGenerationSpecContract
             'style_hints',
             'page_or_slide_structure',
             'content_context',
+            'content_integrity',
             'assets',
             'assessment_or_activity_blocks',
             'teacher_delivery_summary',

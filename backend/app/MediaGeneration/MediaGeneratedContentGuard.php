@@ -46,84 +46,114 @@ final class MediaGeneratedContentGuard
         '/curriculum-alignment hint/iu' => 'taxonomy_instruction',
     ];
 
+    private const META_INSTRUCTION_PATTERNS = [
+        'procedural_instruction' => '/\b(follow these steps|implement this|set up|ensure (teachers?|students?|that|you) have|prepare (the|students|a))\b/iu',
+        'conversational_filler' => '/\b(here is your|i have (generated|created|prepared)|i\'ve|as (an ai|a language model|claude|chatgpt)|according to my analysis)\b/iu',
+        'structural_scaffolding' => '/\b(this (section|lesson|activity) (is designed to|aims to|will|focuses on)|focus on the following|be sure to|the purpose of this)\b/iu',
+    ];
+
     /**
      * @param  array<string, mixed>  $payload
      */
     public static function assertInterpretationPayload(array $payload): void
     {
-        self::assertTextSafe('teacher_intent.goal', data_get($payload, 'teacher_intent.goal'));
+        $violations = [];
+        $add = function (array $v) use (&$violations) {
+            foreach ($v as $violation) {
+                $violations[] = $violation;
+            }
+        };
+
+        $add(self::assertTextSafe('teacher_intent.goal', data_get($payload, 'teacher_intent.goal')));
 
         foreach (array_values((array) data_get($payload, 'learning_objectives', [])) as $index => $objective) {
-            self::assertTextSafe('learning_objectives.' . $index, $objective);
+            $add(self::assertLearningObjective('learning_objectives.' . $index, $objective));
         }
 
         foreach (array_values((array) data_get($payload, 'constraints.must_include', [])) as $index => $constraint) {
-            self::assertTextSafe('constraints.must_include.' . $index, $constraint);
+            $add(self::assertTextSafe('constraints.must_include.' . $index, $constraint));
         }
 
         foreach (array_values((array) data_get($payload, 'constraints.avoid', [])) as $index => $constraint) {
-            self::assertTextSafe('constraints.avoid.' . $index, $constraint);
+            $add(self::assertTextSafe('constraints.avoid.' . $index, $constraint));
         }
 
         foreach (array_values((array) data_get($payload, 'output_type_candidates', [])) as $index => $candidate) {
-            self::assertTextSafe('output_type_candidates.' . $index . '.reason', data_get($candidate, 'reason'));
+            $add(self::assertTextSafe('output_type_candidates.' . $index . '.reason', data_get($candidate, 'reason')));
         }
 
-        self::assertTextSafe('resolved_output_type_reasoning', data_get($payload, 'resolved_output_type_reasoning'));
-        self::assertTextSafe('document_blueprint.title', data_get($payload, 'document_blueprint.title'));
-        self::assertTextSafe('document_blueprint.summary', data_get($payload, 'document_blueprint.summary'));
+        $add(self::assertTextSafe('resolved_output_type_reasoning', data_get($payload, 'resolved_output_type_reasoning')));
+        $add(self::assertTextSafe('document_blueprint.title', data_get($payload, 'document_blueprint.title')));
+        $add(self::assertTextSafe('document_blueprint.summary', data_get($payload, 'document_blueprint.summary')));
 
         foreach (array_values((array) data_get($payload, 'document_blueprint.sections', [])) as $sectionIndex => $section) {
-            self::assertTextSafe('document_blueprint.sections.' . $sectionIndex . '.title', data_get($section, 'title'));
-            self::assertTextSafe('document_blueprint.sections.' . $sectionIndex . '.purpose', data_get($section, 'purpose'));
+            $add(self::assertTextSafe('document_blueprint.sections.' . $sectionIndex . '.title', data_get($section, 'title')));
+            $add(self::assertSectionPurpose('document_blueprint.sections.' . $sectionIndex . '.purpose', data_get($section, 'purpose')));
 
             foreach (array_values((array) data_get($section, 'bullets', [])) as $bulletIndex => $bullet) {
-                self::assertTextSafe('document_blueprint.sections.' . $sectionIndex . '.bullets.' . $bulletIndex, $bullet);
+                $add(self::assertTextSafe('document_blueprint.sections.' . $sectionIndex . '.bullets.' . $bulletIndex, $bullet));
             }
         }
 
         foreach (array_values((array) data_get($payload, 'assessment_or_activity_blocks', [])) as $index => $block) {
-            self::assertTextSafe('assessment_or_activity_blocks.' . $index . '.title', data_get($block, 'title'));
-            self::assertTextSafe('assessment_or_activity_blocks.' . $index . '.instructions', data_get($block, 'instructions'));
+            $add(self::assertTextSafe('assessment_or_activity_blocks.' . $index . '.title', data_get($block, 'title')));
+            $add(self::assertAssessmentInstructions('assessment_or_activity_blocks.' . $index . '.instructions', data_get($block, 'instructions')));
         }
 
-        self::assertTextSafe('teacher_delivery_summary', data_get($payload, 'teacher_delivery_summary'));
-        self::assertTextSafe('confidence.rationale', data_get($payload, 'confidence.rationale'));
+        $add(self::assertTeacherDeliverySummary('teacher_delivery_summary', data_get($payload, 'teacher_delivery_summary')));
+        $add(self::assertTextSafe('confidence.rationale', data_get($payload, 'confidence.rationale')));
+
+        if ($violations !== []) {
+            throw new MediaGenerationContractException(
+                'Payload failed integrity checks.',
+                MediaGenerationErrorCode::LLM_CONTRACT_FAILED,
+                ['violations' => $violations]
+            );
+        }
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
     public static function assertContentDraftPayload(array $payload, ?string $resolvedOutputType = null): void
     {
-        self::assertTextSafe('title', data_get($payload, 'title'));
-        self::assertTextSafe('summary', data_get($payload, 'summary'));
-        self::assertTextSafe('teacher_delivery_summary', data_get($payload, 'teacher_delivery_summary'));
-        self::assertDraftMaterialText('summary', data_get($payload, 'summary'));
+        $violations = [];
+        $add = function (array $v) use (&$violations) {
+            foreach ($v as $violation) {
+                $violations[] = $violation;
+            }
+        };
+
+        $add(self::assertTextSafe('title', data_get($payload, 'title')));
+        $add(self::assertTextSafe('summary', data_get($payload, 'summary')));
+        $add(self::assertTeacherDeliverySummary('teacher_delivery_summary', data_get($payload, 'teacher_delivery_summary')));
+        $add(self::assertDraftMaterialText('summary', data_get($payload, 'summary')));
 
         foreach (array_values((array) data_get($payload, 'learning_objectives', [])) as $index => $objective) {
-            self::assertTextSafe('learning_objectives.' . $index, $objective);
+            $add(self::assertLearningObjective('learning_objectives.' . $index, $objective));
         }
 
         foreach (array_values((array) data_get($payload, 'sections', [])) as $sectionIndex => $section) {
-            self::assertTextSafe('sections.' . $sectionIndex . '.title', data_get($section, 'title'));
-            self::assertTextSafe('sections.' . $sectionIndex . '.purpose', data_get($section, 'purpose'));
+            $add(self::assertTextSafe('sections.' . $sectionIndex . '.title', data_get($section, 'title')));
+            $add(self::assertSectionPurpose('sections.' . $sectionIndex . '.purpose', data_get($section, 'purpose')));
 
             foreach (array_values((array) data_get($section, 'body_blocks', [])) as $blockIndex => $block) {
-                self::assertTextSafe('sections.' . $sectionIndex . '.body_blocks.' . $blockIndex . '.content', data_get($block, 'content'));
-                self::assertDraftMaterialText(
+                $add(self::assertTextSafe('sections.' . $sectionIndex . '.body_blocks.' . $blockIndex . '.content', data_get($block, 'content')));
+                $add(self::assertDraftMaterialText(
                     'sections.' . $sectionIndex . '.body_blocks.' . $blockIndex . '.content',
                     data_get($block, 'content')
-                );
+                ));
             }
+        }
+
+        if ($violations !== []) {
+            throw new MediaGenerationContractException(
+                'Content draft failed integrity checks.',
+                MediaGenerationErrorCode::LLM_CONTRACT_FAILED,
+                ['violations' => $violations]
+            );
         }
 
         self::assertSectionNarrative((array) data_get($payload, 'sections', []), $resolvedOutputType);
     }
 
-    /**
-     * @param  array<int, array<string, mixed>>  $sections
-     */
     private static function assertSectionNarrative(array $sections, ?string $resolvedOutputType): void
     {
         $normalizedOutputType = strtolower(trim((string) $resolvedOutputType));
@@ -160,58 +190,152 @@ final class MediaGeneratedContentGuard
         }
     }
 
-    private static function assertTextSafe(string $path, mixed $value): void
+    public static function assertLearningObjective(string $path, mixed $value): array
     {
         if (! is_string($value)) {
-            return;
+            return [];
         }
 
         $text = trim($value);
 
         if ($text === '') {
-            return;
+            return [];
         }
+
+        $violations = self::assertTextSafe($path, $value);
+
+        if (preg_match('/\b(teacher|guru) (will|akan)\b/iu', $text)) {
+            $violations[] = [
+                'pattern_name' => 'procedural_instruction',
+                'matched_text' => $text,
+                'field_path' => $path,
+                'suggestion' => 'Write learning objectives from student perspective (e.g., "Students will understand...")',
+            ];
+        }
+
+        return $violations;
+    }
+
+    public static function assertSectionPurpose(string $path, mixed $value): array
+    {
+        $violations = self::assertTextSafe($path, $value);
+        if (!is_string($value)) return $violations;
+
+        if (preg_match(self::META_INSTRUCTION_PATTERNS['structural_scaffolding'], $value, $matches)) {
+            $violations[] = [
+                'pattern_name' => 'structural_scaffolding',
+                'matched_text' => $matches[0],
+                'field_path' => $path,
+                'suggestion' => 'Do not include authoring guidance or meta-guidance in section purpose',
+            ];
+        }
+        return $violations;
+    }
+
+    public static function assertAssessmentInstructions(string $path, mixed $value): array
+    {
+        $violations = self::assertTextSafe($path, $value);
+        if (!is_string($value)) return $violations;
+
+        if (preg_match(self::META_INSTRUCTION_PATTERNS['procedural_instruction'], $value, $matches)) {
+            $violations[] = [
+                'pattern_name' => 'procedural_instruction',
+                'matched_text' => $matches[0],
+                'field_path' => $path,
+                'suggestion' => 'Ensure steps are student-facing activities, not teacher execution checklist',
+            ];
+        }
+        return $violations;
+    }
+
+    public static function assertTeacherDeliverySummary(string $path, mixed $value): array
+    {
+        $violations = self::assertTextSafe($path, $value);
+        if (!is_string($value)) return $violations;
+
+        if (self::textLength($value) > 200) {
+            $violations[] = [
+                'pattern_name' => 'excessive_delivery_summary_length',
+                'matched_text' => 'Length > 200',
+                'field_path' => $path,
+                'suggestion' => 'Must be concise and max 200 chars',
+            ];
+        }
+        if (preg_match('/\b(teacher should|you should teach)\b/iu', $value, $matches)) {
+            $violations[] = [
+                'pattern_name' => 'procedural_instruction',
+                'matched_text' => $matches[0],
+                'field_path' => $path,
+                'suggestion' => 'Write from student perspective',
+            ];
+        }
+        return $violations;
+    }
+
+    private static function assertTextSafe(string $path, mixed $value): array
+    {
+        if (! is_string($value)) {
+            return [];
+        }
+
+        $text = trim($value);
+
+        if ($text === '') {
+            return [];
+        }
+
+        $violations = [];
 
         foreach (self::FORBIDDEN_PATTERNS as $pattern => $reason) {
             if (preg_match($pattern, $text) === 1) {
-                throw new MediaGenerationContractException(
-                    'Generated content contains internal authoring instructions instead of classroom-ready material.',
-                    MediaGenerationErrorCode::LLM_CONTRACT_FAILED,
-                    [
-                        'path' => $path,
-                        'reason' => $reason,
-                        'matched_pattern' => $pattern,
-                    ]
-                );
+                $violations[] = [
+                    'pattern_name' => $reason,
+                    'matched_text' => $text,
+                    'field_path' => $path,
+                    'suggestion' => 'Remove api instruction pattern',
+                ];
             }
         }
+
+        foreach (self::META_INSTRUCTION_PATTERNS as $name => $pattern) {
+            if (preg_match($pattern, $text, $matches) === 1) {
+                $violations[] = [
+                    'pattern_name' => $name,
+                    'matched_text' => $matches[0],
+                    'field_path' => $path,
+                    'suggestion' => 'Remove pedagogical meta instruction',
+                ];
+            }
+        }
+
+        return $violations;
     }
 
-    private static function assertDraftMaterialText(string $path, mixed $value): void
+    private static function assertDraftMaterialText(string $path, mixed $value): array
     {
         if (! is_string($value)) {
-            return;
+            return [];
         }
 
         $text = trim($value);
 
         if ($text === '') {
-            return;
+            return [];
         }
 
+        $violations = [];
         foreach (self::DRAFT_SCAFFOLD_PATTERNS as $pattern => $reason) {
-            if (preg_match($pattern, $text) === 1) {
-                throw new MediaGenerationContractException(
-                    'Generated content is still outline scaffolding instead of final classroom-ready material.',
-                    MediaGenerationErrorCode::LLM_CONTRACT_FAILED,
-                    [
-                        'path' => $path,
-                        'reason' => $reason,
-                        'matched_pattern' => $pattern,
-                    ]
-                );
+            if (preg_match($pattern, $text, $matches) === 1) {
+                $violations[] = [
+                    'pattern_name' => $reason,
+                    'matched_text' => $matches[0],
+                    'field_path' => $path,
+                    'suggestion' => 'Remove scaffold pattern text',
+                ];
             }
         }
+        
+        return $violations;
     }
 
     private static function textLength(string $text): int

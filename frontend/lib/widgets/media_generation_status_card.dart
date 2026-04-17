@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../config/app_colors.dart';
-import '../screens/generation_history_screen.dart';
 import '../services/media_generation_service.dart';
 
 class MediaGenerationStatusCard extends StatelessWidget {
@@ -88,11 +87,6 @@ class MediaGenerationStatusCard extends StatelessWidget {
                   runSpacing: 10,
                   children: [
                     _StatusBadge(
-                      label: title,
-                      backgroundColor: Colors.white.withValues(alpha: 0.88),
-                      textColor: AppColors.textPrimary,
-                    ),
-                    _StatusBadge(
                       label: _statusBadgeLabel(isIndonesian: isIndonesian, state: service.state, status: status),
                       backgroundColor: theme.badgeBackground,
                       textColor: theme.badgeText,
@@ -106,12 +100,18 @@ class MediaGenerationStatusCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (service.isLoading || service.isInProgress)
-                const SizedBox(
-                  width: 22,
-                  height: 22,
-                ),
             ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'Mona_Sans',
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              height: 1.15,
+            ),
           ),
           if (service.isLoading || service.isInProgress) ...[
             const SizedBox(height: 32),
@@ -122,18 +122,8 @@ class MediaGenerationStatusCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
+            _ProgressStepper(isIndonesian: isIndonesian, currentStatus: status),
           ] else ...[
-            const SizedBox(height: 18),
-            Text(
-              title,
-              style: const TextStyle(
-                fontFamily: 'Mona_Sans',
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                height: 1.15,
-              ),
-            ),
             const SizedBox(height: 10),
             Text(
               subtitle,
@@ -224,7 +214,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
               iconColor: AppColors.red,
               iconBackground: const Color(0xFFFEE2E2),
               eyebrow: isIndonesian ? 'PERLU TINJAUAN' : 'NEEDS REVIEW',
-              title: isIndonesian ? 'Generation belum selesai dengan sukses' : 'Generation did not finish successfully',
+              title: isIndonesian ? 'Generation belum selesai' : 'Generation did not finish successfully',
               subtitle: isIndonesian
                   ? 'Status gagal ditampilkan dengan payload aman dari backend agar guru tahu apa yang perlu dilakukan selanjutnya.'
                   : 'The failed state is rendered from the backend-safe payload so teachers know what to do next.',
@@ -305,19 +295,16 @@ class MediaGenerationStatusCard extends StatelessWidget {
     required MediaGenerationService service,
   }) {
     if (state == MediaGenerationViewState.success) {
-      return _stringAt(deliveryPayload, ['preview_summary'])
+      return (isIndonesian ? null : 'Artifact published successfully')
+          ?? _stringAt(deliveryPayload, ['preview_summary'])
           ?? _stringAt(deliveryPayload, ['teacher_message'])
           ?? (isIndonesian
-              ? 'Payload akhir dari backend sudah masuk dan siap dipakai untuk kartu hasil.'
-              : 'The final backend payload has been hydrated and is ready for the result card.');
+              ? 'Hasil media pembelajaran telah berhasil diterbitkan.'
+              : 'Artifact published successfully');
     }
 
     if (state == MediaGenerationViewState.error) {
-      return service.submittedPrompt != null
-          ? (isIndonesian
-              ? 'Prompt: ${service.submittedPrompt}'
-              : 'Prompt: ${service.submittedPrompt}')
-          : (_stringAt(resource, ['prompt']) ?? (isIndonesian ? 'Periksa status generation dan coba lagi bila diperlukan.' : 'Review the generation status and try again if needed.'));
+      return isIndonesian ? 'Tinjau status generasi Anda.' : 'Review your generation status.';
     }
 
     final prompt = service.submittedPrompt ?? _stringAt(resource, ['prompt']);
@@ -369,12 +356,12 @@ class MediaGenerationStatusCard extends StatelessWidget {
       case 'interpreting':
         return isIndonesian ? 'Prompt sedang dipahami' : 'Understanding your prompt';
       case 'classified':
-        return isIndonesian ? 'Format akhir sedang diputuskan' : 'Deciding the final format';
+        return isIndonesian ? 'Menentukan format' : 'Deciding format';
       case 'generating':
       case 'uploading':
-        return isIndonesian ? 'Artifact sedang dibuat' : 'Generating the artifact';
+        return isIndonesian ? 'Artifact sedang dibuat' : 'Generating file';
       case 'publishing':
-        return isIndonesian ? 'Hasil sedang dipublikasikan' : 'Publishing the final result';
+        return isIndonesian ? 'Hasil sedang dipublikasikan' : 'Publishing result';
       default:
         return isIndonesian ? 'Media generation sedang berjalan' : 'Media generation is in progress';
     }
@@ -382,13 +369,13 @@ class MediaGenerationStatusCard extends StatelessWidget {
 
   String _progressSubtitle({required bool isIndonesian, required String status}) {
     return switch (status) {
-      'queued' => isIndonesian ? 'Permintaan sudah diterima backend dan menunggu worker queue.' : 'The request was accepted by the backend and is waiting for the queue worker.',
-      'interpreting' => isIndonesian ? 'LLM sedang menyusun interpretasi prompt sebelum generation spec dibuat.' : 'The LLM is interpreting the prompt before the generation spec is built.',
-      'classified' => isIndonesian ? 'Backend sedang memutuskan output type terbaik untuk artifact ini.' : 'The backend is deciding the best output type for this artifact.',
-      'generating' => isIndonesian ? 'Service generator sedang merender file akhir.' : 'The generator service is rendering the final file.',
-      'uploading' => isIndonesian ? 'Artifact sedang divalidasi dan diunggah ke storage.' : 'The artifact is being validated and uploaded to storage.',
-      'publishing' => isIndonesian ? 'Entity workspace dan homepage sedang dihydrate dari hasil publish.' : 'Workspace and homepage entities are being hydrated from the published result.',
-      _ => isIndonesian ? 'Status terbaru akan tampil otomatis setelah polling berikutnya.' : 'The latest status will appear automatically after the next poll.',
+      'queued' => isIndonesian ? 'Permintaan sudah diterima.' : 'The request was accepted.',
+      'interpreting' => isIndonesian ? 'LLM sedang menyusun interpretasi.' : 'The LLM is interpreting the prompt.',
+      'classified' => isIndonesian ? 'Backend sedang memutuskan output type.' : 'The backend is deciding output type.',
+      'generating' => isIndonesian ? 'Service generator sedang merender file.' : 'The generator service is rendering.',
+      'uploading' => isIndonesian ? 'Artifact sedang divalidasi.' : 'The artifact is being validated.',
+      'publishing' => isIndonesian ? 'Hasil sedang dipublikasikan.' : 'Result is being published.',
+      _ => isIndonesian ? 'Status terbaru akan tampil otomatis.' : 'The latest status will appear automatically.',
     };
   }
 
@@ -413,16 +400,6 @@ class MediaGenerationStatusCard extends StatelessWidget {
       );
     }
 
-    if (status == 'publishing') {
-      return const _CardTheme(
-        background: Color(0xFFFFF8EE),
-        border: Color(0xFFF4D8A9),
-        shadow: Color(0x14D97706),
-        badgeBackground: Color(0xFFD97706),
-        badgeText: Colors.white,
-      );
-    }
-
     return const _CardTheme(
       background: Color(0xFFF4FAF4),
       border: Color(0xFFD4E8D6),
@@ -436,92 +413,48 @@ class MediaGenerationStatusCard extends StatelessWidget {
     if (url == null || url.trim().isEmpty) {
       return null;
     }
-
     final uri = Uri.tryParse(url);
     final segments = uri?.pathSegments ?? const <String>[];
-
-    if (segments.isEmpty) {
-      return null;
-    }
-
-    return segments.last;
+    return segments.isEmpty ? null : segments.last;
   }
 
   String? _stringAt(Map<String, dynamic>? source, List<String> path) {
     dynamic current = source;
-
     for (final segment in path) {
-      if (current is Map<String, dynamic>) {
-        current = current[segment];
-        continue;
-      }
-
       if (current is Map) {
         current = current[segment];
         continue;
       }
-
       return null;
     }
-
-    if (current == null) {
-      return null;
-    }
-
+    if (current == null) return null;
     final value = current.toString().trim();
     return value.isEmpty ? null : value;
   }
 
   bool? _boolAt(Map<String, dynamic>? source, List<String> path) {
     dynamic current = source;
-
     for (final segment in path) {
-      if (current is Map<String, dynamic>) {
-        current = current[segment];
-        continue;
-      }
-
       if (current is Map) {
         current = current[segment];
         continue;
       }
-
       return null;
     }
-
-    if (current is bool) {
-      return current;
-    }
-
-    return null;
+    return current is bool ? current : null;
   }
 
   List<String> _stringListAt(Map<String, dynamic>? source, List<String> path) {
     dynamic current = source;
-
     for (final segment in path) {
-      if (current is Map<String, dynamic>) {
-        current = current[segment];
-        continue;
-      }
-
       if (current is Map) {
         current = current[segment];
         continue;
       }
-
       return const [];
     }
-
-    if (current is! List) {
-      return const [];
-    }
-
-    return current
-        .where((item) => item != null)
-        .map((item) => item.toString().trim())
-        .where((item) => item.isNotEmpty)
-        .toList(growable: false);
+    if (current is! List) return const [];
+    return current.where((item) => item != null).map((item) => item.toString().trim()).where((item) => item.isNotEmpty).toList(growable: false);
   }
 }
 
@@ -576,7 +509,6 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-
 class _MediaGenerationGeometricLoader extends StatefulWidget {
   const _MediaGenerationGeometricLoader({
     required this.isIndonesian,
@@ -595,34 +527,17 @@ class _MediaGenerationGeometricLoaderState extends State<_MediaGenerationGeometr
   late AnimationController _textController;
   int _textIndex = 0;
 
-  final List<String> _idMessages = [
-    'Menyusun silabus...',
-    'Mengumpulkan poin kunci...',
-    'Finalisasi tata letak...',
-  ];
-
-  final List<String> _enMessages = [
-    'Structuring syllabus...',
-    'Gathering key points...',
-    'Finalizing layout...',
-  ];
+  final List<String> _idMessages = ['Menyusun silabus...', 'Mengumpulkan poin kunci...', 'Finalisasi tata letak...'];
+  final List<String> _enMessages = ['Structuring syllabus...', 'Gathering key points...', 'Finalizing layout...'];
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-
-    _textController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..addStatusListener((status) {
+    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+    _textController = AnimationController(vsync: this, duration: const Duration(seconds: 3))
+      ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
-          setState(() {
-            _textIndex = (_textIndex + 1) % _idMessages.length;
-          });
+          setState(() { _textIndex = (_textIndex + 1) % _idMessages.length; });
           _textController.forward(from: 0);
         }
       });
@@ -641,55 +556,40 @@ class _MediaGenerationGeometricLoaderState extends State<_MediaGenerationGeometr
     final messages = widget.isIndonesian ? _idMessages : _enMessages;
     final primaryColor = const Color(0xFF09AA81);
     final highlightColor = const Color(0xFFD1FAE5);
-
-    // Sequence delays from reference
-    final delays = [
-      0.0, 0.2, 0.4, // Row 1
-      0.1, 0.3, 0.5, // Row 2
-      0.2, 0.4, 0.6 // Row 3
-    ];
+    final delays = [0.0, 0.2, 0.4, 0.1, 0.3, 0.5, 0.2, 0.4, 0.6];
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 90,
-          height: 90,
+          width: 90, height: 90,
           child: GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8),
             itemCount: 9,
             itemBuilder: (context, index) {
               final isPrimary = index % 2 == 0;
               final delay = delays[index];
-
               return AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, child) {
-                  // Normalize the animation with delay
                   double t = (_pulseController.value - (delay / 2.0));
-                  if (t < 0) t += 1.0;
-                  if (t > 1) t -= 1.0;
-
-                  // Pulse curve: 0 -> 1 -> 0 matching 0%, 50%, 100%
+                  if (t < 0) {
+                    t += 1.0;
+                  }
+                  if (t > 1) {
+                    t -= 1.0;
+                  }
                   final double pulse = t < 0.5 ? t * 2 : (1.0 - t) * 2;
                   final double opacity = 0.3 + (pulse * 0.7);
                   final double scale = 0.98 + (pulse * 0.04);
-
                   return Transform.scale(
                     scale: scale,
                     child: Opacity(
                       opacity: opacity,
                       child: Container(
-                        decoration: BoxDecoration(
-                          color: isPrimary ? primaryColor : highlightColor,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        decoration: BoxDecoration(color: isPrimary ? primaryColor : highlightColor, borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   );
@@ -702,108 +602,73 @@ class _MediaGenerationGeometricLoaderState extends State<_MediaGenerationGeometr
         AnimatedBuilder(
           animation: _textController,
           builder: (context, child) {
-            // Fade in and out matching the CSS @keyframes text-cycle
             double opacity = 1.0;
             if (_textController.value < 0.1) {
               opacity = _textController.value / 0.1;
             } else if (_textController.value > 0.9) {
               opacity = (1.0 - _textController.value) / 0.1;
             }
-
             return Opacity(
               opacity: opacity,
-              child: Text(
-                messages[_textIndex],
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'Mona_Sans',
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                  letterSpacing: -0.2,
-                ),
-              ),
+              child: Text(messages[_textIndex], textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Mona_Sans', fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: -0.2)),
             );
           },
         ),
         const SizedBox(height: 6),
-        Text(
-          widget.isIndonesian ? 'Mengkurasi materi pembelajaran khusus Anda.' : 'Curating your customized learning material.',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textMuted,
-          ),
-        ),
+        Text(widget.isIndonesian ? 'Mengkurasi materi pembelajaran khusus Anda.' : 'Curating your customized learning material.', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Inter', fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
       ],
     );
   }
 }
 
+class _ProgressStepper extends StatelessWidget {
+  const _ProgressStepper({required this.isIndonesian, required this.currentStatus});
+  final bool isIndonesian;
+  final String currentStatus;
+  @override
+  Widget build(BuildContext context) {
+    final steps = [
+      {'id': 'interpreting', 'label': isIndonesian ? 'Memahami prompt' : 'Understanding prompt'},
+      {'id': 'classified', 'label': isIndonesian ? 'Menentukan format' : 'Deciding format'},
+      {'id': 'generating', 'label': isIndonesian ? 'Menghasilkan file' : 'Generating file'},
+      {'id': 'publishing', 'label': isIndonesian ? 'Mempublikasikan hasil' : 'Publishing result'},
+    ];
+    return Column(
+      children: steps.map((step) {
+        final isActive = currentStatus == step['id'];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Icon(isActive ? Icons.check_circle_outline_rounded : Icons.radio_button_unchecked_rounded, size: 16, color: isActive ? AppColors.primary : AppColors.textMuted),
+              const SizedBox(width: 8),
+              Text(step['label']!, style: TextStyle(fontFamily: 'Inter', fontSize: 12, fontWeight: isActive ? FontWeight.w700 : FontWeight.w500, color: isActive ? AppColors.textPrimary : AppColors.textMuted)),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
 
 class _DetailPanel extends StatelessWidget {
-  const _DetailPanel({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-
+  const _DetailPanel({required this.icon, required this.title, required this.description});
+  final IconData icon; final String title; final String description;
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.74),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.borderLight),
-      ),
+      width: double.infinity, padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.74), borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.borderLight)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppColors.primary),
-          ),
+          Container(width: 38, height: 38, decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: AppColors.primary)),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontFamily: 'Inter', fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+            const SizedBox(height: 6),
+            Text(description, style: const TextStyle(fontFamily: 'Inter', fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary, height: 1.5)),
+          ])),
         ],
       ),
     );
@@ -811,117 +676,38 @@ class _DetailPanel extends StatelessWidget {
 }
 
 class _NoticeBanner extends StatelessWidget {
-  const _NoticeBanner({
-    required this.color,
-    required this.message,
-  });
-
-  final Color color;
-  final String message;
-
+  const _NoticeBanner({required this.color, required this.message});
+  final Color color; final String message;
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: color,
-          height: 1.5,
-        ),
-      ),
+      width: double.infinity, padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withValues(alpha: 0.18))),
+      child: Text(message, style: TextStyle(fontFamily: 'Inter', fontSize: 13, fontWeight: FontWeight.w600, color: color, height: 1.5)),
     );
   }
 }
 
 class _CompletionHeroPanel extends StatelessWidget {
-  const _CompletionHeroPanel({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBackground,
-    required this.eyebrow,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBackground;
-  final String eyebrow;
-  final String title;
-  final String subtitle;
-
+  const _CompletionHeroPanel({required this.icon, required this.iconColor, required this.iconBackground, required this.eyebrow, required this.title, required this.subtitle});
+  final IconData icon; final Color iconColor; final Color iconBackground; final String eyebrow; final String title; final String subtitle;
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.borderLight),
-      ),
+      width: double.infinity, padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.72), borderRadius: BorderRadius.circular(22), border: Border.all(color: AppColors.borderLight)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: iconBackground,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(icon, color: iconColor, size: 32),
-          ),
+          Container(width: 58, height: 58, decoration: BoxDecoration(color: iconBackground, borderRadius: BorderRadius.circular(18)), child: Icon(icon, color: iconColor, size: 32)),
           const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  eyebrow,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.8,
-                    color: iconColor,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(eyebrow, style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.8, color: iconColor)),
+            const SizedBox(height: 6),
+            Text(title, style: const TextStyle(fontFamily: 'Inter', fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1.2)),
+            const SizedBox(height: 6),
+            Text(subtitle, style: const TextStyle(fontFamily: 'Inter', fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary, height: 1.5)),
+          ])),
         ],
       ),
     );
@@ -929,106 +715,38 @@ class _CompletionHeroPanel extends StatelessWidget {
 }
 
 class _ActionCluster extends StatelessWidget {
-  const _ActionCluster({
-    required this.isIndonesian,
-    required this.canAct,
-    required this.onDownload,
-    required this.onRegenerate,
-    required this.onHireFreelancer,
-  });
-
-  final bool isIndonesian;
-  final bool canAct;
-  final Future<void> Function()? onDownload;
-  final Future<void> Function()? onRegenerate;
-  final Future<void> Function()? onHireFreelancer;
-
+  const _ActionCluster({required this.isIndonesian, required this.canAct, required this.onDownload, required this.onRegenerate, required this.onHireFreelancer});
+  final bool isIndonesian; final bool canAct; final Future<void> Function()? onDownload; final Future<void> Function()? onRegenerate; final Future<void> Function()? onHireFreelancer;
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: canAct && onDownload != null ? () async => onDownload?.call() : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 4,
-              shadowColor: AppColors.primary.withValues(alpha: 0.25),
-            ),
-            icon: const Icon(Icons.download_rounded),
-            label: Text(
-              isIndonesian ? 'Unduh File' : 'Download File',
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: canAct && onDownload != null ? () async => onDownload?.call() : null,
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 4, shadowColor: AppColors.primary.withValues(alpha: 0.25)),
+          icon: const Icon(Icons.download_rounded),
+          label: Text(isIndonesian ? 'Unduh File' : 'Download File', style: const TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w800)),
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: canAct && onRegenerate != null ? () async => onRegenerate?.call() : null,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2), width: 1.6),
-                  minimumSize: const Size(double.infinity, 52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                ),
-                icon: const Icon(Icons.autorenew_rounded),
-                label: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.center,
-                  child: Text(
-                    isIndonesian ? 'Regenerasi' : 'Regenerate',
-                    maxLines: 1,
-                    softWrap: false,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: canAct && onHireFreelancer != null ? () async => onHireFreelancer?.call() : null,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFD97706),
-                  side: const BorderSide(color: Color(0xFFF4D8A9), width: 1.6),
-                  minimumSize: const Size(double.infinity, 52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                ),
-                icon: const Icon(Icons.work_outline_rounded),
-                label: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.center,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-                        child: Text(
-                          isIndonesian ? 'Sewa Freelancer' : 'Hire Freelancer',
-                          maxLines: 2,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
+      ),
+      const SizedBox(height: 12),
+      Row(children: [
+        Expanded(child: OutlinedButton.icon(
+          onPressed: canAct && onRegenerate != null ? () async => onRegenerate?.call() : null,
+          style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary, side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2), width: 1.6), minimumSize: const Size(double.infinity, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+          icon: const Icon(Icons.autorenew_rounded),
+          label: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.center, child: Text(isIndonesian ? 'Regenerasi' : 'Regenerate', maxLines: 1, softWrap: false)),
+        )),
+        const SizedBox(width: 12),
+        Expanded(child: OutlinedButton.icon(
+          onPressed: canAct && onHireFreelancer != null ? () async => onHireFreelancer?.call() : null,
+          style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFD97706), side: const BorderSide(color: Color(0xFFF4D8A9), width: 1.6), minimumSize: const Size(double.infinity, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+          icon: const Icon(Icons.work_outline_rounded),
+          label: LayoutBuilder(builder: (context, constraints) {
+            return FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.center, child: ConstrainedBox(constraints: BoxConstraints(maxWidth: constraints.maxWidth), child: Text(isIndonesian ? 'Sewa Freelancer' : 'Hire Freelancer', maxLines: 2, textAlign: TextAlign.center)));
+          }),
+        )),
+      ]),
+    ]);
   }
 }

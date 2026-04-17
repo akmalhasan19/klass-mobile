@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/screens/generation_history_screen.dart';
 import 'package:klass_app/services/api_service.dart';
-import 'package:klass_app/services/generation_history_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MockAdapter implements HttpClientAdapter {

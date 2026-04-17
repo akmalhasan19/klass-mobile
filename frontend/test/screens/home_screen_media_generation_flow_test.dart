@@ -286,7 +286,7 @@ void main() {
 
     expect(find.text('Deck Termodinamika Kelas 11 siap digunakan'), findsOneWidget);
     expect(find.text('Download File'), findsOneWidget);
-    expect(find.text('Open'), findsOneWidget);
-    expect(find.text('Share'), findsOneWidget);
+    expect(find.text('Regenerate'), findsOneWidget);
+    expect(find.text('Hire Freelancer'), findsOneWidget);
   });
 }

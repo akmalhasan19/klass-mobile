@@ -132,7 +132,6 @@ class _GenerationHistoryScreenState extends State<GenerationHistoryScreen> {
           },
         );
       case HistoryViewState.idle:
-      default:
         return const SizedBox.shrink();
     }
   }

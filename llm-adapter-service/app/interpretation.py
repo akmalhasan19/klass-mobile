@@ -133,6 +133,13 @@ class InterpretationFallback(InterpretationContractModel):
     action: Annotated[str, Field(max_length=100)] | None = None
 
 
+class InterpretationContentIntegrity(InterpretationContractModel):
+    integrity_score: float = Field(ge=0, le=1)
+    violations: list[dict[str, Any]] = Field(default_factory=list)
+    classification_source: Annotated[str, Field(max_length=50)]
+    metadata: dict[str, Any] | None = None
+
+
 class InterpretationPayload(InterpretationContractModel):
     schema_version: Literal["media_prompt_understanding.v1"]
     teacher_prompt: String5000
@@ -154,6 +161,7 @@ class InterpretationPayload(InterpretationContractModel):
     teacher_delivery_summary: String1000
     confidence: InterpretationConfidence
     fallback: InterpretationFallback = Field(default_factory=InterpretationFallback)
+    content_integrity: InterpretationContentIntegrity | None = None
 
     @model_validator(mode="after")
     def sort_candidates(self) -> "InterpretationPayload":
@@ -771,9 +779,29 @@ def decode_and_validate_interpretation_completion(
             raw_completion=raw_completion,
         )
 
-    decoded = _decode_json_object_completion(raw_completion)
+    from app.content_integrity_classifier import ContentIntegrityClassifier
+    import re
+    
+    # Detect and repair role play breaks before interpretation
+    pattern = re.compile(r"\b(as claude|as an ai|i'm chatgpt|i am chatgpt|as a language model)\b", re.IGNORECASE)
+    cleaned_completion = pattern.sub("", trimmed_completion)
+    role_play_detected = cleaned_completion != trimmed_completion
+
+    decoded = _decode_json_object_completion(cleaned_completion)
     normalized_payload = _decode_embedded_json(_normalize_strings(decoded))
     repaired_payload = _repair_interpretation_payload(normalized_payload, request=request)
+
+    if role_play_detected:
+        repaired_payload["_meta_repairs"] = repaired_payload.get("_meta_repairs", {})
+        repaired_payload["_meta_repairs"]["role_play_break"] = True
+        
+    classifier = ContentIntegrityClassifier()
+    output_type = "pdf"
+    if request is not None and hasattr(request, "input") and request.input is not None:
+        output_type = getattr(request.input, "preferred_output_type", "pdf")
+        
+    integrity_result = classifier.classify_payload(repaired_payload, output_type)
+    repaired_payload["content_integrity"] = integrity_result
 
     try:
         validated_payload = InterpretationPayload.model_validate(repaired_payload)

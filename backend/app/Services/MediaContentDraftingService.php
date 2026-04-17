@@ -158,8 +158,16 @@ class MediaContentDraftingService
         string $reasonCode,
         ?Exception $exception = null,
     ): array {
+        $fallbackPayload = MediaContentDraftSchema::fallbackFromInterpretation($interpretation, $resolvedOutputType, $reasonCode);
+        $fallbackPayload['content_integrity'] = [
+            'integrity_score' => 1.0,
+            'violations' => [],
+            'classification_source' => 'fallback',
+            'metadata' => ['synthetic' => true],
+        ];
+
         return [
-            'payload' => MediaContentDraftSchema::fallbackFromInterpretation($interpretation, $resolvedOutputType, $reasonCode),
+            'payload' => $fallbackPayload,
             'source' => 'deterministic_fallback',
             'adapter_metadata' => null,
             'fallback_error' => $exception ? [

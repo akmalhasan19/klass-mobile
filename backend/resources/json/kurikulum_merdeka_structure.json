@@ -1,0 +1,29 @@
+{
+  "smp": {
+    "mathematics": {
+      "algebra": {
+        "expected_sections": ["introduction", "concepts", "worked_examples", "practice", "assessment"],
+        "tone": "academic",
+        "prohibited_phrases": ["follow these steps to teach", "prepare students by..."]
+      }
+    }
+  },
+  "sma": {
+    "biology": {
+      "photosynthesis": {
+        "expected_sections": ["introduction", "definition", "process", "experiment_practice", "assessment"],
+        "tone": "academic",
+        "prohibited_phrases": ["guide the teacher to", "instruct students to..."]
+      }
+    }
+  },
+  "smk": {
+    "accounting": {
+      "journal": {
+        "expected_sections": ["concept", "procedure", "practice", "assessment"],
+        "tone": "procedural",
+        "prohibited_phrases": ["make sure teachers do"]
+      }
+    }
+  }
+}

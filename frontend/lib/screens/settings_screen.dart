@@ -33,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = true;
   bool _autoSave = true;
   bool _isUpdatingLocale = false;
+  // ignore: unused_field
   String? _userRole;
   final _authService = AuthService();
 
@@ -394,89 +395,191 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 32),
 
                   // ═══════════════════════════════════════════════
-                  // REQUEST NEW CLUB — WAJIB BACKGROUND COKLAT (#794517)
+                  // CREATOR TOOLS & REQUEST NEW CLUB
                   // ═══════════════════════════════════════════════
-                  if (_userRole == 'freelancer' || _userRole == 'teacher') ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: GestureDetector(
-                        onTap: () => FeatureComingSoon.show(
-                          context,
-                          title: localizations?.settingsRequestClubFeatureTitle,
-                          description: localizations?.settingsRequestClubFeatureDescription,
-                          featureName: localizations?.settingsRequestClubFeatureName,
-                          featureDescription: localizations?.settingsRequestClubFeatureHelper,
-                          icon: Icons.group_add_rounded,
-                          previewIcon: Icons.groups_rounded,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: GestureDetector(
+                      onTap: () => FeatureComingSoon.show(
+                        context,
+                        title: localizations?.settingsCreatorToolsTitle,
+                        description: localizations?.settingsCreatorDashboardFeatureDescription,
+                        featureName: localizations?.settingsCreatorDashboardFeatureTitle,
+                        featureDescription: localizations?.settingsCreatorDashboardFeatureDescription,
+                        icon: Icons.dashboard_customize_rounded,
+                        previewIcon: Icons.dashboard_rounded,
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppColors.brown,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.brown.withValues(alpha: 0.3),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: AppColors.brown,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.brown.withValues(alpha: 0.3),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.group_add_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
+                              child: const Icon(
+                                Icons.dashboard_customize_rounded,
+                                color: Colors.white,
+                                size: 20,
                               ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      localizations?.settingsRequestClubCardTitle ?? 'Request New Club',
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white,
-                                      ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    localizations?.settingsCreatorToolsTitle ?? 'Creator Tools',
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      localizations?.settingsRequestClubCardSubtitle ?? 'Request a new club for your community',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white.withValues(alpha: 0.7),
-                                      ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    localizations?.settingsCreatorDashboardButton ?? 'Open Creator Dashboard',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withValues(alpha: 0.7),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                              Icon(
-                                Icons.chevron_right_rounded,
-                                color: Colors.white.withValues(alpha: 0.5),
-                                size: 24,
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.white.withValues(alpha: 0.5),
+                              size: 24,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: GestureDetector(
+                      onTap: () => FeatureComingSoon.show(
+                        context,
+                        title: localizations?.settingsRequestClubFeatureTitle,
+                        description: localizations?.settingsRequestClubFeatureDescription,
+                        featureName: localizations?.settingsRequestClubFeatureName,
+                        featureDescription: localizations?.settingsRequestClubFeatureHelper,
+                        icon: Icons.group_add_rounded,
+                        previewIcon: Icons.groups_rounded,
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppColors.brown,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.brown.withValues(alpha: 0.3),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ],
+                              child: const Icon(
+                                Icons.group_add_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    localizations?.settingsRequestClubCardTitle ?? 'Request New Club',
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    localizations?.settingsRequestClubCardSubtitle ?? 'Request a new club for your community',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.white.withValues(alpha: 0.5),
+                              size: 24,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Logout
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        onPressed: () {}, // Handled in real app
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        icon: const Icon(Icons.logout_rounded),
+                        label: Text(
+                          localizations?.settingsLogOut ?? 'Logout',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
-                  ],
+                  ),
+                  const SizedBox(height: 32),
 
                   // Version
                   Center(
