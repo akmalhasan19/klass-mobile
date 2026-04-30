@@ -90,6 +90,7 @@ class GenerationSpec(StrictModel):
     assessment_or_activity_blocks: list[AssessmentBlock] = Field(default_factory=list)
     teacher_delivery_summary: str = Field(min_length=1, max_length=1000)
     contract_versions: ContractVersions
+    content_integrity: dict[str, Any] | None = Field(default=None)
 
     @model_validator(mode="after")
     def validate_consistency(self) -> "GenerationSpec":

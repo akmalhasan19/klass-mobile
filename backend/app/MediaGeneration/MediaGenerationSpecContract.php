@@ -51,12 +51,20 @@ final class MediaGenerationSpecContract
         $threshold = (float) config('content_integrity.classifier_confidence_threshold', 0.75);
         $rejectionStrategy = config('content_integrity.rejection_strategy', 'warn');
 
-        if ($contentIntegrity['integrity_score'] < $threshold && $rejectionStrategy === 'strict') {
-            throw new MediaGenerationContractException(
-                'Draft content failed integrity score threshold.',
-                'content_integrity_failed',
-                ['content_integrity' => $contentIntegrity]
-            );
+        if ($contentIntegrity['integrity_score'] < $threshold) {
+            if ($rejectionStrategy === 'strict') {
+                throw new MediaGenerationContractException(
+                    'Draft content failed integrity score threshold.',
+                    'content_integrity_failed',
+                    ['content_integrity' => $contentIntegrity]
+                );
+            } elseif (in_array($rejectionStrategy, ['warn', 'log'], true)) {
+                \Illuminate\Support\Facades\Log::warning('Content integrity threshold warning for MediaGeneration', [
+                    'integrity_score' => $contentIntegrity['integrity_score'],
+                    'threshold' => $threshold,
+                    'violations' => $contentIntegrity['violations'] ?? [],
+                ]);
+            }
         }
 
         return self::validate([

@@ -125,7 +125,7 @@ def _map_activities(activity_blocks: list[AssessmentBlock]) -> list[RenderActivi
 
 
 def build_render_document(spec: GenerationSpec) -> RenderDocument:
-    render_doc = RenderDocument(
+    return RenderDocument(
         title=spec.title,
         export_format=spec.export_format,
         language=spec.language,
@@ -140,22 +140,3 @@ def build_render_document(spec: GenerationSpec) -> RenderDocument:
         activity_blocks=_map_activities(spec.assessment_or_activity_blocks),
         teacher_delivery_summary=spec.teacher_delivery_summary,
     )
-
-    import os
-    import json
-    from app.content_sanitizer import PedagogicalContentSanitizer
-
-    pattern_config = {}
-    path = os.environ.get("PATTERN_CONFIG_PATH", "../../backend/resources/json/meta_instruction_patterns.json")
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            try:
-                pattern_config = json.load(f)
-            except json.JSONDecodeError:
-                pass
-
-    sanitizer = PedagogicalContentSanitizer(pattern_config)
-    render_doc, sanitization_log = sanitizer.sanitize_render_document(render_doc)
-
-    # In a real implementation with artifact side-effects, we would append warnings to metadata here.
-    return render_doc
