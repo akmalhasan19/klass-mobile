@@ -55,13 +55,13 @@ class HomepageRecommendationApiTest extends TestCase
             'order' => 1,
         ]);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('meta.total', 2)
             ->assertJsonPath('meta.section.key', 'project_recommendations')
             ->assertJsonPath('meta.section.enabled', true)
-            ->assertJsonPath('meta.section.endpoint', '/api/homepage-recommendations')
+            ->assertJsonPath('meta.section.endpoint', '/api/v1/homepage-recommendations')
             ->assertJsonPath('meta.section.admin_configurator_path', '/admin/homepage-sections')
             ->assertJsonPath('meta.personalization.policy_version', 'phase_4_2_assignment_tracking_deduplication')
             ->assertJsonPath('meta.personalization.audience', 'guest')
@@ -147,7 +147,7 @@ class HomepageRecommendationApiTest extends TestCase
                 ]);
         });
 
-        $this->getJson('/api/homepage-recommendations?limit=1&include_source_context=1')
+        $this->getJson('/api/v1/homepage-recommendations?limit=1&include_source_context=1')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('meta.total', 1)
@@ -172,7 +172,7 @@ class HomepageRecommendationApiTest extends TestCase
             'title' => 'Hidden Admin Project',
         ]);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonCount(0, 'data')
             ->assertJsonPath('meta.total', 0)
@@ -196,7 +196,7 @@ class HomepageRecommendationApiTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.policy_version', 'phase_4_2_assignment_tracking_deduplication')
             ->assertJsonPath('meta.personalization.audience', 'authenticated')
@@ -296,7 +296,7 @@ class HomepageRecommendationApiTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.policy_version', 'phase_4_2_assignment_tracking_deduplication')
             ->assertJsonPath('meta.personalization.audience', 'authenticated')
@@ -350,7 +350,7 @@ class HomepageRecommendationApiTest extends TestCase
             'order' => 1,
         ]);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('data.0.id', 'system_topic_' . $topic->id)
             ->assertJsonPath('data.0.sub_subject_id', $subSubject->id)
@@ -389,7 +389,7 @@ class HomepageRecommendationApiTest extends TestCase
             }
         });
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('meta.total', 1)

@@ -6,9 +6,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:klass_app/main.dart';
-import 'package:klass_app/screens/login_screen.dart';
-import 'package:klass_app/services/api_service.dart';
+import 'package:klass_app/app/app.dart';
+import 'package:klass_app/features/auth/screens/login_screen.dart';
+import 'package:klass_app/core/network/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FlowMockAdapter implements HttpClientAdapter {

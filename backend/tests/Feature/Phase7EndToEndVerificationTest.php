@@ -96,7 +96,7 @@ class Phase7EndToEndVerificationTest extends TestCase
             'order' => 3,
         ]);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.audience', 'guest')
             ->assertJsonPath('meta.personalization.mode', 'default_global_feed')
@@ -110,7 +110,7 @@ class Phase7EndToEndVerificationTest extends TestCase
 
         $this->travelTo($firstMoment);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.audience', 'authenticated')
             ->assertJsonPath('meta.personalization.applied', true)
@@ -133,7 +133,7 @@ class Phase7EndToEndVerificationTest extends TestCase
 
         $this->travelTo($secondMoment);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.applied', true)
             ->assertJsonPath('meta.personalization.tracks_assignments', true);
@@ -256,7 +256,7 @@ class Phase7EndToEndVerificationTest extends TestCase
         $this->assertNotNull($project->thumbnail_url);
         $this->assertCount(1, Storage::disk('supabase')->allFiles('gallery'));
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.title', 'Manual Verification Curated Project');
@@ -274,7 +274,7 @@ class Phase7EndToEndVerificationTest extends TestCase
             ])
             ->assertRedirect(route('admin.homepage-sections.index'));
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.total', 0)
             ->assertJsonCount(0, 'data');
@@ -284,7 +284,7 @@ class Phase7EndToEndVerificationTest extends TestCase
             ->patch(route('admin.recommended-projects.show-now', $project))
             ->assertRedirect(route('admin.homepage-sections.index'));
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.title', 'Manual Verification Curated Project v2')
@@ -295,7 +295,7 @@ class Phase7EndToEndVerificationTest extends TestCase
             ->delete(route('admin.recommended-projects.destroy', $project))
             ->assertRedirect(route('admin.homepage-sections.index'));
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.total', 0)
             ->assertJsonCount(0, 'data');

@@ -73,7 +73,7 @@ class MediaGenerationResource extends JsonResource
             'delivery_payload' => $this->delivery_payload,
             'error' => $this->serializeError($status),
             'links' => [
-                'poll' => url('/api/media-generations/' . $this->id),
+                'poll' => url('/api/v1/media-generations/' . $this->id),
             ],
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

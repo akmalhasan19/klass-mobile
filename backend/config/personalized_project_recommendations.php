@@ -14,7 +14,7 @@ return [
 
     'homepage' => [
         'section_key' => 'project_recommendations',
-        'feed_endpoint' => '/api/homepage-recommendations',
+        'feed_endpoint' => '/api/v1/homepage-recommendations',
         'admin_configurator_path' => '/admin/homepage-sections',
         'admin_sections' => [
             'curated_title' => 'Recommended Projects (Admin Curated)',

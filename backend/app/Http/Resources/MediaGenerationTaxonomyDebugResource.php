@@ -41,7 +41,7 @@ class MediaGenerationTaxonomyDebugResource extends JsonResource
                 'fallback_reason_code' => data_get($this->decision_payload, 'content_draft.draft_fallback_reason_code'),
             ],
             'links' => [
-                'poll' => url('/api/media-generations/' . $this->id),
+                'poll' => url('/api/v1/media-generations/' . $this->id),
             ],
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

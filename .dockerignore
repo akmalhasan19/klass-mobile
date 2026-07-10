@@ -1,5 +1,6 @@
 .git
 .gitignore
+IMPLEMENTATION_PLAN.md
 frontend
 backend/.env
 backend/.env.*

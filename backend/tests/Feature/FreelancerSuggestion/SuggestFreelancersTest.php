@@ -36,7 +36,7 @@ class SuggestFreelancersTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/suggest-freelancers");
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/suggest-freelancers");
 
         $response
             ->assertStatus(200)
@@ -77,7 +77,7 @@ class SuggestFreelancersTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/suggest-freelancers?max_suggestions=3");
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/suggest-freelancers?max_suggestions=3");
 
         $response
             ->assertStatus(200)
@@ -89,7 +89,7 @@ class SuggestFreelancersTest extends TestCase
         $teacher = User::factory()->teacher()->create();
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/invalid-id-123/suggest-freelancers");
+        $response = $this->postJson("/api/v1/media-generations/invalid-id-123/suggest-freelancers");
 
         $response->assertStatus(404);
     }
@@ -111,7 +111,7 @@ class SuggestFreelancersTest extends TestCase
         
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/suggest-freelancers");
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/suggest-freelancers");
 
         $response
             ->assertStatus(422)

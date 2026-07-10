@@ -4,9 +4,9 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/services/api_service.dart';
-import 'package:klass_app/services/auth_service.dart';
-import 'package:klass_app/services/locale_preferences_service.dart';
+import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/core/storage/locale_preferences_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _LogoutAdapter implements HttpClientAdapter {

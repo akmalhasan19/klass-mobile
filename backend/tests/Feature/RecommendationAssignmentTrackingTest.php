@@ -69,7 +69,7 @@ class RecommendationAssignmentTrackingTest extends TestCase
 
         $this->travelTo($firstMoment);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.policy_version', 'phase_4_2_assignment_tracking_deduplication')
             ->assertJsonPath('meta.personalization.tracks_assignments', true)
@@ -111,7 +111,7 @@ class RecommendationAssignmentTrackingTest extends TestCase
 
         $this->travelTo($secondMoment);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.tracks_assignments', true);
 
@@ -150,7 +150,7 @@ class RecommendationAssignmentTrackingTest extends TestCase
             ],
         ]);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.audience', 'guest')
             ->assertJsonPath('meta.personalization.tracks_assignments', false);
@@ -184,7 +184,7 @@ class RecommendationAssignmentTrackingTest extends TestCase
 
         Sanctum::actingAs($viewer);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('meta.personalization.policy_version', 'phase_4_2_assignment_tracking_deduplication')
             ->assertJsonPath('data.0.title', 'Admin Showcase');

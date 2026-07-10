@@ -47,7 +47,7 @@ class AdminMediaGenerationDebugPageTest extends TestCase
             ->assertSeeText('Media Generation Debug')
             ->assertSeeText('Buatkan handout IPAS kelas 4 tentang gaya di sekitar kita.')
             ->assertDontSeeText('Buatkan deck kimia kelas 10 tentang tabel periodik.')
-            ->assertSee(url('/api/admin/media-generations/' . $matchingGeneration->id . '/debug-taxonomy'), false)
+            ->assertSee(url('/api/v1/admin/media-generations/' . $matchingGeneration->id . '/debug-taxonomy'), false)
             ->assertViewHas('selectedGenerationId', (string) $matchingGeneration->id)
             ->assertViewHas('status', MediaGenerationLifecycle::COMPLETED);
 
@@ -134,7 +134,7 @@ class AdminMediaGenerationDebugPageTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->getJson('/api/admin/media-generations/' . $generation->id . '/debug-taxonomy')
+            ->getJson('/api/v1/admin/media-generations/' . $generation->id . '/debug-taxonomy')
             ->assertOk()
             ->assertJsonPath('data.id', $generation->id)
             ->assertJsonPath('data.taxonomy_inference.best_match.subject_slug', 'ipas-sd')

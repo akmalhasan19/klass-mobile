@@ -71,7 +71,7 @@ class MediaGenerationHistoryTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->getJson("/api/media-generations?parent_id={$parent->id}");
+        $response = $this->getJson("/api/v1/media-generations?parent_id={$parent->id}");
 
         $response
             ->assertStatus(200)
@@ -120,7 +120,7 @@ class MediaGenerationHistoryTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->getJson("/api/media-generations?parent_id={$parent->id}");
+        $response = $this->getJson("/api/v1/media-generations?parent_id={$parent->id}");
 
         $response->assertStatus(200);
 
@@ -180,7 +180,7 @@ class MediaGenerationHistoryTest extends TestCase
         Sanctum::actingAs($teacher);
 
         // Query by child ID — should still return the full chain (root + child)
-        $response = $this->getJson("/api/media-generations?parent_id={$child->id}");
+        $response = $this->getJson("/api/v1/media-generations?parent_id={$child->id}");
 
         $response->assertStatus(200);
 
@@ -213,7 +213,7 @@ class MediaGenerationHistoryTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->getJson("/api/media-generations?parent_id={$otherGeneration->id}");
+        $response = $this->getJson("/api/v1/media-generations?parent_id={$otherGeneration->id}");
 
         $response->assertStatus(404);
     }
@@ -230,7 +230,7 @@ class MediaGenerationHistoryTest extends TestCase
 
         Sanctum::actingAs($freelancer);
 
-        $response = $this->getJson('/api/media-generations?parent_id=any-uuid');
+        $response = $this->getJson('/api/v1/media-generations?parent_id=any-uuid');
 
         $response->assertStatus(403);
     }
@@ -260,7 +260,7 @@ class MediaGenerationHistoryTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->getJson('/api/media-generations');
+        $response = $this->getJson('/api/v1/media-generations');
 
         $response
             ->assertStatus(200)
@@ -312,7 +312,7 @@ class MediaGenerationHistoryTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->getJson('/api/media-generations');
+        $response = $this->getJson('/api/v1/media-generations');
 
         $response->assertStatus(200);
 

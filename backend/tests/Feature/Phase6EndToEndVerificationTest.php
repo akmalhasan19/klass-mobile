@@ -42,7 +42,7 @@ class Phase6EndToEndVerificationTest extends TestCase
             'attachment_url' => 'https://example.com/attachments/task.pdf',
         ]);
 
-        $login = $this->postJson('/api/auth/login', [
+        $login = $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'password123',
         ]);
@@ -53,7 +53,7 @@ class Phase6EndToEndVerificationTest extends TestCase
             ->assertJsonPath('data.user.email', $user->email)
             ->assertJsonStructure(['data' => ['token']]);
 
-        $feed = $this->getJson('/api/marketplace-tasks');
+        $feed = $this->getJson('/api/v1/marketplace-tasks');
 
         $feed
             ->assertOk()
@@ -69,7 +69,7 @@ class Phase6EndToEndVerificationTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $response = $this->postJson('/api/user/avatar', [
+        $response = $this->postJson('/api/v1/user/avatar', [
             'file' => UploadedFile::fake()->image('avatar.png', 200, 200),
         ]);
 
@@ -105,7 +105,7 @@ class Phase6EndToEndVerificationTest extends TestCase
             'media_url' => 'https://example.com/materials/bookmark.pdf',
         ]);
 
-        $create = $this->postJson('/api/marketplace-tasks', [
+        $create = $this->postJson('/api/v1/marketplace-tasks', [
             'content_id' => $content->id,
             'status' => 'open',
             'creator_id' => 'user-bookmark',
@@ -118,14 +118,14 @@ class Phase6EndToEndVerificationTest extends TestCase
 
         $taskId = $create->json('data.id');
 
-        $list = $this->getJson('/api/marketplace-tasks?content_id=' . $content->id);
+        $list = $this->getJson('/api/v1/marketplace-tasks?content_id=' . $content->id);
 
         $list
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.id', $taskId);
 
-        $update = $this->putJson('/api/marketplace-tasks/' . $taskId, [
+        $update = $this->putJson('/api/v1/marketplace-tasks/' . $taskId, [
             'status' => 'done',
         ]);
 
@@ -133,13 +133,13 @@ class Phase6EndToEndVerificationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'done');
 
-        $delete = $this->deleteJson('/api/marketplace-tasks/' . $taskId);
+        $delete = $this->deleteJson('/api/v1/marketplace-tasks/' . $taskId);
 
         $delete
             ->assertOk()
             ->assertJsonPath('success', true);
 
-        $this->getJson('/api/marketplace-tasks/' . $taskId)
+        $this->getJson('/api/v1/marketplace-tasks/' . $taskId)
             ->assertNotFound();
     }
 
@@ -174,21 +174,21 @@ class Phase6EndToEndVerificationTest extends TestCase
             'media_url' => 'https://example.com/gallery/brief.pdf',
         ]);
 
-        $gallery = $this->getJson('/api/gallery');
+        $gallery = $this->getJson('/api/v1/gallery');
 
         $gallery
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('meta.total', 2);
 
-        $galleryFiltered = $this->getJson('/api/gallery?search=Poster&type=module&topic_id=' . $topic->id);
+        $galleryFiltered = $this->getJson('/api/v1/gallery?search=Poster&type=module&topic_id=' . $topic->id);
 
         $galleryFiltered
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.title', 'Poster Composition');
 
-        $topicSearch = $this->getJson('/api/topics?search=visual&teacher_id=teacher-03');
+        $topicSearch = $this->getJson('/api/v1/topics?search=visual&teacher_id=teacher-03');
 
         $topicSearch
             ->assertOk()
@@ -197,7 +197,7 @@ class Phase6EndToEndVerificationTest extends TestCase
             ->assertJsonPath('data.0.contents_count', 3)
             ->assertJsonMissingPath('data.0.contents.0.title');
 
-        $topicSearchWithContents = $this->getJson('/api/topics?search=visual&teacher_id=teacher-03&include_contents=1');
+        $topicSearchWithContents = $this->getJson('/api/v1/topics?search=visual&teacher_id=teacher-03&include_contents=1');
 
         $topicSearchWithContents
             ->assertOk()

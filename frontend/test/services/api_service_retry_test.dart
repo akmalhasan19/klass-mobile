@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/config/api_config.dart';
-import 'package:klass_app/services/api_service.dart';
+import 'package:klass_app/core/config/api_config.dart';
+import 'package:klass_app/core/network/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _Step {

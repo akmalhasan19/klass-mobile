@@ -94,8 +94,8 @@
                                     type="button"
                                     class="generation-row block w-full px-5 py-4 text-left transition hover:bg-gray-50"
                                     data-generation-id="{{ $generation->id }}"
-                                    data-debug-url="{{ url('/api/admin/media-generations/' . $generation->id . '/debug-taxonomy') }}"
-                                    data-poll-url="{{ url('/api/media-generations/' . $generation->id) }}"
+                                    data-debug-url="{{ url('/api/v1/admin/media-generations/' . $generation->id . '/debug-taxonomy') }}"
+                                    data-poll-url="{{ url('/api/v1/media-generations/' . $generation->id) }}"
                                 >
                                     <div class="grid grid-cols-[minmax(0,1fr)_110px] gap-4">
                                         <div class="space-y-3">

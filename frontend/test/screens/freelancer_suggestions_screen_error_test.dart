@@ -4,10 +4,10 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/controllers/freelancer_hiring_flow_controller.dart';
-import 'package:klass_app/screens/hiring/freelancer_suggestions_screen.dart';
-import 'package:klass_app/services/api_service.dart';
-import 'package:klass_app/services/media_generation_service.dart';
+import 'package:klass_app/features/freelancer/controllers/freelancer_hiring_flow_controller.dart';
+import 'package:klass_app/features/freelancer/screens/hiring/freelancer_suggestions_screen.dart';
+import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MockAdapter implements HttpClientAdapter {

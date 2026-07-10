@@ -29,7 +29,7 @@ class TopicTaxonomyAndUserProfileAnchorTest extends TestCase
             'thumbnail_url' => 'https://example.com/quantum.jpg',
         ]);
 
-        $this->getJson('/api/topics?search=Quantum')
+        $this->getJson('/api/v1/topics?search=Quantum')
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.id', $topic->id)
@@ -38,7 +38,7 @@ class TopicTaxonomyAndUserProfileAnchorTest extends TestCase
             ->assertJsonPath('data.0.taxonomy.subject.slug', 'science')
             ->assertJsonPath('data.0.taxonomy.sub_subject.slug', 'quantum-physics');
 
-        $this->getJson('/api/topics/' . $topic->id)
+        $this->getJson('/api/v1/topics/' . $topic->id)
             ->assertOk()
             ->assertJsonPath('data.sub_subject_id', $subSubject->id)
             ->assertJsonPath('data.subject_id', $subSubject->subject_id)
@@ -54,7 +54,7 @@ class TopicTaxonomyAndUserProfileAnchorTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $this->getJson('/api/auth/me?include_personalization_context=1')
+        $this->getJson('/api/v1/auth/me?include_personalization_context=1')
             ->assertOk()
             ->assertJsonPath('data.primary_subject_id', null)
             ->assertJsonPath('data.primary_subject', null)
@@ -70,7 +70,7 @@ class TopicTaxonomyAndUserProfileAnchorTest extends TestCase
             'teacher_id' => (string) $teacher->id,
         ]);
 
-        $this->getJson('/api/topics/' . $topic->id)
+        $this->getJson('/api/v1/topics/' . $topic->id)
             ->assertOk()
             ->assertJsonPath('data.taxonomy', null)
             ->assertJsonPath('data.personalization.eligible', false)
@@ -143,7 +143,7 @@ class TopicTaxonomyAndUserProfileAnchorTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $this->getJson('/api/auth/me?include_personalization_context=1')
+        $this->getJson('/api/v1/auth/me?include_personalization_context=1')
             ->assertOk()
             ->assertJsonPath('data.primary_subject_id', null)
             ->assertJsonPath('data.personalization_subject.slug', 'mathematics')

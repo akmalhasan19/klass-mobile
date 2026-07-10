@@ -16,7 +16,7 @@ class AdminAccessFoundationTest extends TestCase
 
     public function test_register_assigns_default_user_role(): void
     {
-        $response = $this->postJson('/api/auth/register', [
+        $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Phase One User',
             'email' => 'phase1@example.com',
             'password' => 'password123',
@@ -63,34 +63,34 @@ class AdminAccessFoundationTest extends TestCase
             'media_url' => 'https://example.com/materials/secure.pdf',
         ]);
 
-        $this->postJson('/api/topics', [
+        $this->postJson('/api/v1/topics', [
             'title' => 'Guest Topic',
             'teacher_id' => 'teacher-guest',
         ])->assertUnauthorized();
 
-        $this->postJson('/api/marketplace-tasks', [
+        $this->postJson('/api/v1/marketplace-tasks', [
             'content_id' => $content->id,
             'status' => 'open',
             'creator_id' => 'guest',
         ])->assertUnauthorized();
 
-        $this->postJson('/api/upload/gallery', [
+        $this->postJson('/api/v1/upload/gallery', [
             'file' => UploadedFile::fake()->image('gallery.png'),
         ])->assertUnauthorized();
 
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $this->postJson('/api/topics', [
+        $this->postJson('/api/v1/topics', [
             'title' => 'User Topic',
             'teacher_id' => 'teacher-user',
         ])->assertCreated();
 
-        $this->putJson('/api/topics/' . $topic->id, [
+        $this->putJson('/api/v1/topics/' . $topic->id, [
             'title' => 'Updated by User',
         ])->assertForbidden();
 
-        $this->postJson('/api/contents', [
+        $this->postJson('/api/v1/contents', [
             'topic_id' => $topic->id,
             'type' => 'module',
             'title' => 'Blocked Content',
@@ -108,7 +108,7 @@ class AdminAccessFoundationTest extends TestCase
         $admin = User::factory()->admin()->create();
         Sanctum::actingAs($admin);
 
-        $updateTopic = $this->putJson('/api/topics/' . $topic->id, [
+        $updateTopic = $this->putJson('/api/v1/topics/' . $topic->id, [
             'title' => 'Admin Updated Topic',
         ]);
 
@@ -116,7 +116,7 @@ class AdminAccessFoundationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.title', 'Admin Updated Topic');
 
-        $createContent = $this->postJson('/api/contents', [
+        $createContent = $this->postJson('/api/v1/contents', [
             'topic_id' => $topic->id,
             'type' => 'module',
             'title' => 'Admin Content',

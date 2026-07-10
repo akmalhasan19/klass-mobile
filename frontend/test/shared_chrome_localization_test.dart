@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/main.dart';
-import 'package:klass_app/screens/settings_screen.dart';
-import 'package:klass_app/widgets/bottom_nav.dart';
-import 'package:klass_app/widgets/feature_coming_soon.dart';
-import 'package:klass_app/widgets/prompt_input_widget.dart';
+import 'package:klass_app/app/app.dart';
+import 'package:klass_app/features/profile/screens/settings_screen.dart';
+import 'package:klass_app/shared/widgets/bottom_nav.dart';
+import 'package:klass_app/shared/widgets/feature_coming_soon.dart';
+import 'package:klass_app/features/home/widgets/prompt_input_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

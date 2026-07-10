@@ -41,7 +41,7 @@ class HireFreelancerTest extends TestCase
         
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/hire-freelancer", [
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/hire-freelancer", [
             'mode' => 'auto_suggest',
             'refinement_description' => 'Tolong rapikan tata letaknya.',
             'selected_freelancer_id' => $freelancer->id,
@@ -83,7 +83,7 @@ class HireFreelancerTest extends TestCase
         
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/hire-freelancer", [
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/hire-freelancer", [
             'mode' => 'manual_task',
             'refinement_description' => 'Siapa yang bisa perbaiki gambar?',
         ]);
@@ -124,7 +124,7 @@ class HireFreelancerTest extends TestCase
         
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/hire-freelancer", [
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/hire-freelancer", [
             'mode' => 'manual_task',
         ]);
 
@@ -152,7 +152,7 @@ class HireFreelancerTest extends TestCase
         
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/hire-freelancer", [
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/hire-freelancer", [
             'mode' => 'unknown_mode',
             'refinement_description' => 'test',
         ]);
@@ -181,7 +181,7 @@ class HireFreelancerTest extends TestCase
         
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/hire-freelancer", [
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/hire-freelancer", [
             'mode' => 'auto_suggest',
             'refinement_description' => 'Test missing ID',
         ]);
@@ -210,7 +210,7 @@ class HireFreelancerTest extends TestCase
         
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$generation->id}/hire-freelancer", [
+        $response = $this->postJson("/api/v1/media-generations/{$generation->id}/hire-freelancer", [
             'mode' => 'auto_suggest',
             'refinement_description' => 'Test invalid ID',
             'selected_freelancer_id' => 'invalid-id-123',

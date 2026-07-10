@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/services/api_service.dart';
+import 'package:klass_app/core/network/api_service.dart';
 
 void main() {
   test('normalizeTopicCollection keeps legacy and taxonomy-aware topics compatible for workspace consumers', () {

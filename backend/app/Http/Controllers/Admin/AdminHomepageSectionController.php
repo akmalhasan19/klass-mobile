@@ -196,7 +196,7 @@ class AdminHomepageSectionController extends Controller
             'system_section_title' => (string) config('personalized_project_recommendations.homepage.admin_sections.system_distribution_title', 'Top Distributed System Recommendations by Sub-Subject'),
             'system_section_description' => (string) config('personalized_project_recommendations.homepage.admin_sections.system_distribution_description', ''),
             'system_section_empty_state' => (string) config('personalized_project_recommendations.homepage.admin_sections.system_distribution_empty_state', ''),
-            'feed_endpoint' => (string) config('personalized_project_recommendations.homepage.feed_endpoint', '/api/homepage-recommendations'),
+            'feed_endpoint' => (string) config('personalized_project_recommendations.homepage.feed_endpoint', '/api/v1/homepage-recommendations'),
             'admin_configurator_path' => (string) config('personalized_project_recommendations.homepage.admin_configurator_path', '/admin/homepage-sections'),
             'eligible_source_types' => array_values(array_filter((array) config('personalized_project_recommendations.distribution_summary.eligible_source_types', []))),
             'minimum_distinct_user_count' => (int) config('personalized_project_recommendations.distribution_summary.minimum_distinct_user_count', 2),

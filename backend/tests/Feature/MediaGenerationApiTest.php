@@ -28,7 +28,7 @@ class MediaGenerationApiTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson('/api/media-generations', [
+        $response = $this->postJson('/api/v1/media-generations', [
             'prompt' => 'Buatkan handout aljabar dasar untuk kelas 8.',
             'preferred_output_type' => 'pdf',
             'sub_subject_id' => $subSubject->id,
@@ -58,7 +58,7 @@ class MediaGenerationApiTest extends TestCase
         $this->assertSame(ProcessMediaGenerationJob::class, data_get($queuedJobPayload, 'data.commandName'));
         $this->assertStringContainsString($generationId, (string) data_get($queuedJobPayload, 'data.command'));
 
-        $response->assertJsonPath('data.links.poll', url('/api/media-generations/' . $generationId));
+        $response->assertJsonPath('data.links.poll', url('/api/v1/media-generations/' . $generationId));
 
         $this->assertDatabaseHas('media_generations', [
             'id' => $generationId,
@@ -69,7 +69,7 @@ class MediaGenerationApiTest extends TestCase
             'status' => MediaGenerationLifecycle::QUEUED,
         ]);
 
-        $pollResponse = $this->getJson('/api/media-generations/' . $generationId);
+        $pollResponse = $this->getJson('/api/v1/media-generations/' . $generationId);
 
         $pollResponse
             ->assertOk()
@@ -78,7 +78,7 @@ class MediaGenerationApiTest extends TestCase
             ->assertJsonPath('data.prompt', 'Buatkan handout aljabar dasar untuk kelas 8.')
             ->assertJsonPath('data.status', MediaGenerationLifecycle::QUEUED);
 
-        $duplicateResponse = $this->postJson('/api/media-generations', [
+        $duplicateResponse = $this->postJson('/api/v1/media-generations', [
             'prompt' => '  Buatkan handout aljabar dasar untuk kelas 8.  ',
             'preferred_output_type' => 'pdf',
             'sub_subject_id' => $subSubject->id,
@@ -110,13 +110,13 @@ class MediaGenerationApiTest extends TestCase
             'status' => MediaGenerationLifecycle::QUEUED,
         ]);
 
-        $this->postJson('/api/media-generations', [
+        $this->postJson('/api/v1/media-generations', [
             'prompt' => 'Buatkan handout tanpa login.',
         ])->assertUnauthorized();
 
         Sanctum::actingAs($admin);
 
-        $this->postJson('/api/media-generations', [
+        $this->postJson('/api/v1/media-generations', [
             'prompt' => 'Admin mencoba submit.',
         ])
             ->assertForbidden()
@@ -124,7 +124,7 @@ class MediaGenerationApiTest extends TestCase
 
         Sanctum::actingAs($otherTeacher);
 
-        $this->getJson('/api/media-generations/' . $generation->id)
+        $this->getJson('/api/v1/media-generations/' . $generation->id)
             ->assertNotFound()
             ->assertJsonPath('error.code', MediaGenerationErrorCode::MEDIA_GENERATION_NOT_FOUND);
     }
@@ -139,7 +139,7 @@ class MediaGenerationApiTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson('/api/media-generations', [
+        $response = $this->postJson('/api/v1/media-generations', [
             'prompt' => '',
             'preferred_output_type' => 'xlsx',
             'subject_id' => $subject->id,
@@ -176,7 +176,7 @@ class MediaGenerationApiTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->getJson('/api/media-generations/' . $generation->id);
+        $response = $this->getJson('/api/v1/media-generations/' . $generation->id);
 
         $response
             ->assertOk()
@@ -248,7 +248,7 @@ class MediaGenerationApiTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->getJson('/api/media-generations/' . $generation->id);
+        $response = $this->getJson('/api/v1/media-generations/' . $generation->id);
 
         $response
             ->assertOk()
@@ -258,7 +258,7 @@ class MediaGenerationApiTest extends TestCase
             ->assertJsonPath('data.status_meta.is_terminal', true)
             ->assertJsonPath('data.artifact.file_url', 'https://example.com/materials/handout-aljabar-kelas-8.pdf')
             ->assertJsonPath('data.delivery_payload.schema_version', 'media_delivery_response.v1')
-            ->assertJsonPath('data.links.poll', url('/api/media-generations/' . $generation->id));
+            ->assertJsonPath('data.links.poll', url('/api/v1/media-generations/' . $generation->id));
 
         $resource = $response->json('data');
 
@@ -374,17 +374,17 @@ class MediaGenerationApiTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $this->getJson('/api/media-generations/' . $generation->id)
+        $this->getJson('/api/v1/media-generations/' . $generation->id)
             ->assertOk()
             ->assertJsonMissingPath('data.taxonomy_inference')
             ->assertJsonMissingPath('data.draft_taxonomy_hint');
 
-        $this->getJson('/api/admin/media-generations/' . $generation->id . '/debug-taxonomy')
+        $this->getJson('/api/v1/admin/media-generations/' . $generation->id . '/debug-taxonomy')
             ->assertForbidden();
 
         Sanctum::actingAs($admin);
 
-        $this->getJson('/api/admin/media-generations/' . $generation->id . '/debug-taxonomy')
+        $this->getJson('/api/v1/admin/media-generations/' . $generation->id . '/debug-taxonomy')
             ->assertOk()
             ->assertJsonPath('data.id', $generation->id)
             ->assertJsonPath('data.taxonomy_inference.best_match.subject_slug', 'ipas-sd')

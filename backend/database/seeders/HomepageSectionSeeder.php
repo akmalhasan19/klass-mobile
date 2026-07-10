@@ -18,14 +18,14 @@ class HomepageSectionSeeder extends Seeder
                 'label' => 'Project Recommendations',
                 'position' => 1,
                 'is_enabled' => true,
-                'data_source' => 'api/homepage-recommendations'
+                'data_source' => 'api/v1/homepage-recommendations'
             ],
             [
                 'key' => 'top_freelancers',
                 'label' => 'Top Freelancers',
                 'position' => 2,
                 'is_enabled' => true,
-                'data_source' => 'api/marketplace-tasks'
+                'data_source' => 'api/v1/marketplace-tasks'
             ],
         ];
 

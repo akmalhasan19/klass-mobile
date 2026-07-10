@@ -57,7 +57,7 @@ class AdminHomepageSectionConfigurationTest extends TestCase
             ->assertSeeText('Curate the mobile experience: manage sections and recommended projects.')
             ->assertSeeText('Recommended Projects (Admin Curated)')
             ->assertSeeText('Top Distributed System Recommendations by Sub-Subject')
-            ->assertSeeText('GET /api/homepage-recommendations')
+            ->assertSeeText('GET /api/v1/homepage-recommendations')
             ->assertSeeText('No system recommendation has been distributed to more than one user yet.')
             ->assertSeeText('The summary will appear here after a system recommendation has been distributed to more than one distinct user.')
             ->assertSeeInOrder([
@@ -116,7 +116,7 @@ class AdminHomepageSectionConfigurationTest extends TestCase
             'subject_id' => 'bulk',
         ]);
 
-        $this->getJson('/api/homepage-sections')
+        $this->getJson('/api/v1/homepage-sections')
             ->assertOk()
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.key', 'top_freelancers')

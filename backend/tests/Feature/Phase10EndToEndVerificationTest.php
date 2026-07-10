@@ -139,7 +139,7 @@ class Phase10EndToEndVerificationTest extends TestCase
             },
         ]);
 
-        $createResponse = $this->postJson('/api/media-generations', [
+        $createResponse = $this->postJson('/api/v1/media-generations', [
             'prompt' => 'Buatkan deck termodinamika untuk kelas 11 dengan latihan singkat di akhir.',
             'preferred_output_type' => 'pptx',
             'sub_subject_id' => $subSubject->id,
@@ -185,7 +185,7 @@ class Phase10EndToEndVerificationTest extends TestCase
         $this->assertNotNull($generation->recommended_project_id);
         $this->assertSame(2, count(Storage::disk('supabase')->allFiles()));
 
-        $pollResponse = $this->getJson('/api/media-generations/' . $generationId);
+        $pollResponse = $this->getJson('/api/v1/media-generations/' . $generationId);
 
         $pollResponse
             ->assertOk()
@@ -195,12 +195,12 @@ class Phase10EndToEndVerificationTest extends TestCase
             ->assertJsonPath('data.publication.recommended_project.source_type', RecommendedProject::SOURCE_AI_GENERATED)
             ->assertJsonPath('data.delivery_payload.artifact.file_url', $generation->file_url);
 
-        $this->getJson('/api/topics?search=Deck%20Termodinamika&per_page=5')
+        $this->getJson('/api/v1/topics?search=Deck%20Termodinamika&per_page=5')
             ->assertOk()
             ->assertJsonPath('data.0.title', 'Deck Termodinamika Kelas 11')
             ->assertJsonPath('data.0.sub_subject_id', $subSubject->id);
 
-        $this->getJson('/api/homepage-recommendations')
+        $this->getJson('/api/v1/homepage-recommendations')
             ->assertOk()
             ->assertJsonPath('data.0.title', 'Deck Termodinamika Kelas 11')
             ->assertJsonPath('data.0.source_type', RecommendedProject::SOURCE_AI_GENERATED);

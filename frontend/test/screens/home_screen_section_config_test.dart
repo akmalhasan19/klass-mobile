@@ -5,8 +5,8 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/screens/home_screen.dart';
-import 'package:klass_app/services/api_service.dart';
+import 'package:klass_app/features/home/screens/home_screen.dart';
+import 'package:klass_app/core/network/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _HomeScreenAdapter implements HttpClientAdapter {

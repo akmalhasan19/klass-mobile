@@ -24,7 +24,7 @@ class TopicWriteApiCompatibilityTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson('/api/topics', [
+        $response = $this->postJson('/api/v1/topics', [
             'title' => 'Algebra Starter Kit',
             'media_url' => 'https://example.com/algebra.jpg',
             'taxonomy' => [
@@ -60,14 +60,14 @@ class TopicWriteApiCompatibilityTest extends TestCase
         $this->assertSame(Topic::OWNERSHIP_STATUS_NORMALIZED, $topic->ownership_status);
         $this->assertSame($subSubject->id, $topic->sub_subject_id);
 
-        $this->getJson('/api/topics?search=Algebra Starter')
+        $this->getJson('/api/v1/topics?search=Algebra Starter')
             ->assertOk()
             ->assertJsonPath('data.0.teacher_id', (string) $teacher->id)
             ->assertJsonPath('data.0.thumbnail_url', 'https://example.com/algebra.jpg')
             ->assertJsonPath('data.0.sub_subject_id', $subSubject->id)
             ->assertJsonPath('data.0.taxonomy.sub_subject.slug', 'algebra');
 
-        $this->getJson('/api/topics/' . $topic->id)
+        $this->getJson('/api/v1/topics/' . $topic->id)
             ->assertOk()
             ->assertJsonPath('data.teacher_id', (string) $teacher->id)
             ->assertJsonPath('data.thumbnail_url', 'https://example.com/algebra.jpg')
@@ -97,7 +97,7 @@ class TopicWriteApiCompatibilityTest extends TestCase
 
         Sanctum::actingAs($admin);
 
-        $this->putJson('/api/topics/' . $topic->id, [
+        $this->putJson('/api/v1/topics/' . $topic->id, [
             'title' => 'History Basics',
             'teacher_id' => strtoupper($updatedTeacher->email),
             'taxonomy' => [
@@ -137,7 +137,7 @@ class TopicWriteApiCompatibilityTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $this->postJson('/api/topics', [
+        $this->postJson('/api/v1/topics', [
             'title' => 'Invalid Taxonomy Topic',
             'taxonomy' => [
                 'subject' => [

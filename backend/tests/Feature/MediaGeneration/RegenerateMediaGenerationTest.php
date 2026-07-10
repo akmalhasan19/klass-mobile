@@ -38,7 +38,7 @@ class RegenerateMediaGenerationTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$parentGeneration->id}/regenerate", [
+        $response = $this->postJson("/api/v1/media-generations/{$parentGeneration->id}/regenerate", [
             'additional_prompt' => 'Tambahkan soal cerita yang lebih menantang.',
         ]);
 
@@ -89,7 +89,7 @@ class RegenerateMediaGenerationTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$parentGeneration->id}/regenerate", [
+        $response = $this->postJson("/api/v1/media-generations/{$parentGeneration->id}/regenerate", [
             'additional_prompt' => 'Tambahkan gambar.',
         ]);
 
@@ -117,13 +117,13 @@ class RegenerateMediaGenerationTest extends TestCase
 
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/{$parentGeneration->id}/regenerate", [
+        $response = $this->postJson("/api/v1/media-generations/{$parentGeneration->id}/regenerate", [
             'additional_prompt' => '',
         ]);
 
         $response->assertStatus(422);
 
-        $response = $this->postJson("/api/media-generations/{$parentGeneration->id}/regenerate", [
+        $response = $this->postJson("/api/v1/media-generations/{$parentGeneration->id}/regenerate", [
             'additional_prompt' => str_repeat('a', 5001),
         ]);
 
@@ -135,7 +135,7 @@ class RegenerateMediaGenerationTest extends TestCase
         $teacher = User::factory()->teacher()->create();
         Sanctum::actingAs($teacher);
 
-        $response = $this->postJson("/api/media-generations/invalid-id-123/regenerate", [
+        $response = $this->postJson("/api/v1/media-generations/invalid-id-123/regenerate", [
             'additional_prompt' => 'test',
         ]);
 
