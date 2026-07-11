@@ -42,15 +42,19 @@ Route::prefix('v1')->group(function () {
     // Auth Routes (Public)
     // =========================================================================
     Route::prefix('auth')->group(function () {
-        Route::post('/register', [AuthController::class, 'register']);
-        Route::post('/login', [AuthController::class, 'login']);
+        Route::post('/register', [AuthController::class, 'register'])
+            ->middleware('throttle:3,1');
+        Route::post('/login', [AuthController::class, 'login'])
+            ->middleware('throttle:5,1');
         Route::post('/get-security-question', [AuthController::class, 'getSecurityQuestion']);
-        Route::post('/verify-and-reset-password', [AuthController::class, 'verifyAndResetPassword']);
+        Route::post('/verify-and-reset-password', [AuthController::class, 'verifyAndResetPassword'])
+            ->middleware('throttle:3,1');
 
         // Protected auth routes
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::get('/me', [AuthController::class, 'me']);
+            Route::post('/refresh', [AuthController::class, 'refresh']);
         });
     });
 

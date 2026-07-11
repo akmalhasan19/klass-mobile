@@ -44,6 +44,7 @@ dependencies:
   dio_cache_interceptor_hive_store: ^4.0.0
   url_launcher: ^6.3.1
   share_plus: ^10.1.4
+  flutter_secure_storage: ^9.2.2
 
 dev_dependencies:
   flutter_test:

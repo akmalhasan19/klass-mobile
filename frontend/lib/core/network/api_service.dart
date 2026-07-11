@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
+import 'package:klass_app/core/network/auth_interceptor.dart';
 import 'package:klass_app/core/network/monitoring_service.dart';
 import 'package:klass_app/core/network/cache_interceptor.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
@@ -11,6 +12,11 @@ import 'package:klass_app/core/utils/api_debug_info.dart';
 class ApiService {
   late Dio _dio;
   
+  /// Callback invoked when automatic token refresh fails and
+  /// the user has been logged out. The app can use this to
+  /// navigate to the login screen or reset UI state.
+  static void Function()? onUnauthenticated;
+
   static final ApiService _instance = ApiService._internal();
 
   factory ApiService() {
@@ -29,15 +35,22 @@ class ApiService {
       },
     ));
 
+    _dio.interceptors.add(AuthInterceptor(
+      onUnauthenticated: () async {
+        // Clear auth-scoped SharedPreferences cache when refresh fails
+        final prefs = await SharedPreferences.getInstance();
+        final keys = prefs.getKeys().toList();
+        for (final key in keys) {
+          if (key.startsWith('api_cache_')) {
+            await prefs.remove(key);
+          }
+        }
+        ApiService.onUnauthenticated?.call();
+      },
+    ));
     _dio.interceptors.add(CacheInterceptor());
     _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('auth_token');
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        
+      onRequest: (options, handler) {
         // Structured Logging for Priority Endpoints
         if (FeatureFlags.enableVerboseApiLogging) {
           final logData = {

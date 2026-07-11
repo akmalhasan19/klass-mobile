@@ -1,11 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/storage/secure_token_store.dart';
 
 class AuthService {
   final ApiService _apiService = ApiService();
+  final SecureTokenStore _tokenStore;
+
+  AuthService({SecureTokenStore? tokenStore})
+    : _tokenStore = tokenStore ?? SecureTokenStore();
 
   static String? normalizeRoleValue(dynamic role) {
     if (role == null) {
@@ -36,11 +40,9 @@ class AuthService {
         final data = (payload['data'] as Map?)?.cast<String, dynamic>() ?? payload;
         final token = data['token'] ?? data['access_token'];
         if (token != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_token', token);
-          // Optional: Save user data
+          await _tokenStore.write(token);
           if (data['user'] != null) {
-            await prefs.setString('user_data', jsonEncode(data['user']));
+            await _tokenStore.writeUserData(data['user'] as Map<String, dynamic>);
           }
           return true;
         }
@@ -68,10 +70,9 @@ class AuthService {
         final data = (payload['data'] as Map?)?.cast<String, dynamic>() ?? payload;
         final token = data['token'] ?? data['access_token'];
         if (token != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_token', token);
+          await _tokenStore.write(token);
           if (data['user'] != null) {
-            await prefs.setString('user_data', jsonEncode(data['user']));
+            await _tokenStore.writeUserData(data['user'] as Map<String, dynamic>);
           }
           return true;
         }
@@ -126,12 +127,11 @@ class AuthService {
     } catch (_) {
       // Ignore error if logout fails (e.g., token already invalid)
     } finally {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('auth_token');
-      await prefs.remove('user_data');
+      await _tokenStore.clearAll();
 
       // Clear auth-scoped API cache so stale user data doesn't survive logout.
       // App preferences such as locale are intentionally preserved.
+      final prefs = await SharedPreferences.getInstance();
       final allKeys = prefs.getKeys().toList();
       for (final key in allKeys) {
         if (key.startsWith('api_cache_')) {
@@ -145,9 +145,8 @@ class AuthService {
     try {
       final response = await _apiService.dio.get(ApiConfig.v('/auth/me'));
       if (response.statusCode == 200) {
-        final user = response.data['data'] ?? response.data; // adjust based on API structure
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_data', jsonEncode(user));
+        final user = response.data['data'] ?? response.data;
+        await _tokenStore.writeUserData(user as Map<String, dynamic>);
         return user;
       }
       return null;
@@ -157,8 +156,7 @@ class AuthService {
   }
 
   Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token') != null;
+    return await _tokenStore.read() != null;
   }
 
   // ─── Role Helpers ────────────────────────────────────────────
@@ -166,10 +164,8 @@ class AuthService {
   /// Returns the user's role from cached user data.
   /// Possible values: 'teacher', 'freelancer', 'admin', 'user' (legacy).
   Future<String?> getUserRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userStr = prefs.getString('user_data');
-    if (userStr != null) {
-      final user = jsonDecode(userStr) as Map<String, dynamic>;
+    final user = await _tokenStore.readUserData();
+    if (user != null) {
       return normalizeRoleValue(user['role']);
     }
     return null;
@@ -212,8 +208,7 @@ class AuthService {
           final me = await getMe();
           if (me != null) {
             me['avatar_url'] = data['avatar_url'];
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('user_data', jsonEncode(me));
+            await _tokenStore.writeUserData(me);
           }
           return data['avatar_url'];
         }

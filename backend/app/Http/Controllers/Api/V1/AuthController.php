@@ -9,6 +9,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Traits\ApiResponseTrait;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -62,7 +63,20 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
+        $email = $request->input('email');
+
         if (!Auth::attempt($request->only('email', 'password'))) {
+            ActivityLog::create([
+                'actor_id' => null,
+                'action' => 'failed_login_attempt',
+                'metadata' => [
+                    'email' => $email,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'attempted_at' => now()->toIso8601String(),
+                ],
+            ]);
+
             return $this->error('Email atau password salah.', 401);
         }
 
@@ -95,6 +109,25 @@ class AuthController extends Controller
             new UserResource($request->user()),
             'Data user berhasil diambil.',
         );
+    }
+
+    /**
+     * Refresh token — revoke current and issue new one.
+     */
+    public function refresh(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $currentToken = $user->currentAccessToken();
+        if ($currentToken !== null && $currentToken->exists) {
+            $currentToken->delete();
+        }
+
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return $this->success([
+            'token' => $token,
+        ], 'Token berhasil diperbarui.');
     }
 
     public function getSecurityQuestion(GetSecurityQuestionRequest $request): JsonResponse

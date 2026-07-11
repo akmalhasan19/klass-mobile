@@ -9,6 +9,7 @@ import 'package:klass_app/shared/widgets/feature_coming_soon.dart';
 import 'package:klass_app/features/auth/data/auth_service.dart';
 import 'package:klass_app/core/storage/locale_preferences_service.dart';
 import 'package:klass_app/app/app.dart';
+import 'package:klass_app/core/utils/logout_helper.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
@@ -50,6 +51,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _userRole = role;
       });
     }
+  }
+
+  Future<void> _handleLogout() async {
+    final localizations = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(localizations?.settingsLogOut ?? 'Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(localizations?.projectConfirmationCancel ?? 'Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            child: Text(localizations?.settingsLogOut ?? 'Log Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await LogoutHelper.execute(context: context, popToRoot: true);
   }
 
   Future<void> _handleLocaleSelection(Locale locale) async {
@@ -562,7 +589,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: SizedBox(
                       width: double.infinity,
                       child: TextButton.icon(
-                        onPressed: () {}, // Handled in real app
+                        onPressed: () => _handleLogout(),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.red,
                           padding: const EdgeInsets.symmetric(vertical: 16),

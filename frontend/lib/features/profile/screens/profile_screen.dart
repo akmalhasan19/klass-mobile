@@ -12,7 +12,7 @@ import 'dart:convert';
 import 'package:klass_app/features/auth/data/auth_service.dart';
 import 'package:klass_app/features/auth/screens/login_screen.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
-import 'package:klass_app/app/app.dart';
+import 'package:klass_app/core/utils/logout_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String role;
@@ -91,18 +91,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _handleLogout() async {
     // 1. Clear local state immediately so UI shows guest
-    setState(() {
-      _user = null;
-      _isLoading = false;
-    });
-
     // 2. Clear server session + all persisted data (tokens, cache, etc.)
-    await _authService.logout();
-
-    if (!mounted) return;
-
     // 3. Reset MainShell to guest/teacher mode and navigate to Home tab
-    await KlassApp.mainShellKey.currentState?.reloadRole();
+    await LogoutHelper.execute(
+      context: context,
+      onBeforeLogout: () {
+        setState(() {
+          _user = null;
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   double _currentScrollOffset() {

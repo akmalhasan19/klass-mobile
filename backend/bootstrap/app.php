@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -129,6 +130,18 @@ return Application::configure(basePath: dirname(__DIR__))
                     'error' => ['code' => 'UNAUTHENTICATED'],
                     'timestamp' => now()->toIso8601String(),
                 ], 401);
+            }
+        });
+
+        // Rate limit exceeded → 429
+        $exceptions->renderable(function (ThrottleRequestsException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
+                    'error' => ['code' => 'RATE_LIMITED'],
+                    'timestamp' => now()->toIso8601String(),
+                ], 429);
             }
         });
 

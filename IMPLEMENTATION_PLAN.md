@@ -123,9 +123,9 @@
 
 ### Flutter — DTO + Exception Parser
 
-- [ ] Buat `lib/core/network/api_error.dart` dengan sealed class `AppException` + subclass: `NetworkException`, `ServerException`, `ValidationException`, `UnauthorizedException`, `NotFoundException`
-- [ ] Tambah field `code` di setiap subclass (matching backend `error.code`)
-- [ ] Buat parser `AppException.fromDioError(DioException e)` yang map `DioExceptionType` + status code + backend `error.code` ke subclass yang sesuai
+- [x] Buat `lib/core/network/api_error.dart` dengan sealed class `AppException` + subclass: `NetworkException`, `ServerException`, `ValidationException`, `UnauthorizedException`, `NotFoundException`
+- [x] Tambah field `code` di setiap subclass (matching backend `error.code`)
+- [x] Buat parser `AppException.fromDioError(DioException e)` yang map `DioExceptionType` + status code + backend `error.code` ke subclass yang sesuai
 
 ---
 
@@ -136,66 +136,66 @@
 
 ### Backend — Sanctum Hardening
 
-- [ ] Update `config/sanctum.php`: ubah `'expiration' => null` menjadi `'expiration' => env('SANCTUM_EXPIRATION_MINUTES', 43200)` (30 hari)
-- [ ] Tambah `SANCTUM_EXPIRATION_MINUTES=43200` ke `.env.example`
-- [ ] Buat endpoint `POST /v1/auth/refresh` di `AuthController`:
-  - [ ] Revoke current token
-  - [ ] Issue token baru
-  - [ ] Return `{ success: true, data: { token: <new> } }`
-- [ ] Register route `POST /v1/auth/refresh` di `routes/api.php` dalam group `auth:sanctum`
-- [ ] Tambah rate limit ke auth endpoints: `Route::post('/login', ...)->middleware('throttle:5,1')`
-- [ ] Tambah rate limit ke register: `throttle:3,1`
-- [ ] Tambah rate limit ke reset password: `throttle:3,1`
-- [ ] Log failed login attempts (IP, email, timestamp) untuk audit
+- [x] Update `config/sanctum.php`: ubah `'expiration' => null` menjadi `'expiration' => env('SANCTUM_EXPIRATION_MINUTES', 43200)` (30 hari)
+- [x] Tambah `SANCTUM_EXPIRATION_MINUTES=43200` ke `.env.example`
+- [x] Buat endpoint `POST /v1/auth/refresh` di `AuthController`:
+  - [x] Revoke current token
+  - [x] Issue token baru
+  - [x] Return `{ success: true, data: { token: <new> } }`
+- [x] Register route `POST /v1/auth/refresh` di `routes/api.php` dalam group `auth:sanctum`
+- [x] Tambah rate limit ke auth endpoints: `Route::post('/login', ...)->middleware('throttle:5,1')`
+- [x] Tambah rate limit ke register: `throttle:3,1`
+- [x] Tambah rate limit ke reset password: `throttle:3,1`
+- [x] Log failed login attempts (IP, email, timestamp) untuk audit
 
 ### Backend — Tests
 
-- [ ] Test `POST /v1/auth/refresh` return new token
-- [ ] Test old token revoked setelah refresh
-- [ ] Test expired token ditolak
-- [ ] Test rate limit trigger
+- [x] Test `POST /v1/auth/refresh` return new token
+- [x] Test old token revoked setelah refresh
+- [x] Test expired token ditolak
+- [x] Test rate limit trigger
 
 ### Flutter — flutter_secure_storage
 
-- [ ] Tambah dependency `flutter_secure_storage: ^9.2.2` di `pubspec.yaml`
-- [ ] Buat `lib/core/storage/secure_token_store.dart`:
-  - [ ] Method `Future<void> write(String token)`
-  - [ ] Method `Future<String?> read()`
-  - [ ] Method `Future<void> delete()`
-  - [ ] Key const: `auth_token`, `user_data`
-- [ ] Tambah `user_data` ke SecureStorage (PII protection)
-- [ ] Update `lib/android/app/build.gradle` pastikan `minSdkVersion >= 18` (syarat flutter_secure_storage)
+- [x] Tambah dependency `flutter_secure_storage: ^9.2.2` di `pubspec.yaml`
+- [x] Buat `lib/core/storage/secure_token_store.dart`:
+  - [x] Method `Future<void> write(String token)`
+  - [x] Method `Future<String?> read()`
+  - [x] Method `Future<void> delete()`
+  - [x] Key const: `auth_token`, `user_data`
+- [x] Tambah `user_data` ke SecureStorage (PII protection)
+- [x] Update `lib/android/app/build.gradle` pastikan `minSdkVersion >= 18` (syarat flutter_secure_storage)
 
 ### Flutter — AuthService Refactor
 
-- [ ] Inject `SecureTokenStore` ke `AuthService` (constructor)
-- [ ] Ganti semua `SharedPreferences.getString('auth_token')` → `SecureTokenStore.read()`
-- [ ] Ganti semua `prefs.setString('auth_token', ...)` → `SecureTokenStore.write(...)`
-- [ ] Ganti semua `prefs.remove('auth_token')` → `SecureTokenStore.delete()`
-- [ ] Update `isLoggedIn()` baca dari SecureStorage
-- [ ] Update `getUserRole()` baca user_data dari SecureStorage
-- [ ] Update `getMe()` simpan user_data ke SecureStorage
-- [ ] Update `logout()` hapus auth_token + user_data dari SecureStorage + invalidate cache
+- [x] Inject `SecureTokenStore` ke `AuthService` (constructor)
+- [x] Ganti semua `SharedPreferences.getString('auth_token')` → `SecureTokenStore.read()`
+- [x] Ganti semua `prefs.setString('auth_token', ...)` → `SecureTokenStore.write(...)`
+- [x] Ganti semua `prefs.remove('auth_token')` → `SecureTokenStore.delete()`
+- [x] Update `isLoggedIn()` baca dari SecureStorage
+- [x] Update `getUserRole()` baca user_data dari SecureStorage
+- [x] Update `getMe()` simpan user_data ke SecureStorage
+- [x] Update `logout()` hapus auth_token + user_data dari SecureStorage + invalidate cache
 
 ### Flutter — Auth Interceptor (401 refresh logic)
 
-- [ ] Buat `lib/core/network/auth_interceptor.dart` extends `Interceptor`
-- [ ] `onRequest`: baca token via `SecureTokenStore`, inject `Authorization: Bearer <token>`
-- [ ] `onError` (401):
-  - [ ] Cek jika endpoint refresh sendiri → jangan retry, langsung logout
-  - [ ] Cek jika sudah pernah retry request ini → logout, jangan infinite loop
-  - [ ] Panggil `POST /v1/auth/refresh` → simpan token baru ke SecureStorage
-  - [ ] Retry original request dengan token baru (1x only)
-  - [ ] Jika refresh gagal → hapus token + trigger `AuthState.logout` + redirect `/login`
-- [ ] Tambah flag `extra['isRefresh']` di request refresh untuk avoid loop
+- [x] Buat `lib/core/network/auth_interceptor.dart` extends `Interceptor`
+- [x] `onRequest`: baca token via `SecureTokenStore`, inject `Authorization: Bearer <token>`
+- [x] `onError` (401):
+  - [x] Cek jika endpoint refresh sendiri → jangan retry, langsung logout
+  - [x] Cek jika sudah pernah retry request ini → logout, jangan infinite loop
+  - [x] Panggil `POST /v1/auth/refresh` → simpan token baru ke SecureStorage
+  - [x] Retry original request dengan token baru (1x only)
+  - [x] Jika refresh gagal → hapus token + trigger `AuthState.logout` + redirect `/login`
+- [x] Tambah flag `extra['isRefresh']` di request refresh untuk avoid loop
 
 ### Flutter — Logout Flow
 
-- [ ] Panggil `POST /v1/auth/logout` ke backend (revoke server-side)
-- [ ] Hapus token + user_data dari SecureStorage
-- [ ] Invalidate auth-scoped cache (key prefix `api_cache_`)
-- [ ] Reset `AuthState` ke unauthenticated
-- [ ] Navigate ke login screen
+- [x] Panggil `POST /v1/auth/logout` ke backend (revoke server-side)
+- [x] Hapus token + user_data dari SecureStorage
+- [x] Invalidate auth-scoped cache (key prefix `api_cache_`)
+- [x] Reset `AuthState` ke unauthenticated
+- [x] Navigate ke login screen
 
 ---
 
