@@ -1,0 +1,1509 @@
+openapi: "3.1.0"
+info:
+  title: Klass REST API
+  description: |
+    REST API contract untuk Klass Rust Gateway. 
+    Spec ini menjadi source of truth untuk 26 endpoint (unique URL patterns) 
+    yang diport dari Laravel.
+
+    ## Conventions
+    - Semua response dibungkus: `{ success: bool, data?: T, error?: ErrorBody }`
+    - Semua timestamp dalam ISO 8601 UTC
+    - Semua ID dalam format UUID v4 (string)
+    - Error format: `{ success: false, error: { code: string, message: string } }`
+    - Rate limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+  version: "1.0.0"
+  contact:
+    name: Klass Engineering
+
+servers:
+  - url: https://api.klass.app/api/v1
+    description: Production (Render)
+  - url: http://localhost:8080/api/v1
+    description: Local dev
+
+tags:
+  - name: Auth
+    description: Register, login, logout, me, refresh, password reset
+  - name: Topics
+    description: Pembelajaran topics (public read, teacher/admin write)
+  - name: Contents
+    description: Module/quiz/brief content dalam topic
+  - name: Marketplace Tasks
+    description: Freelancer marketplace tasks
+  - name: Student Progress
+    description: Student progress tracking
+  - name: Media Generation
+    description: AI-powered media generation (PDF, DOCX, PPTX)
+  - name: Homepage
+    description: Homepage recommendations & sections
+  - name: Gallery
+    description: Media gallery browsing
+  - name: Freelancer
+    description: Freelancer hiring & suggestions
+  - name: Upload
+    description: File upload (avatars, gallery, materials, attachments)
+  - name: Admin
+    description: Admin-only write & debug endpoints
+
+# ===========================================================================
+# Security Schemes
+# ===========================================================================
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Sanctum-compatible token (plain-text, hashed di server dengan SHA-256)
+
+  # ===========================================================================
+  # Shared Schemas (derived from Laravel JsonResource classes)
+  # ===========================================================================
+  schemas:
+    # --- Generic Wrappers ---
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+
+    DataResponse:
+      allOf:
+        - $ref: "#/components/schemas/SuccessResponse"
+        - type: object
+          properties:
+            data: {}
+
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "validation_failed"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Validasi gagal."
+      example:
+        code: "invalid_credentials"
+        message: "Email atau password yang Anda masukkan salah."
+
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+
+    # --- Auth Schemas ---
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" }
+        name: { type: string, example: "Budi Santoso" }
+        email: { type: string, format: email, example: "budi@example.com" }
+        avatar_url: { type: string, format: uri, nullable: true, example: "https://r2.klass.app/avatars/abc.jpg" }
+        primary_subject_id: { type: integer, nullable: true, example: 7 }
+        primary_subject:
+          nullable: true
+          $ref: "#/components/schemas/SubjectRef"
+        role: { type: string, enum: [teacher, freelancer, admin], example: "teacher" }
+        is_admin: { type: boolean }
+        is_teacher: { type: boolean }
+        is_freelancer: { type: boolean }
+        email_verified_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    AuthToken:
+      type: object
+      properties:
+        token: { type: string, example: "1|abc123plaintexttoken..." }
+        expires_at: { type: string, format: date-time, nullable: true }
+
+    SecurityQuestion:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        security_question: { type: string, example: "Apa nama hewan peliharaan pertama Anda?" }
+
+    # --- Taxonomy Schemas ---
+    SubjectRef:
+      type: object
+      properties:
+        id: { type: integer, example: 7 }
+        name: { type: string, example: "Matematika" }
+        slug: { type: string, example: "matematika" }
+
+    SubSubjectRef:
+      type: object
+      properties:
+        id: { type: integer, example: 42 }
+        subject_id: { type: integer, example: 7 }
+        name: { type: string, example: "Aljabar Linear" }
+        slug: { type: string, example: "aljabar-linear" }
+
+    Taxonomy:
+      type: object
+      nullable: true
+      properties:
+        subject:
+          nullable: true
+          $ref: "#/components/schemas/SubjectRef"
+        sub_subject:
+          $ref: "#/components/schemas/SubSubjectRef"
+
+    # --- Topic Schemas ---
+    Topic:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, example: "Pengenalan Aljabar" }
+        teacher_id: { type: string, format: uuid, nullable: true }
+        owner_user_id: { type: string, format: uuid, nullable: true }
+        ownership_status: { type: string, nullable: true }
+        sub_subject_id: { type: integer, nullable: true }
+        subject_id: { type: integer, nullable: true }
+        taxonomy: { $ref: "#/components/schemas/Taxonomy" }
+        personalization: { nullable: true }
+        thumbnail_url: { type: string, format: uri, nullable: true }
+        is_published: { type: boolean }
+        order: { type: integer, default: 0 }
+        contents_count: { type: integer, nullable: true }
+        contents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Content"
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    # --- Content Schemas ---
+    Content:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        topic_id: { type: string, format: uuid }
+        type: { type: string, enum: [module, quiz, brief] }
+        title: { type: string, nullable: true }
+        data: { type: object, nullable: true }
+        media_url: { type: string, format: uri, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    ContentWithTasks:
+      allOf:
+        - $ref: "#/components/schemas/Content"
+        - type: object
+          properties:
+            tasks:
+              type: array
+              items: { $ref: "#/components/schemas/MarketplaceTask" }
+
+    # --- Marketplace Task Schemas ---
+    MarketplaceTask:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        content_id: { type: string, format: uuid }
+        status: { type: string, example: "open" }
+        creator_id: { type: string, format: uuid }
+        attachment_url: { type: string, format: uri, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    # --- Student Progress Schemas ---
+    StudentProgress:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        student_name: { type: string }
+        score: { type: number, format: float, nullable: true }
+        completion_date: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    # --- Media Generation Schemas ---
+    MediaGeneration:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        generated_from_id: { type: string, format: uuid, nullable: true }
+        is_regeneration: { type: boolean }
+        teacher_id: { type: string, format: uuid }
+        prompt: { type: string }
+        preferred_output_type: { type: string, enum: [auto, docx, pdf, pptx] }
+        resolved_output_type: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [queued, interpreting, classified, generating, uploading, publishing, completed, failed, cancelled]
+        status_meta:
+          type: object
+          properties:
+            lifecycle_version: { type: string }
+            is_terminal: { type: boolean }
+            retry_behavior: { type: string, nullable: true }
+        subject_id: { type: integer, nullable: true }
+        sub_subject_id: { type: integer, nullable: true }
+        taxonomy: { $ref: "#/components/schemas/Taxonomy" }
+        provider:
+          type: object
+          properties:
+            llm:
+              type: object
+              properties:
+                name: { type: string, nullable: true }
+                model: { type: string, nullable: true }
+            generator:
+              type: object
+              properties:
+                name: { type: string, nullable: true }
+                model: { type: string, nullable: true }
+        artifact:
+          type: object
+          properties:
+            storage_path: { type: string, nullable: true }
+            file_url: { type: string, format: uri, nullable: true }
+            thumbnail_url: { type: string, format: uri, nullable: true }
+            mime_type: { type: string, nullable: true }
+        publication:
+          type: object
+          properties:
+            topic: { $ref: "#/components/schemas/EntityRef", nullable: true }
+            content: { $ref: "#/components/schemas/EntityRef", nullable: true }
+            recommended_project: { $ref: "#/components/schemas/EntityRef", nullable: true }
+        delivery_payload:
+          nullable: true
+          $ref: "#/components/schemas/DeliveryPayload"
+        error:
+          nullable: true
+          $ref: "#/components/schemas/ErrorPayload"
+        links:
+          type: object
+          properties:
+            poll: { type: string, format: uri }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    DeliveryPayload:
+      type: object
+      properties:
+        title: { type: string }
+        preview_summary: { type: string }
+        teacher_message: { type: string }
+        artifact: { $ref: "#/components/schemas/ArtifactRecord" }
+        recommended_next_steps:
+          type: array
+          items: { type: string }
+        fallback: { type: string, nullable: true }
+
+    ArtifactRecord:
+      type: object
+      properties:
+        url: { type: string, format: uri }
+        thumbnail_url: { type: string, format: uri }
+        mime_type: { type: string }
+        size_bytes: { type: integer, nullable: true }
+        checksum_sha256: { type: string, nullable: true }
+
+    ErrorPayload:
+      type: object
+      nullable: true
+      properties:
+        code: { type: string }
+        message: { type: string }
+        retryable: { type: boolean }
+
+    EntityRef:
+      type: object
+      nullable: true
+      properties:
+        id: { type: string }
+        title: { type: string }
+
+    # --- Homepage / Recommendation Schemas ---
+    RecommendedProject:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        thumbnail_url: { type: string, format: uri, nullable: true }
+        ratio: { type: string, example: "16:9" }
+        project_type: { type: string, nullable: true }
+        tags: { type: array, items: {} }
+        modules: { type: array, items: {} }
+        sub_subject_id: { type: integer, nullable: true }
+        subject_id: { type: integer, nullable: true }
+        taxonomy: { nullable: true, $ref: "#/components/schemas/Taxonomy" }
+        personalization: { nullable: true }
+        source_type: { type: string, nullable: true }
+        display_priority: { type: integer, default: 0 }
+        visibility:
+          type: object
+          properties:
+            is_active: { type: boolean }
+            starts_at: { type: string, format: date-time, nullable: true }
+            ends_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+
+    HomepageSection:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        type: { type: string }
+        display_order: { type: integer }
+        visible: { type: boolean }
+
+    # --- Gallery ---
+    GalleryItem:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        type: { type: string, enum: [image, video, document] }
+        url: { type: string, format: uri }
+        thumbnail_url: { type: string, format: uri, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    # --- Freelancer ---
+    FreelancerMatch:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        freelancer_id: { type: string, format: uuid }
+        freelancer_name: { type: string }
+        match_score: { type: number, format: float }
+        portfolio_url: { type: string, format: uri, nullable: true }
+
+    # --- Debug ---
+    TaxonomyDebug:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string }
+        prompt: { type: string }
+        persisted_taxonomy:
+          type: object
+          properties:
+            subject: { $ref: "#/components/schemas/SubjectRef", nullable: true }
+            sub_subject: { $ref: "#/components/schemas/SubSubjectRef", nullable: true }
+        interpretation_context:
+          type: object
+          properties:
+            subject_context: { nullable: true }
+            sub_subject_context: { nullable: true }
+        taxonomy_inference: { nullable: true }
+        draft_taxonomy_hint: { nullable: true }
+        drafting:
+          type: object
+          properties:
+            source: { type: string, nullable: true }
+            schema_version: { type: string, nullable: true }
+            fallback_triggered: { type: boolean }
+            fallback_reason_code: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    # --- Request Schemas ---
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: { type: string, maxLength: 255, example: "Budi Santoso" }
+        email: { type: string, format: email, maxLength: 255, example: "budi@example.com" }
+        password: { type: string, minLength: 8, example: "********" }
+        password_confirmation: { type: string, example: "********" }
+        role: { type: string, enum: [teacher, freelancer], example: "teacher" }
+        primary_subject_id: { type: integer, nullable: true, example: 7 }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: "budi@example.com" }
+        password: { type: string, example: "********" }
+        device_name: { type: string, example: "iPhone 15 Pro" }
+
+    GetSecurityQuestionRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    ResetPasswordRequest:
+      type: object
+      required: [email, security_answer, new_password]
+      properties:
+        email: { type: string, format: email }
+        security_answer: { type: string }
+        new_password: { type: string, minLength: 6 }
+
+    MediaGenerationRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt: { type: string, maxLength: 5000, example: "Buatkan modul pembelajaran tentang..." }
+        preferred_output_type: { type: string, enum: [auto, docx, pdf, pptx], default: "auto" }
+        subject_id: { type: integer, nullable: true, example: 7 }
+        sub_subject_id: { type: integer, nullable: true, example: 42 }
+
+    RegenerateRequest:
+      type: object
+      required: [additional_prompt]
+      properties:
+        additional_prompt: { type: string, maxLength: 5000, example: "Tolong tambahkan contoh soal dan latihan" }
+
+    TopicRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, maxLength: 255 }
+        teacher_id: { type: string, maxLength: 255, nullable: true }
+        sub_subject_id: { type: integer, nullable: true }
+        subject_id: { type: integer, nullable: true }
+        taxonomy: { $ref: "#/components/schemas/Taxonomy" }
+        thumbnail_url: { type: string, format: uri, maxLength: 2048, nullable: true }
+
+    ContentRequest:
+      type: object
+      required: [topic_id, type]
+      properties:
+        topic_id: { type: string, format: uuid }
+        type: { type: string, enum: [module, quiz, brief] }
+        title: { type: string, maxLength: 255, nullable: true }
+        data: { type: object, nullable: true }
+        media_url: { type: string, format: uri, maxLength: 2048, nullable: true }
+
+    MarketplaceTaskRequest:
+      type: object
+      properties:
+        content_id: { type: string, format: uuid }
+        status: { type: string }
+        creator_id: { type: string, format: uuid }
+        attachment_url: { type: string, format: uri, maxLength: 2048, nullable: true }
+
+    StudentProgressRequest:
+      type: object
+      properties:
+        student_name: { type: string }
+        score: { type: number, format: float, nullable: true }
+        completion_date: { type: string, format: date-time, nullable: true }
+
+    HireFreelancerRequest:
+      type: object
+      required: [mode, refinement_description]
+      properties:
+        mode: { type: string, enum: [auto_suggest, manual_task] }
+        refinement_description: { type: string, maxLength: 2000 }
+        selected_freelancer_id: { type: integer }
+
+    SuggestFreelancersRequest:
+      type: object
+      properties:
+        task_description: { type: string, maxLength: 2000 }
+
+# ===========================================================================
+# Paths (26 unique URL patterns)
+# ===========================================================================
+paths:
+  # =========================================================================
+  # Auth (7 endpoints: 4 public + 3 protected)
+  # =========================================================================
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user baru
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User berhasil didaftarkan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user: { $ref: "#/components/schemas/User" }
+                          token: { $ref: "#/components/schemas/AuthToken" }
+        "422":
+          $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit (throttle 3/min)
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user: { $ref: "#/components/schemas/User" }
+                          token: { $ref: "#/components/schemas/AuthToken" }
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit (throttle 5/min)
+
+  /auth/get-security-question:
+    post:
+      tags: [Auth]
+      summary: Dapatkan security question untuk reset password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetSecurityQuestionRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/SecurityQuestion" }
+
+  /auth/verify-and-reset-password:
+    post:
+      tags: [Auth]
+      summary: Verifikasi security answer dan reset password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message: { type: string }
+        "429":
+          description: Rate limit (throttle 3/min)
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (revoke current token)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message: { type: string }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user profile
+      parameters:
+        - name: include_personalization_context
+          in: query
+          schema: { type: boolean }
+          description: Include personalization subject context
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/User" }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh token (rotate — old token invalidated, new token issued)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token: { $ref: "#/components/schemas/AuthToken" }
+
+  # =========================================================================
+  # Topics (5 endpoints: 2 public + 1 teacher + 2 admin)
+  # =========================================================================
+  /topics:
+    get:
+      tags: [Topics]
+      summary: List topics (public)
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: sub_subject_id
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Topic" }
+                      meta: { $ref: "#/components/schemas/PaginationMeta" }
+    post:
+      tags: [Topics]
+      summary: Create topic (teacher only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TopicRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Topic" }
+
+  /topics/{topic}:
+    get:
+      tags: [Topics]
+      summary: Get single topic (public)
+      security: []
+      parameters:
+        - name: topic
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Topic" }
+        "404":
+          $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags: [Topics]
+      summary: Update topic (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TopicRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Topic" }
+    patch:
+      tags: [Topics]
+      summary: Update topic partial (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TopicRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Topic" }
+    delete:
+      tags: [Topics]
+      summary: Delete topic (admin only)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResponse"
+
+  # =========================================================================
+  # Contents (5 endpoints: 2 public + 3 admin)
+  # =========================================================================
+  /contents:
+    get:
+      tags: [Contents]
+      summary: List contents (public)
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: topic_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Content" }
+                      meta: { $ref: "#/components/schemas/PaginationMeta" }
+    post:
+      tags: [Contents]
+      summary: Create content (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Content" }
+
+  /contents/{content}:
+    get:
+      tags: [Contents]
+      summary: Get single content (public)
+      security: []
+      parameters:
+        - name: content
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ContentWithTasks" }
+    put:
+      tags: [Contents]
+      summary: Update content (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Content" }
+    patch:
+      tags: [Contents]
+      summary: Update content partial (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Content" }
+    delete:
+      tags: [Contents]
+      summary: Delete content (admin only)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResponse"
+
+  # =========================================================================
+  # Marketplace Tasks (5 endpoints: 2 public + 3 admin)
+  # =========================================================================
+  /marketplace-tasks:
+    get:
+      tags: [Marketplace Tasks]
+      summary: List marketplace tasks (public)
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, in_progress, completed, cancelled] }
+        - name: content_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/MarketplaceTask" }
+                      meta: { $ref: "#/components/schemas/PaginationMeta" }
+    post:
+      tags: [Marketplace Tasks]
+      summary: Create marketplace task (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketplaceTaskRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/MarketplaceTask" }
+
+  /marketplace-tasks/{marketplaceTask}:
+    get:
+      tags: [Marketplace Tasks]
+      summary: Get single marketplace task (public)
+      security: []
+      parameters:
+        - name: marketplaceTask
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/MarketplaceTask" }
+    put:
+      tags: [Marketplace Tasks]
+      summary: Update marketplace task (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketplaceTaskRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/MarketplaceTask" }
+    patch:
+      tags: [Marketplace Tasks]
+      summary: Update marketplace task partial (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarketplaceTaskRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/MarketplaceTask" }
+    delete:
+      tags: [Marketplace Tasks]
+      summary: Delete marketplace task (admin only)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResponse"
+
+  # =========================================================================
+  # Student Progress (5 endpoints: 2 public + 3 admin)
+  # =========================================================================
+  /student-progress:
+    get:
+      tags: [Student Progress]
+      summary: List student progress entries (public)
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/StudentProgress" }
+                      meta: { $ref: "#/components/schemas/PaginationMeta" }
+    post:
+      tags: [Student Progress]
+      summary: Create student progress (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentProgressRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/StudentProgress" }
+
+  /student-progress/{studentProgress}:
+    get:
+      tags: [Student Progress]
+      summary: Get single student progress (public)
+      security: []
+      parameters:
+        - name: studentProgress
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/StudentProgress" }
+    put:
+      tags: [Student Progress]
+      summary: Update student progress (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentProgressRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/StudentProgress" }
+    patch:
+      tags: [Student Progress]
+      summary: Update student progress partial (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentProgressRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/StudentProgress" }
+    delete:
+      tags: [Student Progress]
+      summary: Delete student progress (admin only)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResponse"
+
+  # =========================================================================
+  # Media Generation (6 protected endpoints)
+  # =========================================================================
+  /media-generations:
+    get:
+      tags: [Media Generation]
+      summary: List media generation history for current user
+      parameters:
+        - name: parent_id
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filter by parent generation (regeneration chain)
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/MediaGeneration" }
+                      meta: { $ref: "#/components/schemas/PaginationMeta" }
+    post:
+      tags: [Media Generation]
+      summary: Submit new media generation request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaGenerationRequest"
+      responses:
+        "201":
+          description: Generation dibuat (status QUEUED)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/MediaGeneration" }
+                      progress_stream_url:
+                        type: string
+                        description: gRPC stream URL untuk progress events (jika tersedia)
+                        example: "grpc://api.klass.app:50051/klass.media.v1.MediaGenerationService/SubmitMediaGeneration"
+        "422":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /media-generations/{mediaGeneration}:
+    get:
+      tags: [Media Generation]
+      summary: Poll current media generation status (REST fallback)
+      parameters:
+        - name: mediaGeneration
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/MediaGeneration" }
+        "404":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /media-generations/{mediaGeneration}/regenerate:
+    post:
+      tags: [Media Generation]
+      summary: Regenerate from existing generation (parent)
+      parameters:
+        - name: mediaGeneration
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+          description: Parent generation ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegenerateRequest"
+      responses:
+        "201":
+          description: Regeneration dibuat (status QUEUED)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/MediaGeneration" }
+
+  /media-generations/{mediaGeneration}/suggest-freelancers:
+    post:
+      tags: [Freelancer]
+      summary: Suggest freelancers for a media generation
+      parameters:
+        - name: mediaGeneration
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestFreelancersRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/FreelancerMatch" }
+
+  /media-generations/{mediaGeneration}/hire-freelancer:
+    post:
+      tags: [Freelancer]
+      summary: Hire freelancer for a media generation
+      parameters:
+        - name: mediaGeneration
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HireFreelancerRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResponse"
+
+  # =========================================================================
+  # Homepage (2 endpoints: public)
+  # =========================================================================
+  /homepage-recommendations:
+    get:
+      tags: [Homepage]
+      summary: Get personalized homepage recommendations (public, optional auth)
+      security: [{}]
+      parameters:
+        - name: include_source_context
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/RecommendedProject" }
+
+  /homepage-sections:
+    get:
+      tags: [Homepage]
+      summary: Get homepage section configuration (public)
+      security: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/HomepageSection" }
+
+  # =========================================================================
+  # Gallery (1 endpoint: public)
+  # =========================================================================
+  /gallery:
+    get:
+      tags: [Gallery]
+      summary: List gallery media items (public)
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: type
+          in: query
+          schema: { type: string, enum: [image, video, document] }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/GalleryItem" }
+                      meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+  # =========================================================================
+  # User Avatar (1 endpoint: protected)
+  # =========================================================================
+  /user/avatar:
+    post:
+      tags: [Auth]
+      summary: Upload user avatar (authenticated)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [avatar]
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Image file (JPG, PNG, max 5MB)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          avatar_url: { type: string, format: uri }
+
+  # =========================================================================
+  # File Upload (2 admin endpoints)
+  # =========================================================================
+  /upload/{category}:
+    parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [avatars, gallery, materials, attachments]
+    post:
+      tags: [Upload]
+      summary: Upload file (admin only)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          url: { type: string, format: uri }
+                          path: { type: string }
+    delete:
+      tags: [Upload]
+      summary: Delete upload (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataResponse"
+
+  # =========================================================================
+  # Admin Debug (1 admin endpoint)
+  # =========================================================================
+  /admin/media-generations/{mediaGeneration}/debug-taxonomy:
+    get:
+      tags: [Admin]
+      summary: Debug taxonomy inference for a media generation (admin only)
+      parameters:
+        - name: mediaGeneration
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/DataResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/TaxonomyDebug" }

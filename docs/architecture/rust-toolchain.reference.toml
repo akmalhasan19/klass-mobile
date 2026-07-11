@@ -1,0 +1,16 @@
+# Rust toolchain configuration for Klass Gateway
+# Used by rustup to pin the toolchain version
+
+[toolchain]
+channel = "1.85"
+profile = "default"
+components = [
+    "rustfmt",        # Code formatter
+    "clippy",         # Linter
+    "rust-analyzer",  # IDE support
+    "rust-src",       # Standard library source (rust-analyzer)
+]
+targets = [
+    "x86_64-unknown-linux-gnu",   # Production (Render, Debian)
+    "x86_64-unknown-linux-musl",  # Static build (for alpine/minimal)
+]

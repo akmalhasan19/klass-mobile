@@ -193,74 +193,74 @@ W17-18:    [====] Fase 6 Migration (blue-green + cache migration + cutover)
 
 ### Task 2.1: Architecture Decision Records (ADRs)
 
-- [ ] ADR-001: Bahasa Gateway — Rust (diterima) vs Go vs Node.js
-- [ ] ADR-002: Protokol Flutter ↔ Gateway — Hybrid gRPC server-streaming (media-gen) + REST (lainnya)
-- [ ] ADR-003: Konsolidasi Laravel → Rust; tetap pertahankan Media Gen terpisah
-- [ ] ADR-004: Database strategy — Neon PostgreSQL tetap; schema identik; port migration ke sqlx
-- [ ] ADR-005: Deployment target — Render Web Service (Starter $7/bln); region sama Neon
-- [ ] ADR-006: Queue strategy — Redis Streams via Upstash free tier
-- [ ] ADR-007: Consolidate LLM Adapter ke Rust Gateway — hapus HF Space #2 + 1 Postgres DB
-- [ ] ADR-008: Cache DB pindah ke Neon aplikasi — tabel `llm_cache_entries` (gabungan interpret+delivery, route discriminator)
+- [x] ADR-001: Bahasa Gateway — Rust (diterima) vs Go vs Node.js
+- [x] ADR-002: Protokol Flutter ↔ Gateway — Hybrid gRPC server-streaming (media-gen) + REST (lainnya)
+- [x] ADR-003: Konsolidasi Laravel → Rust; tetap pertahankan Media Gen terpisah
+- [x] ADR-004: Database strategy — Neon PostgreSQL tetap; schema identik; port migration ke sqlx
+- [x] ADR-005: Deployment target — Render Web Service (Starter $7/bln); region sama Neon
+- [x] ADR-006: Queue strategy — Redis Streams via Upstash free tier
+- [x] ADR-007: Consolidate LLM Adapter ke Rust Gateway — hapus HF Space #2 + 1 Postgres DB
+- [x] ADR-008: Cache DB pindah ke Neon aplikasi — tabel `llm_cache_entries` (gabungan interpret+delivery, route discriminator)
 
 ### Task 2.2: Target Architecture Diagram
 
-- [ ] Component diagram lengkap (Flutter → Rust Gateway → Media Gen → Neon → R2 → Redis)
-- [ ] Data flow Generate PDF: LLM interpret → draft → decision → Media Gen → PDF → R2 → Flutter
-- [ ] Data flow Generate DOCX (same flow)
-- [ ] Data flow Generate PPTX (same flow)
-- [ ] Communication protocol per edge: gRPC stream, REST/JSON, HTTP/2 + HMAC, Redis Streams
+- [x] Component diagram lengkap (Flutter → Rust Gateway → Media Gen → Neon → R2 → Redis)
+- [x] Data flow Generate PDF: LLM interpret → draft → decision → Media Gen → PDF → R2 → Flutter
+- [x] Data flow Generate DOCX (same flow)
+- [x] Data flow Generate PPTX (same flow)
+- [x] Communication protocol per edge: gRPC stream, REST/JSON, HTTP/2 + HMAC, Redis Streams
 
 ### Task 2.3: API Contract Design
 
-- [ ] Proto file `proto/klass/media/v1/media_generation.proto`:
-  - [ ] `service MediaGenerationService` dengan `SubmitMediaGeneration` + `Regenerate` (server-streaming)
-  - [ ] `message SubmitRequest` (prompt, preferred_output_type, subject_id, sub_subject_id)
-  - [ ] `message RegenerateRequest` (parent_id, additional_prompt)
-  - [ ] `message GenerationProgressEvent` (generation_id, status, is_terminal, metadata, delivery_payload, error)
-  - [ ] `message DeliveryPayload` (title, preview_summary, teacher_message, artifact, recommended_next_steps, fallback)
-  - [ ] `message ErrorPayload` (code, message, retryable)
-- [ ] REST fallback spec (OpenAPI 3.1): basis dump semua `JsonResource` Laravel ke JSON schema
-- [ ] Internal API contract Gateway → Media Gen: HTTP/2 + HMAC (sama dengan Laravel sekarang)
-- [ ] Internal contract Gateway → LLM providers (Gemini/OpenAI): HTTP/2 + API key
+- [x] Proto file `proto/klass/media/v1/media_generation.proto`:
+  - [x] `service MediaGenerationService` dengan `SubmitMediaGeneration` + `Regenerate` (server-streaming)
+  - [x] `message SubmitRequest` (generation_id) — gRPC hanya untuk streaming; create generation via REST POST /v1/media-generations
+  - [x] `message RegenerateRequest` (parent_id, additional_prompt)
+  - [x] `message GenerationProgressEvent` (generation_id, status, is_terminal, metadata, delivery_payload, error)
+  - [x] `message DeliveryPayload` (title, preview_summary, teacher_message, artifact, recommended_next_steps, fallback)
+  - [x] `message ErrorPayload` (code, message, retryable)
+- [x] REST fallback spec (OpenAPI 3.1): basis dump semua `JsonResource` Laravel ke JSON schema
+- [x] Internal API contract Gateway → Media Gen: HTTP/2 + HMAC (sama dengan Laravel sekarang)
+- [x] Internal contract Gateway → LLM providers (Gemini/OpenAI): HTTP/2 + API key
 
 ### Task 2.4: Database Schema Design
 
-- [ ] 30 Laravel migrations → 30 sqlx migration files (timestamp identik; table yang tidak perlu diport: `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `password_reset_tokens`, `sessions` — ini digantikan Redis lifecycle)
-- [ ] 5-6 sqlx migration baru untuk konsolidasi LLM Adapter schema:
-  - [ ] `llm_cache_entries` — konsolidasi `interpretation_cache_entries` + `delivery_cache_entries` ke satu tabel dengan kolom `route` ('interpret'/'respond') sebagai discriminator; (cache_key, route, request_payload JSONB, response_payload JSONB, created_at, expires_at, hit_count, last_hit_at) + partial index per route
-  - [ ] `llm_rate_limit_policies` (scope_type, strategy, route, provider, model, window_unit, max_requests, max_input_tokens, max_output_tokens, max_total_tokens, max_estimated_cost_usd, enabled) + UNIQUE constraint pada (scope_type, route, provider, model, window_unit)
-  - [ ] `llm_rate_limit_buckets` (policy_id FK, window_started_at, window_ends_at, request_count, input_tokens, output_tokens, total_tokens, estimated_cost_usd, deny_count, last_request_id, last_generation_id) + UNIQUE pada (policy_id, window_started_at)
-  - [ ] `llm_request_ledger` — audit trail untuk tiap LLM API call (request_id, generation_id, route, provider, model, latency_ms, retry_count, cache_status, final_status, error_class, error_code, fallback_used, input_tokens, output_tokens, total_tokens, estimated_cost_usd, cache_key, metadata JSONB) — non-kritis, bisa di-stream ke tabel terpisah
-  - [ ] `llm_price_catalog` — simplifikasi dari `price_catalog_entries` (provider, model, input_cost_per_unit_usd, output_cost_per_unit_usd, effective_from, is_active) + deduplikasi by provider+model
-  - [ ] (Opsional) View `llm_request_daily_aggregates` & `llm_request_daily_route_aggregates` bisa diganti query langsung via `sqlx`; tidak perlu migration terpisah
-- [ ] Mapping 15 Eloquent Model → 15 Rust struct + `#[derive(FromRow)]`
-- [ ] Mapping LLM Adapter cache struct (Python dataclass) → Rust struct
-- [ ] Data migration strategy: zero-downtime, dual-read di Fase 6
+- [x] 30 Laravel migrations → 20 sqlx migration files (15 Laravel parity + 5 new; konsolidasi ALTER TABLE ke CREATE TABLE final — schema identik, lebih sedikit file, zero ordering risk)
+- [x] 5-6 sqlx migration baru untuk konsolidasi LLM Adapter schema:
+  - [x] `llm_cache_entries` — konsolidasi `interpretation_cache_entries` + `delivery_cache_entries` ke satu tabel dengan kolom `route` ('interpret'/'respond') sebagai discriminator; (cache_key, route, request_payload JSONB, response_payload JSONB, created_at, expires_at, hit_count, last_hit_at) + partial index per route
+  - [x] `llm_rate_limit_policies` (scope_type, strategy, route, provider, model, window_unit, max_requests, max_input_tokens, max_output_tokens, max_total_tokens, max_estimated_cost_usd, enabled) + UNIQUE constraint pada (scope_type, route, provider, model, window_unit)
+  - [x] `llm_rate_limit_buckets` (policy_id FK, window_started_at, window_ends_at, request_count, input_tokens, output_tokens, total_tokens, estimated_cost_usd, deny_count, last_request_id, last_generation_id) + UNIQUE pada (policy_id, window_started_at)
+  - [x] `llm_request_ledger` — audit trail untuk tiap LLM API call (request_id, generation_id, route, provider, model, latency_ms, retry_count, cache_status, final_status, error_class, error_code, fallback_used, input_tokens, output_tokens, total_tokens, estimated_cost_usd, cache_key, metadata JSONB) — non-kritis, bisa di-stream ke tabel terpisah
+  - [x] `llm_price_catalog` — simplifikasi dari `price_catalog_entries` (provider, model, input_cost_per_unit_usd, output_cost_per_unit_usd, effective_from, is_active) + deduplikasi by provider+model
+  - [x] (Opsional) View `llm_request_daily_aggregates` & `llm_request_daily_route_aggregates` bisa diganti query langsung via `sqlx`; tidak perlu migration terpisah
+- [x] Mapping 15 Eloquent Model → 15 Rust struct + `#[derive(FromRow)]`
+- [x] Mapping LLM Adapter cache struct (Python dataclass) → Rust struct
+- [x] Data migration strategy: zero-downtime, dual-read di Fase 6
 
 ### Task 2.5: Tech Stack Final
 
-- [ ] Rust crates list dengan versi spesifik:
-  - [ ] `axum` 0.7, `tokio` 1.x (full features), `sqlx` 0.8 (postgres, runtime-tokio-rustls)
-  - [ ] `tonic` 0.12 (gRPC server), `prost` 0.13 (protobuf)
-  - [ ] `reqwest` 0.12 (HTTP/2, rustls), `serde` 1, `serde_json` 1
-  - [ ] `argon2` 0.5 (Sanctum password verify), `tower` 0.5, `tower-http` 0.6
-  - [ ] `tracing` 0.1, `tracing-subscriber` 0.3
-  - [ ] `thiserror` 1, `anyhow` 1
-  - [ ] `config` 0.14, `aws-sdk-s3` 1.x
-  - [ ] `uuid` 1.x, `garde` 0.20 (validation), `utoipa` 5 (OpenAPI)
-  - [ ] `rust_decimal` 1.36 (governance budget), `blake2` 0.10 (advisory lock id)
-  - [ ] `redis` 0.27 (Redis Streams), `deadpool-redis` 0.18
-- [ ] Dev tools: `cargo-watch`, `sqlx-cli` 0.8, `cargo-nextest`, `rustfmt`, `clippy`
-- [ ] CI/CD: GitHub Actions (lint → test → build → deploy Render)
-- [ ] Deployment target: Render Web Service Docker, region sama Neon
+- [x] Rust crates list dengan versi spesifik:
+  - [x] `axum` 0.8, `tokio` 1.43 (full features), `sqlx` 0.8 (postgres, runtime-tokio-rustls)
+  - [x] `tonic` 0.12 (gRPC server), `prost` 0.13 (protobuf)
+  - [x] `reqwest` 0.12 (HTTP/2, rustls), `serde` 1, `serde_json` 1
+  - [x] `argon2` 0.5 (Sanctum password verify), `tower` 0.5, `tower-http` 0.6
+  - [x] `tracing` 0.1, `tracing-subscriber` 0.3
+  - [x] `thiserror` 2.0, `anyhow` 1
+  - [x] `config` 0.14, `aws-sdk-s3` 1.x
+  - [x] `uuid` 1.11, `garde` 0.20 (validation), `utoipa` 5 (OpenAPI)
+  - [x] `rust_decimal` 1.36 (governance budget), `blake2` 0.10 (advisory lock id)
+  - [x] `redis` 0.27 (Redis Streams), `deadpool-redis` 0.18
+- [x] Dev tools: `cargo-watch` 8.x, `sqlx-cli` 0.8, `cargo-nextest` 0.9, `rustfmt`, `clippy`
+- [x] CI/CD: GitHub Actions (lint → test → build → deploy Render)
+- [x] Deployment target: Render Web Service Docker, region sama Neon
 
 ### Gate Fase 2 → Fase 3 (Go/No-Go)
 
-- [ ] Semua 8 ADR signed off
-- [ ] Proto file draft reviewed
-- [ ] Schema design untuk ~35 migrations selesai (30 Laravel parity + 5-6 konsolidasi baru)
-- [ ] Tech stack dengan versi terkunci
-- [ ] Env var mapping (Laravel + LLM Adapter → Rust) lengkap
+- [x] Semua 8 ADR signed off
+- [x] Proto file draft reviewed
+- [x] Schema design untuk ~35 migrations selesai (20 sqlx files: 15 Laravel parity + 5 konsolidasi baru)
+- [x] Tech stack dengan versi terkunci
+- [x] Env var mapping (Laravel + LLM Adapter → Rust) lengkap
 
 ---
 

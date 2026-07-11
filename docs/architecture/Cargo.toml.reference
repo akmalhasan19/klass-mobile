@@ -1,0 +1,146 @@
+[package]
+name = "klass-gateway"
+description = "Klass API Gateway — AI-powered educational content generation (Rust replacement for Laravel + LLM Adapter)"
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.85"
+authors = ["Klass Engineering"]
+license = "UNLICENSED"
+repository = "https://github.com/klass-app/klass-mobile"
+
+# ── Build Configuration ──────────────────────
+[build-dependencies]
+tonic-build = "0.12"
+prost-build = "0.13"
+
+# ── Runtime Dependencies ─────────────────────
+[dependencies]
+# Core framework
+tokio = { version = "1.43", features = [
+    "rt-multi-thread",
+    "macros",
+    "sync",
+    "time",
+    "net",
+    "fs",
+    "signal",
+    "io-util",
+] }
+axum = { version = "0.8", features = ["macros"] }
+tonic = "0.12"
+tower = "0.5"
+tower-http = { version = "0.6", features = [
+    "cors",
+    "trace",
+    "compression-gzip",
+    "timeout",
+    "request-id",
+    "set-header",
+    "auth",
+] }
+
+# Database
+sqlx = { version = "0.8", features = [
+    "postgres",
+    "runtime-tokio-rustls",
+    "chrono",
+    "uuid",
+    "rust_decimal",
+    "migrate",
+    "offline",
+] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.11", features = ["v4", "serde", "sqlx"] }
+rust_decimal = { version = "1.36", features = ["serde", "sqlx"] }
+
+# Auth & Security
+argon2 = { version = "0.5", features = ["password-hash"] }
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+subtle = "2.6"
+
+# HTTP Clients
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls",
+    "http2",
+    "gzip",
+    "json",
+] }
+aws-sdk-s3 = "1.56"
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-credential-types = "1.2"
+
+# Cache, Governance & Queue
+redis = { version = "0.27", features = ["tokio-comp", "streams"] }
+deadpool-redis = "0.18"
+blake2 = "0.10"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+# Error handling & Config
+thiserror = "2.0"
+anyhow = "1.0"
+config = { version = "0.14", features = ["toml"] }
+dotenvy = "0.15"
+
+# Validation & API Docs
+garde = { version = "0.20", features = ["derive"] }
+utoipa = { version = "5.0", features = ["axum_extras", "chrono", "uuid", "decimal"] }
+utoipa-swagger-ui = { version = "8.0", features = ["axum"] }
+
+# Async trait support (until native async traits stabilize)
+async-trait = "0.1"
+
+# Protobuf (shared between tonic and any direct proto usage)
+prost = "0.13"
+
+# ── Dev Dependencies ─────────────────────────
+[dev-dependencies]
+tokio-test = "0.4"
+mockito = "1.6"
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres", "redis"] }
+serial_test = "3.2"
+
+# ── Profile Configuration ────────────────────
+[profile.release]
+opt-level = 3       # Full optimization
+lto = true          # Link-time optimization → smaller binary
+codegen-units = 1   # Single codegen unit → better inlining
+strip = "symbols"   # Strip debug symbols → smaller binary
+panic = "abort"     # Abort on panic → smaller binary, faster unwind
+
+[profile.dev]
+opt-level = 0       # Fast compile
+debug = true
+
+[profile.dev.package."*"]
+opt-level = 2       # Optimize dependencies even in dev mode (faster runtime)
+
+[profile.test]
+opt-level = 2       # Optimize tests for faster execution
+
+# ── Workspace Metadata ───────────────────────
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+# ── Lints ────────────────────────────────────
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+todo = "warn"
+dbg_macro = "warn"
+print_stdout = "warn"
