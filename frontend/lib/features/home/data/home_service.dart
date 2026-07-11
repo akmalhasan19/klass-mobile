@@ -1,20 +1,23 @@
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/network/api_data_normalizer.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
 import 'package:dio/dio.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 
 class HomeService {
-  final ApiService _apiService = ApiService();
+  final Dio _dio;
 
-  Future<List<Map<String, dynamic>>> fetchProjects({bool forceRefresh = false}) async {
+  HomeService(this._dio);
+
+  Future<List<Map<String, dynamic>>> fetchProjects({bool forceRefresh = false, CancelToken? cancelToken}) async {
     if (!FeatureFlags.useApiData) {
       return []; // Fallback: return empty when API is disabled
     }
 
     try {
-      final response = await _apiService.dio.get(
+      final response = await _dio.get(
         ApiConfig.v('/homepage-recommendations'),
+        cancelToken: cancelToken,
         options: Options(extra: {'forceRefresh': forceRefresh}),
         queryParameters: const {
           'limit': 10,
@@ -24,11 +27,11 @@ class HomeService {
         final payload = response.data;
         if (payload is Map<String, dynamic> && payload['data'] is List) {
           final data = payload['data'] as List;
-          return ApiService.normalizeRecommendationCollection(data);
+          return ApiDataNormalizer.normalizeRecommendationCollection(data);
         }
 
         throw Exception(
-          ApiService.buildDebugInfo(
+          ApiDataNormalizer.buildDebugInfo(
             'Invalid response format. Expected data as List.',
             operation: ApiDebugOperation.homeProjectsLoadFailed,
             endpoint: ApiConfig.v('/homepage-recommendations'),
@@ -38,7 +41,7 @@ class HomeService {
       return [];
     } on DioException catch (e) {
       throw Exception(
-        ApiService.buildDebugInfo(
+        ApiDataNormalizer.buildDebugInfo(
           e,
           operation: ApiDebugOperation.homeProjectsLoadFailed,
           endpoint: '/homepage-recommendations',
@@ -48,7 +51,7 @@ class HomeService {
       rethrow;
     } catch (e) {
       throw Exception(
-        ApiService.buildDebugInfo(
+        ApiDataNormalizer.buildDebugInfo(
           e,
           operation: ApiDebugOperation.homeProjectsLoadFailed,
           endpoint: '/homepage-recommendations',
@@ -57,14 +60,15 @@ class HomeService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchHomepageSections({bool forceRefresh = false}) async {
+  Future<List<Map<String, dynamic>>> fetchHomepageSections({bool forceRefresh = false, CancelToken? cancelToken}) async {
     if (!FeatureFlags.useApiData) {
       return []; // Fallback
     }
 
     try {
-      final response = await _apiService.dio.get(
+      final response = await _dio.get(
         ApiConfig.v('/homepage-sections'),
+        cancelToken: cancelToken,
         options: Options(extra: {'forceRefresh': forceRefresh}),
       );
       if (response.statusCode == 200) {
@@ -80,14 +84,15 @@ class HomeService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchFreelancers({bool forceRefresh = false}) async {
+  Future<List<Map<String, dynamic>>> fetchFreelancers({bool forceRefresh = false, CancelToken? cancelToken}) async {
     if (!FeatureFlags.useApiData) {
       return []; // Fallback: return empty when API is disabled
     }
 
     try {
-      final response = await _apiService.dio.get(
+      final response = await _dio.get(
         ApiConfig.v('/marketplace-tasks'),
+        cancelToken: cancelToken,
         options: Options(extra: {'forceRefresh': forceRefresh}),
       );
       if (response.statusCode == 200) {
@@ -98,7 +103,7 @@ class HomeService {
         }
 
         throw Exception(
-          ApiService.buildDebugInfo(
+          ApiDataNormalizer.buildDebugInfo(
             'Invalid response format. Expected data as List.',
             operation: ApiDebugOperation.homeFreelancersLoadFailed,
             endpoint: ApiConfig.v('/marketplace-tasks'),
@@ -108,7 +113,7 @@ class HomeService {
       return [];
     } on DioException catch (e) {
       throw Exception(
-        ApiService.buildDebugInfo(
+        ApiDataNormalizer.buildDebugInfo(
           e,
           operation: ApiDebugOperation.homeFreelancersLoadFailed,
           endpoint: '/marketplace-tasks',
@@ -118,7 +123,7 @@ class HomeService {
       rethrow;
     } catch (e) {
       throw Exception(
-        ApiService.buildDebugInfo(
+        ApiDataNormalizer.buildDebugInfo(
           e,
           operation: ApiDebugOperation.homeFreelancersLoadFailed,
           endpoint: '/marketplace-tasks',

@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/features/bookmark/screens/bookmark_screen.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _TopicsEmptyAdapter implements HttpClientAdapter {
@@ -30,22 +32,33 @@ class _TopicsEmptyAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
 
   testWidgets('My Teaching Materials shows create-project empty state when no data exists', (tester) async {
-    final api = ApiService();
-    api.dio.httpClientAdapter = _TopicsEmptyAdapter();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _TopicsEmptyAdapter();
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: BookmarkScreen(),
+      ProviderScope(
+        overrides: [dioProvider.overrideWithValue(dio)],
+        child: const MaterialApp(
+          home: BookmarkScreen(),
+        ),
       ),
     );
 
-    // Wait async fetch + listener updates.
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));
 
@@ -60,22 +73,24 @@ void main() {
       'auth_token': 'test-token',
     });
 
-    final api = ApiService();
-    api.dio.httpClientAdapter = _TopicsEmptyAdapter();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _TopicsEmptyAdapter();
 
     var createCallbackCalled = false;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: BookmarkScreen(
-          onCreateNewModule: () {
-            createCallbackCalled = true;
-          },
+      ProviderScope(
+        overrides: [dioProvider.overrideWithValue(dio)],
+        child: MaterialApp(
+          home: BookmarkScreen(
+            onCreateNewModule: () {
+              createCallbackCalled = true;
+            },
+          ),
         ),
       ),
     );
 
-    // Wait async fetch + listener updates.
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));
 

@@ -3,8 +3,10 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:klass_app/features/media_generation/widgets/media_generation_status_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,25 +52,38 @@ class _HistoryAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   late MediaGenerationService service;
 
-  Widget buildTestHarness(Widget child) {
-    return MaterialApp(
-      home: Scaffold(
-        body: SingleChildScrollView(child: child),
+  Widget buildTestHarness(Widget child, Dio dio) {
+    return ProviderScope(
+      overrides: [dioProvider.overrideWithValue(dio)],
+      child: MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(child: child),
+        ),
       ),
     );
   }
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    service = MediaGenerationService();
-    service.reset(notify: false);
   });
 
   testWidgets('MediaGenerationStatusCard shows View History button when callback is provided', (tester) async {
-    ApiService().dio.httpClientAdapter = _HistoryAdapter();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _HistoryAdapter();
+    service = MediaGenerationService(dio);
+    service.reset(notify: false);
     var historyTapCount = 0;
 
     await tester.runAsync(() async {
@@ -84,6 +99,7 @@ void main() {
           service: service,
           onViewHistory: () => historyTapCount += 1,
         ),
+        dio,
       ),
     );
     await tester.pump();
@@ -99,7 +115,10 @@ void main() {
   });
 
   testWidgets('MediaGenerationStatusCard hides View History button when callback is null', (tester) async {
-    ApiService().dio.httpClientAdapter = _HistoryAdapter();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _HistoryAdapter();
+    service = MediaGenerationService(dio);
+    service.reset(notify: false);
 
     await tester.runAsync(() async {
       await service.submitPrompt(prompt: 'Test prompt');
@@ -114,6 +133,7 @@ void main() {
           service: service,
           onViewHistory: null,
         ),
+        dio,
       ),
     );
     await tester.pump();

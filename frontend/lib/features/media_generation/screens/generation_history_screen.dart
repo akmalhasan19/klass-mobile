@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/features/media_generation/data/generation_history_service.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
-class GenerationHistoryScreen extends StatefulWidget {
+class GenerationHistoryScreen extends ConsumerStatefulWidget {
   const GenerationHistoryScreen({super.key, required this.generationId});
 
   final String generationId;
 
   @override
-  State<GenerationHistoryScreen> createState() => _GenerationHistoryScreenState();
+  ConsumerState<GenerationHistoryScreen> createState() => _GenerationHistoryScreenState();
 }
 
-class _GenerationHistoryScreenState extends State<GenerationHistoryScreen> {
-  final GenerationHistoryService _service = GenerationHistoryService();
+class _GenerationHistoryScreenState extends ConsumerState<GenerationHistoryScreen> with CancelableState {
+  late final GenerationHistoryService _service;
 
   @override
   void initState() {
     super.initState();
+    _service = GenerationHistoryService(ref.read(dioProvider));
     _service.addListener(_onServiceChanged);
     _fetchHistory();
   }
@@ -34,7 +38,7 @@ class _GenerationHistoryScreenState extends State<GenerationHistoryScreen> {
   }
 
   Future<void> _fetchHistory() async {
-    await _service.getHistoryForGeneration(widget.generationId);
+    await _service.getHistoryForGeneration(widget.generationId, cancelToken: cancelToken);
   }
 
   @override

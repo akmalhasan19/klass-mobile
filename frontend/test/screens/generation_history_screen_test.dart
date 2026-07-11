@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/features/media_generation/screens/generation_history_screen.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MockAdapter implements HttpClientAdapter {
@@ -76,21 +78,32 @@ class _MockAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  Widget buildTestHarness(Widget child) {
-    return MaterialApp(
-      home: child,
+  Widget buildTestHarness(Widget child, Dio dio) {
+    return ProviderScope(
+      overrides: [dioProvider.overrideWithValue(dio)],
+      child: MaterialApp(home: child),
     );
   }
 
   testWidgets('GenerationHistoryScreen shows loading then success state', (tester) async {
-    ApiService().dio.httpClientAdapter = _MockAdapter();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _MockAdapter();
     
-    await tester.pumpWidget(buildTestHarness(const GenerationHistoryScreen(generationId: 'gen-123')));
+    await tester.pumpWidget(buildTestHarness(const GenerationHistoryScreen(generationId: 'gen-123'), dio));
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.text('Memuat riwayat generasi...'), findsOneWidget);
@@ -104,17 +117,17 @@ void main() {
   });
 
   testWidgets('GenerationHistoryScreen shows error state with retry', (tester) async {
-    ApiService().dio.httpClientAdapter = _MockAdapter(fail: true);
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _MockAdapter(fail: true);
 
-    await tester.pumpWidget(buildTestHarness(const GenerationHistoryScreen(generationId: 'gen-123')));
+    await tester.pumpWidget(buildTestHarness(const GenerationHistoryScreen(generationId: 'gen-123'), dio));
     await tester.pumpAndSettle();
 
     expect(find.text('Gagal memuat riwayat'), findsOneWidget);
     expect(find.text('Connection timeout'), findsOneWidget);
     expect(find.byIcon(Icons.refresh), findsOneWidget);
 
-    // Test Retry
-    ApiService().dio.httpClientAdapter = _MockAdapter(fail: false);
+    dio.httpClientAdapter = _MockAdapter(fail: false);
     await tester.tap(find.text('Coba Lagi'));
     await tester.pump();
     
@@ -124,9 +137,10 @@ void main() {
   });
 
   testWidgets('GenerationHistoryScreen shows empty state', (tester) async {
-    ApiService().dio.httpClientAdapter = _MockAdapter(empty: true);
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _MockAdapter(empty: true);
 
-    await tester.pumpWidget(buildTestHarness(const GenerationHistoryScreen(generationId: 'gen-123')));
+    await tester.pumpWidget(buildTestHarness(const GenerationHistoryScreen(generationId: 'gen-123'), dio));
     await tester.pumpAndSettle();
 
     expect(find.text('Tidak ada riwayat generasi ditemukan.'), findsOneWidget);

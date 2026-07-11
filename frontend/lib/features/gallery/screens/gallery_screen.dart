@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'dart:ui';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/features/gallery/widgets/filter_modal.dart';
 import 'package:klass_app/features/gallery/data/gallery_service.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
-class GalleryScreen extends StatefulWidget {
+class GalleryScreen extends ConsumerStatefulWidget {
   const GalleryScreen({super.key});
 
   @override
-  State<GalleryScreen> createState() => _GalleryScreenState();
+  ConsumerState<GalleryScreen> createState() => _GalleryScreenState();
 }
 
-class _GalleryScreenState extends State<GalleryScreen> {
+class _GalleryScreenState extends ConsumerState<GalleryScreen> with CancelableState {
   final TextEditingController _searchController = TextEditingController();
-  final GalleryService _galleryService = GalleryService();
+  late final GalleryService _galleryService;
   
   bool _isLoading = true;
   String? _error;
@@ -23,6 +26,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   @override
   void initState() {
     super.initState();
+    _galleryService = GalleryService(ref.read(dioProvider));
     _fetchGallery();
   }
 
@@ -32,7 +36,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
       _error = null;
     });
     try {
-      final items = await _galleryService.fetchGallery();
+      final items = await _galleryService.fetchGallery(cancelToken: cancelToken);
       if (mounted) {
         setState(() {
           _galleryItems = items;

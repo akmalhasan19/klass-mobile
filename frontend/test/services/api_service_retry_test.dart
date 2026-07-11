@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/core/config/api_config.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/network/retry_interceptor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _Step {
@@ -53,54 +53,68 @@ class _QueuedAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  final dio = Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+  ));
+  dio.interceptors.add(RetryInterceptor(dioFactory: () => dio));
+  return dio;
+}
+
 void main() {
   setUpAll(() {
     SharedPreferences.setMockInitialValues({});
   });
 
   test('GET retries on transient connection failure and then succeeds', () async {
-    final api = ApiService();
+    final dio = _createTestDio();
     final adapter = _QueuedAdapter([
       const _Step.error(DioExceptionType.connectionError),
       const _Step.success(200),
     ]);
-    api.dio.httpClientAdapter = adapter;
+    dio.httpClientAdapter = adapter;
 
-    final response = await api.dio.get('/retry-once-success');
+    final response = await dio.get('/retry-once-success');
 
     expect(response.statusCode, 200);
     expect(adapter.fetchCount, 2);
   });
 
   test('GET stops after max retries on repeated timeout', () async {
-    final api = ApiService();
+    final dio = _createTestDio();
     final adapter = _QueuedAdapter([
       const _Step.error(DioExceptionType.connectionTimeout),
       const _Step.error(DioExceptionType.connectionTimeout),
       const _Step.error(DioExceptionType.connectionTimeout),
       const _Step.success(200),
     ]);
-    api.dio.httpClientAdapter = adapter;
+    dio.httpClientAdapter = adapter;
 
     await expectLater(
-      () => api.dio.get('/retry-max-timeout'),
+      () => dio.get('/retry-max-timeout'),
       throwsA(isA<DioException>()),
     );
 
-    // First attempt + maxRetries retries
     expect(adapter.fetchCount, ApiConfig.maxRetries + 1);
   });
 
   test('POST does not retry on connection error', () async {
-    final api = ApiService();
+    final dio = _createTestDio();
     final adapter = _QueuedAdapter([
       const _Step.error(DioExceptionType.connectionError),
       const _Step.success(200),
     ]);
-    api.dio.httpClientAdapter = adapter;
+    dio.httpClientAdapter = adapter;
 
     await expectLater(
-      () => api.dio.post('/no-retry-post', data: {'name': 'test'}),
+      () => dio.post('/no-retry-post', data: {'name': 'test'}),
       throwsA(isA<DioException>()),
     );
 

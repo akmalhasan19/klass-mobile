@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/network/api_data_normalizer.dart';
 
 void main() {
   test('normalizeTopicCollection keeps legacy and taxonomy-aware topics compatible for workspace consumers', () {
-    final normalized = ApiService.normalizeTopicCollection([
+    final normalized = ApiDataNormalizer.normalizeTopicCollection([
       {
         'id': 'legacy-topic',
         'title': 'Legacy Topic',

@@ -1,11 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/features/media_generation/data/project_service.dart';
 import 'package:klass_app/app/app.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
-class ProjectSuccessScreen extends StatefulWidget {
+class ProjectSuccessScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> project;
 
   const ProjectSuccessScreen({
@@ -14,11 +17,11 @@ class ProjectSuccessScreen extends StatefulWidget {
   });
 
   @override
-  State<ProjectSuccessScreen> createState() => _ProjectSuccessScreenState();
+  ConsumerState<ProjectSuccessScreen> createState() => _ProjectSuccessScreenState();
 }
 
-class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with SingleTickerProviderStateMixin {
-  final ProjectService _projectService = ProjectService();
+class _ProjectSuccessScreenState extends ConsumerState<ProjectSuccessScreen> with SingleTickerProviderStateMixin, CancelableState {
+  late final ProjectService _projectService;
   late final AnimationController _contentController;
   late final Animation<double> _contentFade;
   late final Animation<Offset> _contentSlide;
@@ -28,6 +31,7 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
   @override
   void initState() {
     super.initState();
+    _projectService = ProjectService(ref.read(dioProvider));
     
     _scrollController.addListener(_onScroll);
 
@@ -75,7 +79,7 @@ class _ProjectSuccessScreenState extends State<ProjectSuccessScreen> with Single
 
   void _handleGoToWorkspace() {
     // 1. Sinkronisasi State: Tambahkan proyek ke service
-    _projectService.addProject(widget.project);
+    _projectService.addProject(widget.project, cancelToken: cancelToken);
 
     // 2. Navigasi: Kembali ke MainShell dan pindah ke tab Workspace (indeks 2)
     Navigator.of(context).popUntil((route) => route.isFirst);

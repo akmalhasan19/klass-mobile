@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -230,13 +230,20 @@ class _MediaGenerationAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   late MediaGenerationService service;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    service = MediaGenerationService();
-    service.reset(notify: false);
   });
 
   tearDown(() {
@@ -245,7 +252,10 @@ void main() {
 
   test('submitPrompt stores generation id and hydrates final delivery payload after polling', () async {
     final adapter = _MediaGenerationAdapter();
-    ApiService().dio.httpClientAdapter = adapter;
+    final dio = _createTestDio();
+    dio.httpClientAdapter = adapter;
+    service = MediaGenerationService(dio);
+    service.reset(notify: false);
 
     final submitted = await service.submitPrompt(
       prompt: 'Buatkan deck termodinamika untuk kelas 11.',
@@ -273,7 +283,10 @@ void main() {
 
   test('pollNow transitions service into error state when backend returns failed generation', () async {
     final adapter = _MediaGenerationAdapter(failOnPoll: true);
-    ApiService().dio.httpClientAdapter = adapter;
+    final dio = _createTestDio();
+    dio.httpClientAdapter = adapter;
+    service = MediaGenerationService(dio);
+    service.reset(notify: false);
 
     final submitted = await service.submitPrompt(
       prompt: 'Buatkan deck termodinamika untuk kelas 11.',
@@ -293,7 +306,10 @@ void main() {
   group('suggestFreelancers', () {
     test('returns list of suggestions on success', () async {
       final adapter = _MediaGenerationAdapter();
-      ApiService().dio.httpClientAdapter = adapter;
+      final dio = _createTestDio();
+      dio.httpClientAdapter = adapter;
+      service = MediaGenerationService(dio);
+      service.reset(notify: false);
 
       final suggestions = await service.suggestFreelancers('gen-123');
 
@@ -304,7 +320,10 @@ void main() {
 
     test('throws Exception with resolved error message on DioException', () async {
       final adapter = _MediaGenerationAdapter(failOnSuggest: true);
-      ApiService().dio.httpClientAdapter = adapter;
+      final dio = _createTestDio();
+      dio.httpClientAdapter = adapter;
+      service = MediaGenerationService(dio);
+      service.reset(notify: false);
 
       expect(
         () => service.suggestFreelancers('gen-123'),

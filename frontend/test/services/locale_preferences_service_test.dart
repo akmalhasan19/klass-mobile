@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/auth/data/auth_service.dart';
 import 'package:klass_app/core/storage/locale_preferences_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,10 +29,19 @@ class _LogoutAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
-    ApiService().dio.httpClientAdapter = _LogoutAdapter();
   });
 
   test('LocalePreferencesService stores and restores a supported locale', () async {
@@ -67,7 +76,9 @@ void main() {
       LocalePreferencesService.localePreferenceKey: 'id',
     });
 
-    await AuthService().logout();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _LogoutAdapter();
+    await AuthService(dio: dio).logout();
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('auth_token'), isNull);

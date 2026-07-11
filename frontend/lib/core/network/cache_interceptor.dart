@@ -1,77 +1,105 @@
-import 'dart:convert';
+import 'dart:io';
+
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
+import 'package:dio_cache_interceptor_hive_store/dio_cache_interceptor_hive_store.dart';
+
+import 'package:klass_app/core/network/cache_policy.dart';
 
 class CacheInterceptor extends Interceptor {
-  static const String _cachePrefix = 'api_cache_';
-  
-  // Cache validity duration, e.g., 5 minutes.
-  // We use this to return from cache immediately.
-  static const Duration _cacheDuration = Duration(minutes: 5);
+  final HiveCacheStore _store;
+
+  CacheInterceptor()
+      : _store = HiveCacheStore('${Directory.systemTemp.path}/klass_cache');
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    // Only cache GET requests
-    if (options.method == 'GET') {
-      final forceRefresh = options.extra['forceRefresh'] == true;
-      final cacheKey = _getCacheKey(options);
-      
-      if (!forceRefresh) {
-        final prefs = await SharedPreferences.getInstance();
-        final cachedStr = prefs.getString(cacheKey);
-        
-        if (cachedStr != null) {
-          try {
-            final cachedData = jsonDecode(cachedStr);
-            final timestamp = cachedData['timestamp'];
-            final cacheTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
-            
-            // Return cached response if it's still valid (prevents reloading on navigation)
-            if (DateTime.now().difference(cacheTime) < _cacheDuration) {
-              return handler.resolve(
-                Response(
-                  requestOptions: options,
-                  data: cachedData['data'],
-                  statusCode: 200,
-                  statusMessage: 'OK (Cached)',
-                ),
-                true, // resolve as normal
-              );
-            }
-          } catch (e) {
-            // Ignore error and proceed to network request
-          }
-        }
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    if (options.method != 'GET') {
+      return handler.next(options);
+    }
+
+    final forceRefresh = options.extra['forceRefresh'] == true;
+    final maxStale = RouteCachePolicy.maxStaleFor(options.path);
+
+    if (maxStale == null || forceRefresh) {
+      return handler.next(options);
+    }
+
+    final cacheKey = options.uri.toString();
+    final cached = await _store.get(cacheKey);
+
+    if (cached != null && !cached.isStaled()) {
+      return handler.resolve(cached.toResponse(options));
+    }
+
+    return handler.next(options);
+  }
+
+  @override
+  void onResponse(
+    Response response,
+    ResponseInterceptorHandler handler,
+  ) async {
+    final options = response.requestOptions;
+    final status = response.statusCode;
+
+    if (options.method == 'GET' && status != null && status >= 200 && status < 300) {
+      await _cacheResponse(response);
+    }
+
+    if (options.method != 'GET' && status != null && status >= 200 && status < 300) {
+      await _invalidateOnMutation(options);
+    }
+
+    return handler.next(response);
+  }
+
+  @override
+  void onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    // Fallback to stale cache when network fails
+    if (err.response == null && err.requestOptions.method == 'GET') {
+      final cacheKey = err.requestOptions.uri.toString();
+      final cached = await _store.get(cacheKey);
+      if (cached != null) {
+        return handler.resolve(cached.toResponse(err.requestOptions));
       }
     }
-    
-    super.onRequest(options, handler);
+
+    return handler.next(err);
   }
 
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    // Save successful GET responses to cache
-    if (response.requestOptions.method == 'GET' && 
-        response.statusCode != null && 
-        response.statusCode! >= 200 && 
-        response.statusCode! < 300) {
-      
-      final cacheKey = _getCacheKey(response.requestOptions);
-      final cacheData = {
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'data': response.data,
-      };
-      
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(cacheKey, jsonEncode(cacheData));
+  Future<void> _cacheResponse(Response response) async {
+    final path = response.requestOptions.path;
+    final maxStale = RouteCachePolicy.maxStaleFor(path);
+
+    if (maxStale == null) return;
+    final cacheKey = response.requestOptions.uri.toString();
+    final cacheOptions = CacheOptions(
+      store: _store,
+      maxStale: maxStale,
+      keyBuilder: (_) => cacheKey,
+    );
+
+    final cached = await CacheResponse.fromResponse(
+      key: cacheKey,
+      options: cacheOptions,
+      response: response,
+    );
+
+    final toStore = await cached.writeContent(cacheOptions, response: response);
+    await _store.set(toStore);
+  }
+
+  Future<void> _invalidateOnMutation(RequestOptions options) async {
+    final keys = RouteCachePolicy.getInvalidationKeys(options.path);
+    for (final key in keys) {
+      await _store.deleteFromPath(RegExp(key));
     }
-    
-    super.onResponse(response, handler);
-  }
-
-  String _getCacheKey(RequestOptions options) {
-    // Include query parameters in the cache key
-    final uri = options.uri;
-    return '$_cachePrefix${uri.toString()}';
   }
 }

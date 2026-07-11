@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/features/home/widgets/prompt_input_widget.dart';
@@ -19,16 +20,18 @@ import 'package:klass_app/features/media_generation/data/project_service.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
 import 'package:klass_app/core/utils/role_guard.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
 import 'package:klass_app/shared/widgets/skeleton_loaders.dart';
 import 'package:klass_app/features/freelancer/controllers/freelancer_hiring_flow_controller.dart';
 import 'package:klass_app/features/media_generation/widgets/regenerate_bottom_sheet.dart';
 import 'package:klass_app/features/freelancer/screens/hiring/refinement_input_screen.dart';
 import 'package:klass_app/features/media_generation/screens/generation_history_screen.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
 /// Home Screen — mereplikasi halaman utama Klass.
 /// Fitur: Sticky header "Klass", prompt input, project suggestions,
 /// project recommendations (bleed), top freelancers (bleed).
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   static const Key settingsButtonKey = Key('home_settings_button');
 
   final VoidCallback? onSettingsTap;
@@ -43,18 +46,18 @@ class HomeScreen extends StatefulWidget {
   });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _promptController = TextEditingController();
   final FocusNode _promptFocusNode = FocusNode();
 
-  final _homeService = HomeService();
-  final MediaGenerationService _mediaGenerationService = MediaGenerationService();
+  late final HomeService _homeService;
+  late final MediaGenerationService _mediaGenerationService;
   final MediaGenerationActionService _mediaGenerationActionService = MediaGenerationActionService();
-  final ProjectService _projectService = ProjectService();
+  late final ProjectService _projectService;
   List<Map<String, dynamic>> projects = [];
   List<Map<String, dynamic>> freelancers = [];
   List<Map<String, dynamic>> _sections = [];
@@ -69,6 +72,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    final dio = ref.read(dioProvider);
+    _homeService = HomeService(dio);
+    _mediaGenerationService = MediaGenerationService(dio);
+    _projectService = ProjectService(dio);
     _mediaGenerationService.addListener(_onMediaGenerationChanged);
 
     if (widget.role == 'guest') {
@@ -104,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String? freelancersError;
 
     try {
-      fetchedSections = await _homeService.fetchHomepageSections(forceRefresh: forceRefresh);
+      fetchedSections = await _homeService.fetchHomepageSections(forceRefresh: forceRefresh, cancelToken: cancelToken);
       // Sort by position
       fetchedSections.sort((a, b) => (a['position'] ?? 0).compareTo(b['position'] ?? 0));
     } catch (e) {
@@ -112,13 +119,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      fetchedProjects = await _homeService.fetchProjects(forceRefresh: forceRefresh);
+      fetchedProjects = await _homeService.fetchProjects(forceRefresh: forceRefresh, cancelToken: cancelToken);
     } catch (e) {
       projectsError = _localizeErrorMessage(e);
     }
 
     try {
-      fetchedFreelancers = await _homeService.fetchFreelancers(forceRefresh: forceRefresh);
+      fetchedFreelancers = await _homeService.fetchFreelancers(forceRefresh: forceRefresh, cancelToken: cancelToken);
     } catch (e) {
       freelancersError = _localizeErrorMessage(e);
     }
@@ -146,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final fetchedProjects = await _homeService.fetchProjects();
+      final fetchedProjects = await _homeService.fetchProjects(cancelToken: cancelToken);
       if (!mounted) return;
       setState(() {
         projects = fetchedProjects;
@@ -171,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final fetchedFreelancers = await _homeService.fetchFreelancers();
+      final fetchedFreelancers = await _homeService.fetchFreelancers(cancelToken: cancelToken);
       if (!mounted) return;
       setState(() {
         freelancers = fetchedFreelancers;
@@ -235,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       await Future.wait<void>([
-        _projectService.fetchProjects(forceRefresh: true),
+        _projectService.fetchProjects(forceRefresh: true, cancelToken: cancelToken),
         _refreshHomepageRecommendationsAfterGeneration(),
       ]);
     } finally {
@@ -245,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshHomepageRecommendationsAfterGeneration() async {
     try {
-      final refreshedProjects = await _homeService.fetchProjects(forceRefresh: true);
+      final refreshedProjects = await _homeService.fetchProjects(forceRefresh: true, cancelToken: cancelToken);
 
       if (!mounted) {
         return;
@@ -279,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final submitted = await _mediaGenerationService.submitPrompt(prompt: text);
+    final submitted = await _mediaGenerationService.submitPrompt(prompt: text, cancelToken: cancelToken);
 
     if (!mounted || !submitted) {
       return;

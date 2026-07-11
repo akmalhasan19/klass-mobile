@@ -3,8 +3,10 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:klass_app/features/media_generation/widgets/media_generation_status_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -186,15 +188,27 @@ class _MediaGenerationStatusAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   late MediaGenerationService service;
 
-  Widget buildTestHarness(Widget child) {
-    return MaterialApp(
-      home: Scaffold(
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: child,
+  Widget buildTestHarness(Widget child, Dio dio) {
+    return ProviderScope(
+      overrides: [dioProvider.overrideWithValue(dio)],
+      child: MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
         ),
       ),
     );
@@ -202,8 +216,6 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    service = MediaGenerationService();
-    service.reset(notify: false);
   });
 
   tearDown(() {
@@ -211,7 +223,10 @@ void main() {
   });
 
   testWidgets('MediaGenerationStatusCard renders loading and progress states', (tester) async {
-    ApiService().dio.httpClientAdapter = _MediaGenerationStatusAdapter();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _MediaGenerationStatusAdapter();
+    service = MediaGenerationService(dio);
+    service.reset(notify: false);
 
     final submitted = await tester.runAsync(() async {
       final submitted = await service.submitPrompt(
@@ -225,7 +240,7 @@ void main() {
     expect(submitted, isTrue);
 
     await tester.pumpWidget(
-      buildTestHarness(MediaGenerationStatusCard(service: service)),
+      buildTestHarness(MediaGenerationStatusCard(service: service), dio),
     );
     await tester.pump();
 
@@ -237,7 +252,10 @@ void main() {
   });
 
   testWidgets('MediaGenerationStatusCard renders success state and wires CTA callbacks', (tester) async {
-    ApiService().dio.httpClientAdapter = _MediaGenerationStatusAdapter();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _MediaGenerationStatusAdapter();
+    service = MediaGenerationService(dio);
+    service.reset(notify: false);
     var downloadTapCount = 0;
     var regenerateTapCount = 0;
     var hireFreelancerTapCount = 0;
@@ -257,6 +275,7 @@ void main() {
           onRegenerate: () async => regenerateTapCount += 1,
           onHireFreelancer: () async => hireFreelancerTapCount += 1,
         ),
+        dio,
       ),
     );
     await tester.pump();
@@ -283,7 +302,10 @@ void main() {
   });
 
   testWidgets('MediaGenerationStatusCard renders terminal error state from failed generation', (tester) async {
-    ApiService().dio.httpClientAdapter = _MediaGenerationStatusAdapter(failOnPoll: true);
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _MediaGenerationStatusAdapter(failOnPoll: true);
+    service = MediaGenerationService(dio);
+    service.reset(notify: false);
 
     await tester.runAsync(() async {
       await service.submitPrompt(prompt: 'Buatkan deck termodinamika untuk kelas 11.');
@@ -293,7 +315,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      buildTestHarness(MediaGenerationStatusCard(service: service)),
+      buildTestHarness(MediaGenerationStatusCard(service: service), dio),
     );
     await tester.pump();
 

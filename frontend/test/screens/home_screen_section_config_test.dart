@@ -4,9 +4,11 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/features/home/screens/home_screen.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _HomeScreenAdapter implements HttpClientAdapter {
@@ -117,14 +119,26 @@ Map<String, dynamic> _projectRecommendation({
   };
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 Future<void> _pumpHomeScreen(WidgetTester tester, _HomeScreenAdapter adapter) async {
-  final api = ApiService();
-  api.dio.httpClientAdapter = adapter;
+  final dio = _createTestDio();
+  dio.httpClientAdapter = adapter;
 
   await tester.pumpWidget(
-    const MaterialApp(
-      home: Scaffold(
-        body: HomeScreen(),
+    ProviderScope(
+      overrides: [dioProvider.overrideWithValue(dio)],
+      child: const MaterialApp(
+        home: Scaffold(
+          body: HomeScreen(),
+        ),
       ),
     ),
   );

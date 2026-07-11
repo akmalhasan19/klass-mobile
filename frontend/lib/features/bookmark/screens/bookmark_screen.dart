@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'dart:ui';
 import 'package:klass_app/core/config/app_colors.dart';
@@ -7,8 +8,10 @@ import 'package:klass_app/shared/widgets/feature_coming_soon.dart';
 import 'package:klass_app/features/media_generation/data/project_service.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
-class BookmarkScreen extends StatefulWidget {
+class BookmarkScreen extends ConsumerStatefulWidget {
   final VoidCallback? onCreateNewModule;
   final VoidCallback? onViewGallery;
 
@@ -19,12 +22,12 @@ class BookmarkScreen extends StatefulWidget {
   });
 
   @override
-  State<BookmarkScreen> createState() => _BookmarkScreenState();
+  ConsumerState<BookmarkScreen> createState() => _BookmarkScreenState();
 }
 
-class _BookmarkScreenState extends State<BookmarkScreen> {
+class _BookmarkScreenState extends ConsumerState<BookmarkScreen> with CancelableState {
   String _selectedFilter = 'all';
-  final ProjectService _projectService = ProjectService();
+  late final ProjectService _projectService;
 
   AppLocalizations _localizations() {
     return AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
@@ -33,10 +36,11 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   @override
   void initState() {
     super.initState();
+    _projectService = ProjectService(ref.read(dioProvider));
     _projectService.addListener(_onProjectServiceUpdate);
     // Fetch projects from API on open
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _projectService.fetchProjects();
+      _projectService.fetchProjects(cancelToken: cancelToken);
     });
   }
 
@@ -326,7 +330,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => _projectService.fetchProjects(),
+                    onPressed: () => _projectService.fetchProjects(cancelToken: cancelToken),
                     child: Text(localizations?.commonRetry ?? 'Retry'),
                   ),
                 ],

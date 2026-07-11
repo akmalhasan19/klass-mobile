@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'dart:convert';
@@ -7,16 +8,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/shared/widgets/feature_coming_soon.dart';
 import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
-class AccountSettingsScreen extends StatefulWidget {
+class AccountSettingsScreen extends ConsumerStatefulWidget {
   const AccountSettingsScreen({super.key});
 
   @override
-  State<AccountSettingsScreen> createState() => _AccountSettingsScreenState();
+  ConsumerState<AccountSettingsScreen> createState() => _AccountSettingsScreenState();
 }
 
-class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
-  final _authService = AuthService();
+class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> with CancelableState {
+  late final AuthService _authService;
   Map<String, dynamic>? _user;
   bool _isUploadingAvatar = false;
   final ImagePicker _picker = ImagePicker();
@@ -37,6 +40,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _authService = AuthService(dio: ref.read(dioProvider));
     _loadUserData();
   }
 
@@ -64,7 +68,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     setState(() => _isUploadingAvatar = true);
 
     try {
-      final newUrl = await _authService.uploadAvatar(image.path);
+      final newUrl = await _authService.uploadAvatar(image.path, cancelToken: cancelToken);
       if (newUrl != null && mounted) {
         setState(() {
           if (_user != null) {

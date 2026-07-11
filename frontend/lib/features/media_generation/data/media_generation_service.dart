@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/network/api_data_normalizer.dart';
 
 enum MediaGenerationViewState {
   idle,
@@ -21,13 +21,14 @@ class MediaGenerationService extends ChangeNotifier {
 
   static final MediaGenerationService _instance = MediaGenerationService._internal();
 
-  factory MediaGenerationService() {
+  factory MediaGenerationService(Dio dio) {
+    _instance._dio = dio;
     return _instance;
   }
 
   MediaGenerationService._internal();
 
-  final ApiService _apiService = ApiService();
+  late Dio _dio;
 
   Timer? _pollingTimer;
   bool _isPollingRequestInFlight = false;
@@ -60,6 +61,7 @@ class MediaGenerationService extends ChangeNotifier {
     String preferredOutputType = 'auto',
     int? subjectId,
     int? subSubjectId,
+    CancelToken? cancelToken,
   }) async {
     final normalizedPrompt = prompt.trim();
 
@@ -95,12 +97,12 @@ class MediaGenerationService extends ChangeNotifier {
     }
 
     try {
-      final response = await _apiService.dio.post(ApiConfig.v('/media-generations'), data: payload);
+      final response = await _dio.post(ApiConfig.v('/media-generations'), data: payload, cancelToken: cancelToken);
       final resource = _extractResource(response.data);
 
       if (resource == null) {
         throw Exception(
-          ApiService.buildDebugInfo(
+          ApiDataNormalizer.buildDebugInfo(
             'Invalid response format. Expected data as Object.',
             operation: ApiDebugOperation.networkRequestFailed,
             endpoint: ApiConfig.v('/media-generations'),
@@ -120,7 +122,7 @@ class MediaGenerationService extends ChangeNotifier {
       return false;
     } catch (error) {
       _setError(
-        ApiService.buildDebugInfo(
+        ApiDataNormalizer.buildDebugInfo(
           error,
           operation: ApiDebugOperation.networkRequestFailed,
           endpoint: ApiConfig.v('/media-generations'),
@@ -130,7 +132,7 @@ class MediaGenerationService extends ChangeNotifier {
     }
   }
 
-  Future<void> pollNow() async {
+  Future<void> pollNow({CancelToken? cancelToken}) async {
     if (_generationId == null || _isPollingRequestInFlight) {
       return;
     }
@@ -138,15 +140,16 @@ class MediaGenerationService extends ChangeNotifier {
     _isPollingRequestInFlight = true;
 
     try {
-      final response = await _apiService.dio.get(
+      final response = await _dio.get(
         ApiConfig.v('/media-generations/$_generationId'),
+        cancelToken: cancelToken,
         options: Options(extra: {'forceRefresh': true}),
       );
       final resource = _extractResource(response.data);
 
       if (resource == null) {
         throw Exception(
-          ApiService.buildDebugInfo(
+          ApiDataNormalizer.buildDebugInfo(
             'Invalid response format. Expected data as Object.',
             operation: ApiDebugOperation.networkRequestFailed,
             endpoint: ApiConfig.v('/media-generations/$_generationId'),
@@ -165,7 +168,7 @@ class MediaGenerationService extends ChangeNotifier {
       );
     } catch (error) {
       _setError(
-        ApiService.buildDebugInfo(
+        ApiDataNormalizer.buildDebugInfo(
           error,
           operation: ApiDebugOperation.networkRequestFailed,
           endpoint: '/media-generations/$_generationId',
@@ -203,7 +206,7 @@ class MediaGenerationService extends ChangeNotifier {
     }
   }
 
-  Future<bool> regenerateWithPrompt(String parentId, String additionalPrompt) async {
+  Future<bool> regenerateWithPrompt(String parentId, String additionalPrompt, {CancelToken? cancelToken}) async {
     final normalizedPrompt = additionalPrompt.trim();
     if (normalizedPrompt.isEmpty) {
       _setError('Prompt tambahan tidak boleh kosong.');
@@ -215,9 +218,10 @@ class MediaGenerationService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _apiService.dio.post(
+      final response = await _dio.post(
         ApiConfig.v('/media-generations/$parentId/regenerate'),
         data: {'additional_prompt': normalizedPrompt},
+        cancelToken: cancelToken,
       );
       
       final resource = _extractResource(response.data);
@@ -238,10 +242,11 @@ class MediaGenerationService extends ChangeNotifier {
     }
   }
 
-  Future<List<FreelancerSuggestion>> suggestFreelancers(String generationId) async {
+  Future<List<FreelancerSuggestion>> suggestFreelancers(String generationId, {CancelToken? cancelToken}) async {
     try {
-      final response = await _apiService.dio.post(
+      final response = await _dio.post(
         ApiConfig.v('/media-generations/$generationId/suggest-freelancers'),
+        cancelToken: cancelToken,
       );
       
       final data = response.data['data'] as List?;
@@ -263,6 +268,7 @@ class MediaGenerationService extends ChangeNotifier {
     required String mode,
     required String refinementDescription,
     int? selectedFreelancerId,
+    CancelToken? cancelToken,
   }) async {
     try {
       final payload = <String, dynamic>{
@@ -273,9 +279,10 @@ class MediaGenerationService extends ChangeNotifier {
         payload['selected_freelancer_id'] = selectedFreelancerId;
       }
       
-      final response = await _apiService.dio.post(
+      final response = await _dio.post(
         ApiConfig.v('/media-generations/$generationId/hire-freelancer'),
         data: payload,
+        cancelToken: cancelToken,
       );
       return response.data['data'] as Map<String, dynamic>?;
     } catch (error) {
@@ -346,7 +353,7 @@ class MediaGenerationService extends ChangeNotifier {
       return topLevelMessage;
     }
 
-    return ApiService.buildDebugInfo(
+    return ApiDataNormalizer.buildDebugInfo(
       error,
       operation: ApiDebugOperation.networkRequestFailed,
       endpoint: endpoint,

@@ -4,12 +4,14 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/app/app.dart';
 import 'package:klass_app/features/freelancer/screens/freelancer_home_screen.dart';
 import 'package:klass_app/features/home/screens/home_screen.dart';
 import 'package:klass_app/features/profile/screens/settings_screen.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MainShellAdapter implements HttpClientAdapter {
@@ -77,6 +79,15 @@ class _MainShellAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 Future<_MainShellAdapter> _pumpMainShell(
   WidgetTester tester, {
   Map<String, dynamic>? user,
@@ -93,14 +104,17 @@ Future<_MainShellAdapter> _pumpMainShell(
         },
   );
 
-  final api = ApiService();
+  final dio = _createTestDio();
   final adapter = _MainShellAdapter(user: user, meDelay: meDelay);
-  api.dio.httpClientAdapter = adapter;
+  dio.httpClientAdapter = adapter;
 
   await tester.pumpWidget(
-    KlassApp(
-      initialLocale: locale,
-      homeOverride: shell,
+    ProviderScope(
+      overrides: [dioProvider.overrideWithValue(dio)],
+      child: KlassApp(
+        initialLocale: locale,
+        homeOverride: shell,
+      ),
     ),
   );
 

@@ -206,49 +206,49 @@
 
 ### Dio Provider (Riverpod)
 
-- [ ] Buat `lib/core/network/dio_provider.dart`:
-  - [ ] `Provider<Dio>` return configured Dio instance
-  - [ ] `BaseOptions` dengan `Env.apiBaseUrl`, timeout dari `ApiConfig`
-  - [ ] Headers default `Accept: application/json`
-- [ ] Register interceptors: AuthInterceptor, RetryInterceptor, CacheInterceptor
-- [ ] Daftarkan LoggingInterceptor hanya jika `!Env.isProd`
+- [x] Buat `lib/core/network/dio_provider.dart`:
+  - [x] `Provider<Dio>` return configured Dio instance
+  - [x] `BaseOptions` dengan `Env.apiBaseUrl`, timeout dari `ApiConfig`
+  - [x] Headers default `Accept: application/json`
+- [x] Register interceptors: AuthInterceptor, RetryInterceptor, CacheInterceptor
+- [x] Daftarkan LoggingInterceptor hanya jika `!Env.isProd`
 
 ### Interceptor Files (extract dari ApiService monolitik)
 
-- [ ] Buat `lib/core/network/auth_interceptor.dart` (dari Task 4)
-- [ ] Buat `lib/core/network/retry_interceptor.dart`:
-  - [ ] Pindahkan logic retry GET dari `ApiService.onError` (baris 96–117)
-  - [ ] Hanya retry GET requests
-  - [ ] Linear backoff: `delay = retryDelayMs * (retries + 1)`
-  - [ ] Max retries dari `ApiConfig.maxRetries`
-  - [ ] Retry pada: `connectionTimeout`, `receiveTimeout`, `sendTimeout`, `connectionError`, `unknown && response == null`
-- [ ] Buat `lib/core/network/logging_interceptor.dart`:
-  - [ ] Pindahkan structured logging dari `ApiService` (baris 42–49, 62–70, 83–93)
-  - [ ] Gate via `FeatureFlags.enableVerboseApiLogging`
-  - [ ] Log REQUEST, RESPONSE, ERROR dengan timestamp ISO-8601
-- [ ] Pindahkan `cache_interceptor.dart` ke `lib/core/network/cache_interceptor.dart` (existing logic tetap)
+- [x] Buat `lib/core/network/auth_interceptor.dart` (dari Task 4)
+- [x] Buat `lib/core/network/retry_interceptor.dart`:
+  - [x] Pindahkan logic retry GET dari `ApiService.onError` (baris 96–117)
+  - [x] Hanya retry GET requests
+  - [x] Linear backoff: `delay = retryDelayMs * (retries + 1)`
+  - [x] Max retries dari `ApiConfig.maxRetries`
+  - [x] Retry pada: `connectionTimeout`, `receiveTimeout`, `sendTimeout`, `connectionError`, `unknown && response == null`
+- [x] Buat `lib/core/network/logging_interceptor.dart`:
+  - [x] Pindahkan structured logging dari `ApiService` (baris 42–49, 62–70, 83–93)
+  - [x] Gate via `FeatureFlags.enableVerboseApiLogging`
+  - [x] Log REQUEST, RESPONSE, ERROR dengan timestamp ISO-8601
+- [x] Pindahkan `cache_interceptor.dart` ke `lib/core/network/cache_interceptor.dart` (existing logic tetap)
 
 ### Caching Strategy
 
-- [ ] Mapping per-endpoint cache policy:
-  - [ ] `/v1/topics`, `/v1/contents` → cache 5 menit
-  - [ ] `/v1/auth/me` → no cache
-  - [ ] `/v1/media-generations` → no cache (user-specific, mutable)
-  - [ ] POST/PUT/DELETE → invalidate related GET key
-- [ ] Upgrade `CacheInterceptor` pakai `dio_cache_interceptor` + `dio_cache_interceptor_hive_store` (sudah dep) untuk LRU + TTL per-route
-- [ ] Tambah invalidation: saat POST/PUT/DELETE sukses, hapus cache key dengan prefix yang relevan
+- [x] Mapping per-endpoint cache policy:
+  - [x] `/v1/topics`, `/v1/contents` → cache 5 menit
+  - [x] `/v1/auth/me` → no cache
+  - [x] `/v1/media-generations` → no cache (user-specific, mutable)
+  - [x] POST/PUT/DELETE → invalidate related GET key
+- [x] Upgrade `CacheInterceptor` pakai `dio_cache_interceptor` + `dio_cache_interceptor_hive_store` (sudah dep) untuk LRU + TTL per-route
+- [x] Tambah invalidation: saat POST/PUT/DELETE sukses, hapus cache key dengan prefix yang relevan
 
 ### CancelToken & Lifecycle
 
-- [ ] Tambah `CancelToken` per screen, di-dispose saat `State.dispose` (anti memory leak)
-- [ ] Saat pop screen, cancel semua in-flight request
+- [x] Tambah `CancelToken` per screen, di-dispose saat `State.dispose` (anti memory leak)
+- [x] Saat pop screen, cancel semua in-flight request
 
 ### Removed / Cleanup
 
-- [ ] Hapus `ApiService` singleton (digantikan dioProvider)
-- [ ] Update semua service yang masih pakai `ApiService().dio` → pakai `ref.watch(dioProvider)`
-- [ ] Hapus `monitoring_service.dart` jika sudah terpisah di LoggingInterceptor
-- [ ] Jalankan `flutter test` dan update test yang masih mock `ApiService`
+- [x] Hapus `ApiService` singleton (digantikan dioProvider)
+- [x] Update semua service yang masih pakai `ApiService().dio` → pakai `ref.watch(dioProvider)`
+- [x] Hapus `monitoring_service.dart` jika sudah terpisah di LoggingInterceptor
+- [x] Jalankan `flutter test` dan update test yang masih mock `ApiService`
 
 ---
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/app/app.dart';
 
 Future<void> main() async {
@@ -18,10 +19,12 @@ Future<void> main() async {
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   runApp(
-    KlassApp(
-      initialRole: initialAppState.role,
-      initialIsGuest: initialAppState.isGuest,
-      initialLocale: initialAppState.locale,
+    ProviderScope(
+      child: KlassApp(
+        initialRole: initialAppState.role,
+        initialIsGuest: initialAppState.isGuest,
+        initialLocale: initialAppState.locale,
+      ),
     ),
   );
 }

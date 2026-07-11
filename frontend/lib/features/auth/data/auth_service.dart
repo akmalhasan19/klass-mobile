@@ -1,15 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:klass_app/core/config/api_config.dart';
-import 'package:klass_app/core/network/api_service.dart';
 import 'package:klass_app/core/storage/secure_token_store.dart';
 
 class AuthService {
-  final ApiService _apiService = ApiService();
+  final Dio? _dio;
   final SecureTokenStore _tokenStore;
 
-  AuthService({SecureTokenStore? tokenStore})
-    : _tokenStore = tokenStore ?? SecureTokenStore();
+  AuthService({Dio? dio, SecureTokenStore? tokenStore})
+    : _dio = dio,
+      _tokenStore = tokenStore ?? SecureTokenStore();
 
   static String? normalizeRoleValue(dynamic role) {
     if (role == null) {
@@ -28,12 +28,16 @@ class AuthService {
     return normalizeRoleValue(role) == 'freelancer' ? 'freelancer' : 'teacher';
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String email, String password, {CancelToken? cancelToken}) async {
     try {
-      final response = await _apiService.dio.post(ApiConfig.v('/auth/login'), data: {
-        'email': email,
-        'password': password,
-      });
+      final response = await _dio!.post(
+        ApiConfig.v('/auth/login'),
+        data: {
+          'email': email,
+          'password': password,
+        },
+        cancelToken: cancelToken,
+      );
 
       if (response.statusCode == 200) {
         final payload = response.data as Map<String, dynamic>;
@@ -55,15 +59,19 @@ class AuthService {
     }
   }
 
-  Future<bool> register(String name, String email, String password, {String role = 'teacher'}) async {
+  Future<bool> register(String name, String email, String password, {String role = 'teacher', CancelToken? cancelToken}) async {
     try {
-      final response = await _apiService.dio.post(ApiConfig.v('/auth/register'), data: {
-        'name': name,
-        'email': email,
-        'password': password,
-        'password_confirmation': password,
-        'role': role,
-      });
+      final response = await _dio!.post(
+        ApiConfig.v('/auth/register'),
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'password_confirmation': password,
+          'role': role,
+        },
+        cancelToken: cancelToken,
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final payload = response.data as Map<String, dynamic>;
@@ -85,11 +93,13 @@ class AuthService {
     }
   }
 
-  Future<String?> getSecurityQuestion(String email) async {
+  Future<String?> getSecurityQuestion(String email, {CancelToken? cancelToken}) async {
     try {
-      final response = await _apiService.dio.post(ApiConfig.v('/auth/get-security-question'), data: {
-        'email': email,
-      });
+      final response = await _dio!.post(
+        ApiConfig.v('/auth/get-security-question'),
+        data: {'email': email},
+        cancelToken: cancelToken,
+      );
       if (response.statusCode == 200) {
         final payload = response.data as Map<String, dynamic>;
         final data = payload['data'] ?? payload;
@@ -103,13 +113,17 @@ class AuthService {
     }
   }
 
-  Future<bool> verifyAndResetPassword(String email, String securityAnswer, String newPassword) async {
+  Future<bool> verifyAndResetPassword(String email, String securityAnswer, String newPassword, {CancelToken? cancelToken}) async {
     try {
-      final response = await _apiService.dio.post(ApiConfig.v('/auth/verify-and-reset-password'), data: {
-        'email': email,
-        'security_answer': securityAnswer,
-        'new_password': newPassword,
-      });
+      final response = await _dio!.post(
+        ApiConfig.v('/auth/verify-and-reset-password'),
+        data: {
+          'email': email,
+          'security_answer': securityAnswer,
+          'new_password': newPassword,
+        },
+        cancelToken: cancelToken,
+      );
       if (response.statusCode == 200) {
         return true;
       }
@@ -121,9 +135,9 @@ class AuthService {
     }
   }
 
-  Future<void> logout() async {
+  Future<void> logout({CancelToken? cancelToken}) async {
     try {
-      await _apiService.dio.post(ApiConfig.v('/auth/logout'));
+      await _dio!.post(ApiConfig.v('/auth/logout'), cancelToken: cancelToken);
     } catch (_) {
       // Ignore error if logout fails (e.g., token already invalid)
     } finally {
@@ -141,9 +155,9 @@ class AuthService {
     }
   }
 
-  Future<Map<String, dynamic>?> getMe() async {
+  Future<Map<String, dynamic>?> getMe({CancelToken? cancelToken}) async {
     try {
-      final response = await _apiService.dio.get(ApiConfig.v('/auth/me'));
+      final response = await _dio!.get(ApiConfig.v('/auth/me'), cancelToken: cancelToken);
       if (response.statusCode == 200) {
         final user = response.data['data'] ?? response.data;
         await _tokenStore.writeUserData(user as Map<String, dynamic>);
@@ -188,16 +202,17 @@ class AuthService {
     return role == 'freelancer';
   }
 
-  Future<String?> uploadAvatar(String filePath) async {
+  Future<String?> uploadAvatar(String filePath, {CancelToken? cancelToken}) async {
     try {
       final formData = FormData.fromMap({
         // Backend expects file field name "file"
         'file': await MultipartFile.fromFile(filePath),
       });
 
-      final response = await _apiService.dio.post(
+      final response = await _dio!.post(
         ApiConfig.v('/user/avatar'),
         data: formData,
+        cancelToken: cancelToken,
       );
 
       if (response.statusCode == 200) {

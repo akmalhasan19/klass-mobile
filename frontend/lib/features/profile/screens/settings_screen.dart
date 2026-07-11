@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/shared/widgets/top_right_accent.dart';
@@ -10,11 +11,12 @@ import 'package:klass_app/features/auth/data/auth_service.dart';
 import 'package:klass_app/core/storage/locale_preferences_service.dart';
 import 'package:klass_app/app/app.dart';
 import 'package:klass_app/core/utils/logout_helper.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
 /// Creator Tools (BROWN), Request New Club (BROWN), Logout.
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   static const Key screenKey = Key('settings_screen');
   static const Key languageControlKey = Key('settings_language_control');
   static const Key languageCurrentValueKey = Key('settings_language_current_value');
@@ -24,10 +26,10 @@ class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   double _creativity = 2;
   String _learningStyle = 'visual';
   String _complexity = 'intermediate';
@@ -36,11 +38,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isUpdatingLocale = false;
   // ignore: unused_field
   String? _userRole;
-  final _authService = AuthService();
+  late final AuthService _authService;
 
   @override
   void initState() {
     super.initState();
+    _authService = AuthService(dio: ref.read(dioProvider));
     _fetchUserRole();
   }
 
@@ -76,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    await LogoutHelper.execute(context: context, popToRoot: true);
+    await LogoutHelper.execute(context: context, dio: ref.read(dioProvider), popToRoot: true);
   }
 
   Future<void> _handleLocaleSelection(Locale locale) async {

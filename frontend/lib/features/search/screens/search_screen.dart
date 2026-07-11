@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 
@@ -7,17 +8,19 @@ import 'package:klass_app/features/search/widgets/animated_search_bar.dart';
 import 'package:klass_app/shared/widgets/skeleton_loaders.dart';
 import 'package:klass_app/features/home/data/home_service.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
 /// Search/Discover Screen — mereplikasi halaman Search dari Klass Next.js.
 /// Fitur: Sticky header "Discover", category pills, teacher cards.
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableState {
   String _activeCategory = 'all';
   final ScrollController _scrollController = ScrollController();
   bool _isSearching = false;
@@ -31,7 +34,7 @@ class _SearchScreenState extends State<SearchScreen> {
     {'key': 'history', 'icon': Icons.menu_book_rounded},
   ];
   
-  final _homeService = HomeService();
+  late final HomeService _homeService;
   List<Map<String, dynamic>> teachers = [];
   bool _isLoading = true;
   String? _error;
@@ -39,6 +42,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    _homeService = HomeService(ref.read(dioProvider));
     _fetchTeachers();
   }
 
@@ -48,7 +52,7 @@ class _SearchScreenState extends State<SearchScreen> {
       _error = null;
     });
     try {
-      final res = await _homeService.fetchFreelancers(forceRefresh: forceRefresh);
+      final res = await _homeService.fetchFreelancers(forceRefresh: forceRefresh, cancelToken: cancelToken);
       if (mounted) {
         setState(() {
           teachers = res;

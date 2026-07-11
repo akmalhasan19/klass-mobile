@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:klass_app/core/config/api_config.dart';
-import 'package:klass_app/core/network/api_service.dart';
 
 enum HistoryViewState {
   idle,
@@ -14,13 +13,14 @@ enum HistoryViewState {
 class GenerationHistoryService extends ChangeNotifier {
   static final GenerationHistoryService _instance = GenerationHistoryService._internal();
 
-  factory GenerationHistoryService() {
+  factory GenerationHistoryService(Dio dio) {
+    _instance._dio = dio;
     return _instance;
   }
 
   GenerationHistoryService._internal();
 
-  final ApiService _apiService = ApiService();
+  late Dio _dio;
 
   List<Map<String, dynamic>> _generationHistory = [];
   String? _parentGenerationId;
@@ -32,7 +32,7 @@ class GenerationHistoryService extends ChangeNotifier {
   bool get isLoading => _viewState == HistoryViewState.loading;
   String? get errorMessage => _errorMessage;
 
-  Future<void> fetchParentChainHistory(String parentGenerationId) async {
+  Future<void> fetchParentChainHistory(String parentGenerationId, {CancelToken? cancelToken}) async {
     if (parentGenerationId.isEmpty) return;
 
     _viewState = HistoryViewState.loading;
@@ -40,8 +40,9 @@ class GenerationHistoryService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _apiService.dio.get(
+      final response = await _dio.get(
         ApiConfig.v('/media-generations'),
+        cancelToken: cancelToken,
         queryParameters: {'parent_id': parentGenerationId},
       );
 
@@ -80,14 +81,14 @@ class GenerationHistoryService extends ChangeNotifier {
     }
   }
 
-  Future<void> getHistoryForGeneration(String generationId) async {
+  Future<void> getHistoryForGeneration(String generationId, {CancelToken? cancelToken}) async {
     _viewState = HistoryViewState.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
       // First, get the generation details to find its parent_id
-      final response = await _apiService.dio.get(ApiConfig.v('/media-generations/$generationId'));
+      final response = await _dio.get(ApiConfig.v('/media-generations/$generationId'), cancelToken: cancelToken);
       final Map<String, dynamic>? data = response.data['data'];
       
       if (data == null) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'dart:ui';
 import 'package:klass_app/core/config/app_colors.dart';
@@ -13,8 +14,10 @@ import 'package:klass_app/features/auth/data/auth_service.dart';
 import 'package:klass_app/features/auth/screens/login_screen.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
 import 'package:klass_app/core/utils/logout_helper.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   final String role;
   final bool isGuest;
 
@@ -25,11 +28,11 @@ class ProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final _authService = AuthService();
+class _ProfileScreenState extends ConsumerState<ProfileScreen> with CancelableState {
+  late final AuthService _authService;
   Map<String, dynamic>? _user;
   late bool _isLoading;
   late final ScrollController _scrollController;
@@ -41,6 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _authService = AuthService(dio: ref.read(dioProvider));
     _scrollController = ScrollController();
     _isLoading = !widget.isGuest;
 
@@ -76,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     // Fetch latest from API
-    final me = await _authService.getMe();
+    final me = await _authService.getMe(cancelToken: cancelToken);
     if (me != null && mounted) {
       setState(() {
         _user = me;
@@ -95,6 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // 3. Reset MainShell to guest/teacher mode and navigate to Home tab
     await LogoutHelper.execute(
       context: context,
+      dio: ref.read(dioProvider),
       onBeforeLogout: () {
         setState(() {
           _user = null;

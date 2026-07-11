@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:klass_app/core/config/api_config.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/network/api_data_normalizer.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 
 class ProjectService extends ChangeNotifier {
   static final ProjectService _instance = ProjectService._internal();
-  factory ProjectService() => _instance;
+  factory ProjectService(Dio dio) {
+    _instance._dio = dio;
+    return _instance;
+  }
   ProjectService._internal();
 
-  final ApiService _apiService = ApiService();
+  late Dio _dio;
 
   List<Map<String, dynamic>> _addedProjects = [];
   bool _isLoading = false;
@@ -19,14 +22,15 @@ class ProjectService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> fetchProjects({bool forceRefresh = false}) async {
+  Future<void> fetchProjects({bool forceRefresh = false, CancelToken? cancelToken}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await _apiService.dio.get(
+      final response = await _dio.get(
         ApiConfig.v('/topics'),
+        cancelToken: cancelToken,
         options: Options(extra: {'forceRefresh': forceRefresh}),
         queryParameters: const {
           'include_contents': false,
@@ -37,9 +41,9 @@ class ProjectService extends ChangeNotifier {
         final payload = response.data;
         if (payload is Map<String, dynamic> && payload['data'] is List) {
           final data = payload['data'] as List;
-          _addedProjects = ApiService.normalizeTopicCollection(data);
+          _addedProjects = ApiDataNormalizer.normalizeTopicCollection(data);
         } else {
-          _error = ApiService.buildDebugInfo(
+          _error = ApiDataNormalizer.buildDebugInfo(
             'Invalid response format. Expected data as List.',
             operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
             endpoint: ApiConfig.v('/topics'),
@@ -47,13 +51,13 @@ class ProjectService extends ChangeNotifier {
         }
       }
     } on DioException catch (e) {
-      _error = ApiService.buildDebugInfo(
+      _error = ApiDataNormalizer.buildDebugInfo(
         e,
         operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
         endpoint: ApiConfig.v('/topics'),
       );
     } catch (e) {
-      _error = ApiService.buildDebugInfo(
+      _error = ApiDataNormalizer.buildDebugInfo(
         e,
         operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
         endpoint: ApiConfig.v('/topics'),
@@ -64,9 +68,9 @@ class ProjectService extends ChangeNotifier {
     }
   }
 
-  Future<bool> addProject(Map<String, dynamic> projectData) async {
+  Future<bool> addProject(Map<String, dynamic> projectData, {CancelToken? cancelToken}) async {
     try {
-      final response = await _apiService.dio.post(ApiConfig.v('/topics'), data: projectData);
+      final response = await _dio.post(ApiConfig.v('/topics'), data: projectData, cancelToken: cancelToken);
       if (response.statusCode == 200 || response.statusCode == 201) {
         fetchProjects(forceRefresh: true); // refresh list and bypass cache
         return true;

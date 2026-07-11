@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/features/home/screens/home_screen.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:klass_app/features/media_generation/widgets/media_generation_status_card.dart';
 import 'package:klass_app/features/home/widgets/prompt_input_widget.dart';
@@ -59,26 +61,39 @@ class _HomeScreenRoleAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({
       'auth_token': 'freelancer-token',
       'user_data': jsonEncode({'id': 3, 'role': 'freelancer'}),
     });
-    MediaGenerationService().reset(notify: false);
+    MediaGenerationService(_createTestDio()).reset(notify: false);
   });
 
   tearDown(() {
-    MediaGenerationService().reset(notify: false);
+    MediaGenerationService(_createTestDio()).reset(notify: false);
   });
 
   testWidgets('HomeScreen freelancer role keeps media generation hero prompt hidden', (tester) async {
-    ApiService().dio.httpClientAdapter = _HomeScreenRoleAdapter();
+    final dio = _createTestDio();
+    dio.httpClientAdapter = _HomeScreenRoleAdapter();
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: HomeScreen(role: 'freelancer'),
+      ProviderScope(
+        overrides: [dioProvider.overrideWithValue(dio)],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: HomeScreen(role: 'freelancer'),
+          ),
         ),
       ),
     );

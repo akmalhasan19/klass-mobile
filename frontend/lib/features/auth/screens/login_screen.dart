@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/features/auth/data/auth_service.dart';
 import 'package:klass_app/app/app.dart';
 import 'package:klass_app/features/auth/screens/forgot_password_screen.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _authService = AuthService();
+class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState {
+  late final AuthService _authService;
   bool _isLogin = true;
   bool _isLoading = false;
   String _errorMessage = '';
@@ -22,6 +25,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _authService = AuthService(dio: ref.read(dioProvider));
+  }
 
   @override
   void dispose() {
@@ -45,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
         success = await _authService.login(
           _emailController.text.trim(),
           _passwordController.text,
+          cancelToken: cancelToken,
         );
       } else {
         success = await _authService.register(
@@ -52,12 +62,13 @@ class _LoginScreenState extends State<LoginScreen> {
           _emailController.text.trim(),
           _passwordController.text,
           role: _selectedRole,
+          cancelToken: cancelToken,
         );
       }
 
       if (success) {
         // Fetch user profile right after login/register
-        final userProfile = await _authService.getMe();
+        final userProfile = await _authService.getMe(cancelToken: cancelToken);
         final role = AuthService.getRoleFromUserData(userProfile);
         final isFreelancer = AuthService.resolveAppRole(role) == 'freelancer';
         

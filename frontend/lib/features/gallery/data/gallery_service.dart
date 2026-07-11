@@ -1,12 +1,13 @@
-import 'package:klass_app/core/network/api_service.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
 import 'package:dio/dio.dart';
 
 class GalleryService {
-  final ApiService _apiService = ApiService();
+  final Dio _dio;
 
-  Future<List<Map<String, dynamic>>> fetchGallery({String? search, String? category, bool forceRefresh = false}) async {
+  GalleryService(this._dio);
+
+  Future<List<Map<String, dynamic>>> fetchGallery({String? search, String? category, bool forceRefresh = false, CancelToken? cancelToken}) async {
     if (!FeatureFlags.useApiData || !FeatureFlags.enableGalleryApi) {
       return []; // Fallback: return empty when API/gallery is disabled
     }
@@ -16,8 +17,9 @@ class GalleryService {
       if (search != null && search.isNotEmpty) queryParams['search'] = search;
       if (category != null && category.isNotEmpty) queryParams['category'] = category;
 
-      final response = await _apiService.dio.get(
+      final response = await _dio.get(
         ApiConfig.v('/gallery'),
+        cancelToken: cancelToken,
         options: Options(extra: {'forceRefresh': forceRefresh}),
         queryParameters: queryParams,
       );

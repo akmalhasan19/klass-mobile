@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/media_generation/data/generation_history_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,7 +17,6 @@ class _HistoryAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    // Mock GET /media-generations/:id
     if (options.method == 'GET' && options.path.contains('/media-generations/') && !options.path.endsWith('/media-generations')) {
       if (failOnDetails) {
         return _jsonResponse({
@@ -41,7 +40,6 @@ class _HistoryAdapter implements HttpClientAdapter {
       });
     }
 
-    // Mock GET /media-generations?parent_id=:id
     if (options.method == 'GET' && options.path.endsWith('/media-generations')) {
       if (failOnList) {
         return _jsonResponse({
@@ -87,15 +85,25 @@ class _HistoryAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   late GenerationHistoryService service;
   late _HistoryAdapter adapter;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    service = GenerationHistoryService();
     adapter = _HistoryAdapter();
-    ApiService().dio.httpClientAdapter = adapter;
+    final dio = _createTestDio();
+    dio.httpClientAdapter = adapter;
+    service = GenerationHistoryService(dio);
   });
 
   test('fetchParentChainHistory success updates state and sorts history', () async {

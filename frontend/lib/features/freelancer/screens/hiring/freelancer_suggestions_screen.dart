@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/features/freelancer/controllers/freelancer_hiring_flow_controller.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
+import 'package:klass_app/core/network/cancelable_state_mixin.dart';
 
 class FreelancerSuggestionsScreen extends StatefulWidget {
   final FreelancerHiringFlowController controller;
@@ -13,7 +14,7 @@ class FreelancerSuggestionsScreen extends StatefulWidget {
   State<FreelancerSuggestionsScreen> createState() => _FreelancerSuggestionsScreenState();
 }
 
-class _FreelancerSuggestionsScreenState extends State<FreelancerSuggestionsScreen> {
+class _FreelancerSuggestionsScreenState extends State<FreelancerSuggestionsScreen> with CancelableState {
   List<FreelancerSuggestion>? _suggestions;
   bool _isLoading = true;
   String? _errorMessage;
@@ -31,7 +32,7 @@ class _FreelancerSuggestionsScreenState extends State<FreelancerSuggestionsScree
     });
 
     try {
-      final results = await widget.controller.apiService.suggestFreelancers(widget.controller.generationId);
+      final results = await widget.controller.apiService.suggestFreelancers(widget.controller.generationId, cancelToken: cancelToken);
       if (mounted) {
         setState(() {
           _suggestions = results;
