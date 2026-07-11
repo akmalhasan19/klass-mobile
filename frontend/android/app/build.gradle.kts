@@ -30,6 +30,33 @@ android {
         versionName = flutter.versionName
     }
 
+    // ─── Build Flavors ─────────────────────────────────────────
+    //
+    // Two flavors let you install dev & prod side-by-side on the
+    // same device.  Each flavor picks up its own label via standard
+    // Android resource overlay (src/<flavor>/res/values/strings.xml).
+    //
+    // Build commands:
+    //   flutter run --flavor dev -t lib/main.dart
+    //   flutter build apk --flavor prod  --dart-define=IS_PROD=true
+    //   flutter build appbundle --flavor prod --dart-define=IS_PROD=true
+    //
+    flavorDimensions += listOf("environment")
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            manifestPlaceholders["appName"] = "Klass Dev"
+            versionNameSuffix = "-dev"
+        }
+        create("prod") {
+            dimension = "environment"
+            applicationIdSuffix = null
+            manifestPlaceholders["appName"] = "Klass"
+            versionNameSuffix = null
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

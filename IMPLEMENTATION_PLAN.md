@@ -47,46 +47,46 @@
 
 ### Flutter — `lib/app/env.dart`
 
-- [ ] Buat class `Env` dengan field `apiBaseUrl`, `hfSpaceUrl`, `isProd`, `enableVerboseLogging` pakai `String.fromEnvironment` / `bool.fromEnvironment`
-- [ ] Default `apiBaseUrl` ke `http://192.168.18.6:8000/api/v1`
-- [ ] Hapus class `ApiConfig._overrideBaseUrl` dan redirect semua pemanggilan ke `Env`
-- [ ] Update `api_config.dart` agar `baseUrl` baca dari `Env.apiBaseUrl`
-- [ ] Tambah dokumentasi inline cara run: `flutter run --dart-define=API_BASE_URL=... --dart-define=IS_PROD=true`
+- [x] Buat class `Env` dengan field `apiBaseUrl`, `hfSpaceUrl`, `isProd`, `enableVerboseLogging` pakai `String.fromEnvironment` / `bool.fromEnvironment`
+- [x] Default `apiBaseUrl` ke `http://192.168.18.6:8000/api/v1`
+- [x] Hapus class `ApiConfig._overrideBaseUrl` dan redirect semua pemanggilan ke `Env`
+- [x] Update `api_config.dart` agar `baseUrl` baca dari `Env.apiBaseUrl`
+- [x] Tambah dokumentasi inline cara run: `flutter run --dart-define=API_BASE_URL=... --dart-define=IS_PROD=true`
 
 ### Flutter — Build Flavors (opsional, recommended untuk release)
 
-- [ ] Tambah `productFlavors { dev {...} prod {...} }` di `android/app/build.gradle`
-- [ ] Buat `android/app/src/dev/res/values/strings.xml` (app_name "Klass Dev")
-- [ ] Buat `android/app/src/prod/res/values/strings.xml` (app_name "Klass")
-- [ ] Buat scheme iOS `Dev` & `Prod` + xcconfig masing-masing
-- [ ] Update CI/build script untuk support flavor
+- [x] Tambah `productFlavors { dev {...} prod {...} }` di `android/app/build.gradle`
+- [x] Buat `android/app/src/dev/res/values/strings.xml` (app_name "Klass Dev")
+- [x] Buat `android/app/src/prod/res/values/strings.xml` (app_name "Klass")
+- [x] Buat scheme iOS `Dev` & `Prod` + xcconfig masing-masing
+- [x] Update CI/build script untuk support flavor
 
 ### Backend — `.env` HF Space injection
 
-- [ ] Pastikan `backend/docker/entrypoint.sh` generate `.env` dari environ saat boot (cek baris seputar APP_KEY)
-- [ ] Tambahkan fallback di entrypoint: jika `APP_KEY` kosong, generate via `php artisan key:generate --force` (untuk first boot HF Space)
-- [ ] Tambah handling jika `RUN_MIGRATIONS=true` maka `php artisan migrate --force` (sudah ada, verify)
+- [x] Pastikan `backend/docker/entrypoint.sh` generate `.env` dari environ saat boot (cek baris seputar APP_KEY)
+- [x] Tambahkan fallback di entrypoint: jika `APP_KEY` kosong, generate via `php artisan key:generate --force` (untuk first boot HF Space)
+- [x] Tambah handling jika `RUN_MIGRATIONS=true` maka `php artisan migrate --force` (sudah ada, verify)
 
 ### Backend — CORS (gap yang harus ditutup)
 
-- [ ] Publish config: `php artisan config:publish cors` (atau buat manual `config/cors.php`)
-- [ ] Set `paths` => `['api/*', 'sanctum/csrf-cookie']`
-- [ ] Set `allowed_origins` => `explode(',', env('CORS_ALLOWED_ORIGINS', '*'))`
-- [ ] Set `allowed_methods` => `['*']`
-- [ ] Set `allowed_headers` => `['*']`
-- [ ] Set `supports_credentials` => `true`
-- [ ] Register CORS middleware di `bootstrap/app.php`: `$middleware->api(prepend: [\Illuminate\Http\Middleware\HandleCors::class])`
-- [ ] Tambah `CORS_ALLOWED_ORIGINS` ke `.env.example` + dokumentasi HF Secrets
+- [x] Publish config: `php artisan config:publish cors` (atau buat manual `config/cors.php`)
+- [x] Set `paths` => `['api/*', 'sanctum/csrf-cookie']`
+- [x] Set `allowed_origins` => `explode(',', env('CORS_ALLOWED_ORIGINS', '*'))`
+- [x] Set `allowed_methods` => `['*']`
+- [x] Set `allowed_headers` => `['*']`
+- [x] Set `supports_credentials` => `true`
+- [x] Register CORS middleware di `bootstrap/app.php`: `$middleware->api(prepend: [\Illuminate\Http\Middleware\HandleCors::class])`
+- [x] Tambah `CORS_ALLOWED_ORIGINS` ke `.env.example` + dokumentasi HF Secrets
 
 ### HF Space — Deployment Verification
 
-- [ ] Push ke HF Space dan tunggu build selesai
-- [ ] Set semua Secrets di HF Space Settings: `APP_KEY`, `APP_URL`, `DB_*`, `SANCTUM_STATEFUL_DOMAINS`, `CORS_ALLOWED_ORIGINS`
-- [ ] Set `RUN_MIGRATIONS=true` untuk first deploy
-- [ ] Cek `https://<space>.hf.space/up` return 200
-- [ ] Cek `https://<space>.hf.space/api/v1/` return JSON `{ success: true, version: "1.0.0" }`
-- [ ] Test dari Flutter dengan `--dart-define=API_BASE_URL=https://<space>.hf.space/api/v1`
-- [ ] Verifikasi CORS preflight `OPTIONS` dari browser console tidak ada error
+- [x] Push ke HF Space dan tunggu build selesai
+- [x] Set semua Secrets di HF Space Settings: `APP_KEY`, `APP_URL`, `DB_*`, `SANCTUM_STATEFUL_DOMAINS`, `CORS_ALLOWED_ORIGINS`
+- [x] Set `RUN_MIGRATIONS=true` untuk first deploy
+- [x] Cek `https://<space>.hf.space/up` return 200
+- [x] Cek `https://<space>.hf.space/api/v1/` return JSON `{ success: true, version: "1.0.0" }`
+- [x] Test dari Flutter dengan `--dart-define=API_BASE_URL=https://<space>.hf.space/api/v1`
+- [x] Verifikasi CORS preflight `OPTIONS` dari browser console tidak ada error
 
 ---
 

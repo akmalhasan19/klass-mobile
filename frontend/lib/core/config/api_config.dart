@@ -1,38 +1,24 @@
-import 'package:flutter/foundation.dart';
+import 'package:klass_app/app/env.dart';
 
 /// API Configuration — centralized timeout, retry, and base URL settings.
 ///
 /// All network configuration constants live here so they can be
 /// adjusted in one place for production vs development environments.
+///
+/// ## Base URL
+///
+/// The [baseUrl] delegates to [Env.apiBaseUrl], which is set via
+/// `--dart-define=API_BASE_URL=...` at build time.  This eliminates
+/// the old dual-source pattern where both `Env` and `ApiConfig` read
+/// the same `String.fromEnvironment('API_BASE_URL')`.
 class ApiConfig {
-  /// Optional override from build runtime args.
+  /// Base URL for the backend API, sourced from [Env].
   ///
-  /// Example:
-  /// flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000/api
-  static const String _overrideBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: '',
-  );
-
-  /// Base URL for the backend API.
-  /// - Dev Server: 'http://192.168.18.6:8000/api'
-  /// - Android emulator/iOS simulator defaults replaced with local dev IP.
-  /// - Physical device:  use 'http://YOUR_IP:8000/api' atau IP di atas.
-  static String get baseUrl {
-    if (_overrideBaseUrl.isNotEmpty) {
-      return _overrideBaseUrl;
-    }
-
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-      case TargetPlatform.windows:
-      case TargetPlatform.linux:
-      case TargetPlatform.fuchsia:
-        return 'http://192.168.18.6:8000/api';
-    }
-  }
+  /// Override at build time:
+  /// ```bash
+  /// flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000/api/v1
+  /// ```
+  static String get baseUrl => Env.apiBaseUrl;
 
   // ─── Timeout Configuration (milliseconds) ─────────────────
 

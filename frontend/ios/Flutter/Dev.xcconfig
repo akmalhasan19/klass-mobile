@@ -1,0 +1,8 @@
+// Dev flavor configuration
+// Inherit Debug settings as baseline
+#include "Debug.xcconfig"
+
+// Flutter flavor — used by the Flutter embedder to set `--flavor`
+FLUTTER_FLAVOR=dev
+APP_NAME=Klass Dev
+PRODUCT_BUNDLE_IDENTIFIER=$(DEVELOPMENT_TEAM).com.klass.klass_app.dev

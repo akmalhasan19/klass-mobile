@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -13,6 +14,10 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
+
+from app.contracts import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 from app.contracts import (
     DEFAULT_CACHE_KEY_SCHEMA_VERSION,
@@ -650,7 +655,7 @@ def main(argv: list[str] | None = None) -> int:
         close_database_pool()
 
     for result in results:
-        print(f"{result.route}:{result.deleted_count}")
+        logger.info("cache_cleanup_result", extra={"event_data": {"route": result.route, "deleted_count": result.deleted_count}})
 
     return 0
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -10,7 +11,10 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
+from app.contracts import LOGGER_NAME
 from app.settings import Settings, get_settings
+
+logger = logging.getLogger(LOGGER_NAME)
 
 MIGRATIONS_TABLE_NAME = "schema_migrations"
 MIGRATION_LOCK_ID = 947215031
@@ -275,14 +279,14 @@ def main(argv: list[str] | None = None) -> int:
         pending = list_pending_migrations(settings)
 
         for migration in pending:
-            print(migration.name)
+            logger.info("pending_migration", extra={"event_data": {"migration": migration.name}})
 
         return 0
 
     applied = run_pending_migrations(settings)
 
     for migration in applied:
-        print(migration.name)
+        logger.info("migration_applied", extra={"event_data": {"migration": migration.name}})
 
     return 0
 

@@ -1,0 +1,8 @@
+// Prod flavor configuration
+// Inherit Release settings as baseline
+#include "Release.xcconfig"
+
+// Flutter flavor — used by the Flutter embedder to set `--flavor`
+FLUTTER_FLAVOR=prod
+APP_NAME=Klass
+PRODUCT_BUNDLE_IDENTIFIER=$(DEVELOPMENT_TEAM).com.klass.klass_app
