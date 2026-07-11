@@ -1,4 +1,5 @@
 import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
 import 'package:dio/dio.dart';
 
@@ -17,7 +18,7 @@ class SearchService {
        if (category != null && category.isNotEmpty && category != 'All') queryParams['category'] = category;
 
        final response = await _apiService.dio.get(
-         '/topics',
+         ApiConfig.v('/topics'),
          options: Options(extra: {'forceRefresh': forceRefresh}),
          queryParameters: queryParams,
        );

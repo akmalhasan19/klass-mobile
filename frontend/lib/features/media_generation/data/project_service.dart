@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/network/api_service.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 
@@ -25,7 +26,7 @@ class ProjectService extends ChangeNotifier {
 
     try {
       final response = await _apiService.dio.get(
-        '/topics',
+        ApiConfig.v('/topics'),
         options: Options(extra: {'forceRefresh': forceRefresh}),
         queryParameters: const {
           'include_contents': false,
@@ -41,7 +42,7 @@ class ProjectService extends ChangeNotifier {
           _error = ApiService.buildDebugInfo(
             'Invalid response format. Expected data as List.',
             operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
-            endpoint: '/topics',
+            endpoint: ApiConfig.v('/topics'),
           );
         }
       }
@@ -49,13 +50,13 @@ class ProjectService extends ChangeNotifier {
       _error = ApiService.buildDebugInfo(
         e,
         operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
-        endpoint: '/topics',
+        endpoint: ApiConfig.v('/topics'),
       );
     } catch (e) {
       _error = ApiService.buildDebugInfo(
         e,
         operation: ApiDebugOperation.workspaceMaterialsLoadFailed,
-        endpoint: '/topics',
+        endpoint: ApiConfig.v('/topics'),
       );
     } finally {
       _isLoading = false;
@@ -65,7 +66,7 @@ class ProjectService extends ChangeNotifier {
 
   Future<bool> addProject(Map<String, dynamic> projectData) async {
     try {
-      final response = await _apiService.dio.post('/topics', data: projectData);
+      final response = await _apiService.dio.post(ApiConfig.v('/topics'), data: projectData);
       if (response.statusCode == 200 || response.statusCode == 201) {
         fetchProjects(forceRefresh: true); // refresh list and bypass cache
         return true;

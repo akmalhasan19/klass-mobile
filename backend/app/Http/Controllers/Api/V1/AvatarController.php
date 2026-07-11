@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreAvatarRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Traits\ApiResponseTrait;
 use App\Services\FileUploadService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * AvatarController
@@ -29,17 +29,8 @@ class AvatarController extends Controller
     /**
      * Upload avatar dan update profil user.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreAvatarRequest $request): JsonResponse
     {
-        $request->validate([
-            'file' => 'required|file|mimes:jpg,jpeg,png,webp|max:2048',
-        ], [
-            'file.required' => 'File avatar wajib dikirim.',
-            'file.file' => 'Input harus berupa file yang valid.',
-            'file.mimes' => 'File avatar harus berupa gambar (jpg, jpeg, png, webp).',
-            'file.max' => 'Ukuran file avatar maksimal 2 MB.',
-        ]);
-
         try {
             $result = $this->uploadService->upload(
                 $request->file('file'),

@@ -1,4 +1,5 @@
 import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
 import 'package:dio/dio.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
@@ -13,7 +14,7 @@ class HomeService {
 
     try {
       final response = await _apiService.dio.get(
-        '/homepage-recommendations',
+        ApiConfig.v('/homepage-recommendations'),
         options: Options(extra: {'forceRefresh': forceRefresh}),
         queryParameters: const {
           'limit': 10,
@@ -30,7 +31,7 @@ class HomeService {
           ApiService.buildDebugInfo(
             'Invalid response format. Expected data as List.',
             operation: ApiDebugOperation.homeProjectsLoadFailed,
-            endpoint: '/homepage-recommendations',
+            endpoint: ApiConfig.v('/homepage-recommendations'),
           ),
         );
       }
@@ -63,7 +64,7 @@ class HomeService {
 
     try {
       final response = await _apiService.dio.get(
-        '/homepage-sections',
+        ApiConfig.v('/homepage-sections'),
         options: Options(extra: {'forceRefresh': forceRefresh}),
       );
       if (response.statusCode == 200) {
@@ -86,7 +87,7 @@ class HomeService {
 
     try {
       final response = await _apiService.dio.get(
-        '/marketplace-tasks',
+        ApiConfig.v('/marketplace-tasks'),
         options: Options(extra: {'forceRefresh': forceRefresh}),
       );
       if (response.statusCode == 200) {
@@ -100,7 +101,7 @@ class HomeService {
           ApiService.buildDebugInfo(
             'Invalid response format. Expected data as List.',
             operation: ApiDebugOperation.homeFreelancersLoadFailed,
-            endpoint: '/marketplace-tasks',
+            endpoint: ApiConfig.v('/marketplace-tasks'),
           ),
         );
       }

@@ -256,12 +256,12 @@ void main() {
     expect(service.generationId, 'gen-123');
     expect(service.currentStatus, 'queued');
     expect(adapter.submitCount, 1);
-    expect(adapter.submitPath, '/media-generations');
+    expect(adapter.submitPath, '/v1/media-generations');
 
     await service.pollNow();
 
     expect(adapter.pollCount, 1);
-    expect(adapter.pollPath, '/media-generations/gen-123');
+    expect(adapter.pollPath, '/v1/media-generations/gen-123');
     expect(service.state, MediaGenerationViewState.success);
     expect(service.currentStatus, 'completed');
     expect(service.deliveryPayload?['title'], 'Deck Termodinamika Kelas 11 siap digunakan');

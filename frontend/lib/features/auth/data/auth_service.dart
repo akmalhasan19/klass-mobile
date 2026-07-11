@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/network/api_service.dart';
 
 class AuthService {
@@ -25,7 +26,7 @@ class AuthService {
 
   Future<bool> login(String email, String password) async {
     try {
-      final response = await _apiService.dio.post('/auth/login', data: {
+      final response = await _apiService.dio.post(ApiConfig.v('/auth/login'), data: {
         'email': email,
         'password': password,
       });
@@ -54,7 +55,7 @@ class AuthService {
 
   Future<bool> register(String name, String email, String password, {String role = 'teacher'}) async {
     try {
-      final response = await _apiService.dio.post('/auth/register', data: {
+      final response = await _apiService.dio.post(ApiConfig.v('/auth/register'), data: {
         'name': name,
         'email': email,
         'password': password,
@@ -85,7 +86,7 @@ class AuthService {
 
   Future<String?> getSecurityQuestion(String email) async {
     try {
-      final response = await _apiService.dio.post('/auth/get-security-question', data: {
+      final response = await _apiService.dio.post(ApiConfig.v('/auth/get-security-question'), data: {
         'email': email,
       });
       if (response.statusCode == 200) {
@@ -103,7 +104,7 @@ class AuthService {
 
   Future<bool> verifyAndResetPassword(String email, String securityAnswer, String newPassword) async {
     try {
-      final response = await _apiService.dio.post('/auth/verify-and-reset-password', data: {
+      final response = await _apiService.dio.post(ApiConfig.v('/auth/verify-and-reset-password'), data: {
         'email': email,
         'security_answer': securityAnswer,
         'new_password': newPassword,
@@ -121,7 +122,7 @@ class AuthService {
 
   Future<void> logout() async {
     try {
-      await _apiService.dio.post('/auth/logout');
+      await _apiService.dio.post(ApiConfig.v('/auth/logout'));
     } catch (_) {
       // Ignore error if logout fails (e.g., token already invalid)
     } finally {
@@ -142,7 +143,7 @@ class AuthService {
 
   Future<Map<String, dynamic>?> getMe() async {
     try {
-      final response = await _apiService.dio.get('/auth/me');
+      final response = await _apiService.dio.get(ApiConfig.v('/auth/me'));
       if (response.statusCode == 200) {
         final user = response.data['data'] ?? response.data; // adjust based on API structure
         final prefs = await SharedPreferences.getInstance();
@@ -199,7 +200,7 @@ class AuthService {
       });
 
       final response = await _apiService.dio.post(
-        '/user/avatar',
+        ApiConfig.v('/user/avatar'),
         data: formData,
       );
 

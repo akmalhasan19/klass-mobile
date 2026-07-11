@@ -1,4 +1,5 @@
 import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
 import 'package:dio/dio.dart';
 
@@ -16,7 +17,7 @@ class GalleryService {
       if (category != null && category.isNotEmpty) queryParams['category'] = category;
 
       final response = await _apiService.dio.get(
-        '/gallery',
+        ApiConfig.v('/gallery'),
         options: Options(extra: {'forceRefresh': forceRefresh}),
         queryParameters: queryParams,
       );

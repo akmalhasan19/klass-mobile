@@ -58,6 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     'success' => false,
                     'message' => $e->getMessage(),
                     'error' => MediaGenerationErrorCode::toClientPayload($e->errorCode()),
+                    'timestamp' => now()->toIso8601String(),
                 ];
 
                 if ($e->errors() !== []) {
@@ -76,6 +77,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     'success' => false,
                     'message' => MediaGenerationErrorCode::clientMessage($errorCode),
                     'error' => MediaGenerationErrorCode::toClientPayload($errorCode),
+                    'timestamp' => now()->toIso8601String(),
                 ], MediaGenerationErrorCode::httpStatus($errorCode));
             }
         });
@@ -87,6 +89,8 @@ return Application::configure(basePath: dirname(__DIR__))
                     'success' => false,
                     'message' => 'Validasi gagal.',
                     'errors' => $e->errors(),
+                    'error' => ['code' => 'VALIDATION_FAILED'],
+                    'timestamp' => now()->toIso8601String(),
                 ], 422);
             }
         });
@@ -98,6 +102,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json([
                     'success' => false,
                     'message' => "{$model} tidak ditemukan.",
+                    'error' => ['code' => 'NOT_FOUND'],
+                    'timestamp' => now()->toIso8601String(),
                 ], 404);
             }
         });
@@ -108,6 +114,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json([
                     'success' => false,
                     'message' => 'Endpoint tidak ditemukan.',
+                    'error' => ['code' => 'NOT_FOUND'],
+                    'timestamp' => now()->toIso8601String(),
                 ], 404);
             }
         });
@@ -118,6 +126,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json([
                     'success' => false,
                     'message' => 'Tidak memiliki akses. Silakan login terlebih dahulu.',
+                    'error' => ['code' => 'UNAUTHENTICATED'],
+                    'timestamp' => now()->toIso8601String(),
                 ], 401);
             }
         });
@@ -137,6 +147,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json([
                     'success' => false,
                     'message' => 'Terjadi kesalahan pada server.',
+                    'error' => ['code' => 'SERVER_ERROR'],
+                    'timestamp' => now()->toIso8601String(),
                 ], 500);
             }
         });

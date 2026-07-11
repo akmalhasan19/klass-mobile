@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\GetSecurityQuestionRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Traits\ApiResponseTrait;
 use App\Models\User;
@@ -95,9 +97,8 @@ class AuthController extends Controller
         );
     }
 
-    public function getSecurityQuestion(Request $request): JsonResponse
+    public function getSecurityQuestion(GetSecurityQuestionRequest $request): JsonResponse
     {
-        $request->validate(['email' => 'required|email']);
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !$user->security_question) {
@@ -109,14 +110,8 @@ class AuthController extends Controller
         ], 'Pertanyaan keamanan berhasil diambil.');
     }
 
-    public function verifyAndResetPassword(Request $request): JsonResponse
+    public function verifyAndResetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'security_answer' => 'required|string',
-            'new_password' => 'required|string|min:6',
-        ]);
-
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !$user->security_answer) {

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/network/api_service.dart';
 
 enum HistoryViewState {
@@ -40,7 +41,7 @@ class GenerationHistoryService extends ChangeNotifier {
 
     try {
       final response = await _apiService.dio.get(
-        '/media-generations',
+        ApiConfig.v('/media-generations'),
         queryParameters: {'parent_id': parentGenerationId},
       );
 
@@ -86,7 +87,7 @@ class GenerationHistoryService extends ChangeNotifier {
 
     try {
       // First, get the generation details to find its parent_id
-      final response = await _apiService.dio.get('/media-generations/$generationId');
+      final response = await _apiService.dio.get(ApiConfig.v('/media-generations/$generationId'));
       final Map<String, dynamic>? data = response.data['data'];
       
       if (data == null) {

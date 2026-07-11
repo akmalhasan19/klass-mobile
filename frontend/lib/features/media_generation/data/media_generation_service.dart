@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/network/api_service.dart';
@@ -94,7 +95,7 @@ class MediaGenerationService extends ChangeNotifier {
     }
 
     try {
-      final response = await _apiService.dio.post('/media-generations', data: payload);
+      final response = await _apiService.dio.post(ApiConfig.v('/media-generations'), data: payload);
       final resource = _extractResource(response.data);
 
       if (resource == null) {
@@ -102,7 +103,7 @@ class MediaGenerationService extends ChangeNotifier {
           ApiService.buildDebugInfo(
             'Invalid response format. Expected data as Object.',
             operation: ApiDebugOperation.networkRequestFailed,
-            endpoint: '/media-generations',
+            endpoint: ApiConfig.v('/media-generations'),
           ),
         );
       }
@@ -115,14 +116,14 @@ class MediaGenerationService extends ChangeNotifier {
 
       return true;
     } on DioException catch (error) {
-      _setError(_resolveDioErrorMessage(error, endpoint: '/media-generations'));
+      _setError(_resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations')));
       return false;
     } catch (error) {
       _setError(
         ApiService.buildDebugInfo(
           error,
           operation: ApiDebugOperation.networkRequestFailed,
-          endpoint: '/media-generations',
+          endpoint: ApiConfig.v('/media-generations'),
         ),
       );
       return false;
@@ -138,7 +139,7 @@ class MediaGenerationService extends ChangeNotifier {
 
     try {
       final response = await _apiService.dio.get(
-        '/media-generations/$_generationId',
+        ApiConfig.v('/media-generations/$_generationId'),
         options: Options(extra: {'forceRefresh': true}),
       );
       final resource = _extractResource(response.data);
@@ -148,7 +149,7 @@ class MediaGenerationService extends ChangeNotifier {
           ApiService.buildDebugInfo(
             'Invalid response format. Expected data as Object.',
             operation: ApiDebugOperation.networkRequestFailed,
-            endpoint: '/media-generations/$_generationId',
+            endpoint: ApiConfig.v('/media-generations/$_generationId'),
           ),
         );
       }
@@ -160,7 +161,7 @@ class MediaGenerationService extends ChangeNotifier {
       }
     } on DioException catch (error) {
       _setError(
-        _resolveDioErrorMessage(error, endpoint: '/media-generations/$_generationId'),
+        _resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations/$_generationId')),
       );
     } catch (error) {
       _setError(
@@ -215,7 +216,7 @@ class MediaGenerationService extends ChangeNotifier {
 
     try {
       final response = await _apiService.dio.post(
-        '/media-generations/$parentId/regenerate',
+        ApiConfig.v('/media-generations/$parentId/regenerate'),
         data: {'additional_prompt': normalizedPrompt},
       );
       
@@ -229,7 +230,7 @@ class MediaGenerationService extends ChangeNotifier {
       }
       return false;
     } on DioException catch (error) {
-      _setError(_resolveDioErrorMessage(error, endpoint: '/media-generations/$parentId/regenerate'));
+      _setError(_resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations/$parentId/regenerate')));
       return false;
     } catch (error) {
       _setError('Failed to regenerate: $error');
@@ -240,7 +241,7 @@ class MediaGenerationService extends ChangeNotifier {
   Future<List<FreelancerSuggestion>> suggestFreelancers(String generationId) async {
     try {
       final response = await _apiService.dio.post(
-        '/media-generations/$generationId/suggest-freelancers',
+        ApiConfig.v('/media-generations/$generationId/suggest-freelancers'),
       );
       
       final data = response.data['data'] as List?;
@@ -249,7 +250,7 @@ class MediaGenerationService extends ChangeNotifier {
       }
       return data.map((json) => FreelancerSuggestion.fromJson(json)).toList();
     } on DioException catch (error) {
-      final message = _resolveDioErrorMessage(error, endpoint: '/media-generations/$generationId/suggest-freelancers');
+      final message = _resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations/$generationId/suggest-freelancers'));
       throw Exception(message);
     } catch (error) {
       debugPrint('Error suggesting freelancers: $error');
@@ -273,7 +274,7 @@ class MediaGenerationService extends ChangeNotifier {
       }
       
       final response = await _apiService.dio.post(
-        '/media-generations/$generationId/hire-freelancer',
+        ApiConfig.v('/media-generations/$generationId/hire-freelancer'),
         data: payload,
       );
       return response.data['data'] as Map<String, dynamic>?;

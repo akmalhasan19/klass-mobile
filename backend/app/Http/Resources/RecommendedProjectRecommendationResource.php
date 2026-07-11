@@ -42,6 +42,8 @@ class RecommendedProjectRecommendationResource extends JsonResource
                 $request->boolean('include_source_context'),
                 data_get($this->resource, 'source_payload', [])
             ),
+            'created_at' => $this->serializeTimestamp(data_get($this->resource, 'created_at')),
+            'updated_at' => $this->serializeTimestamp(data_get($this->resource, 'updated_at')),
         ];
     }
 

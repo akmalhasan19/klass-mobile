@@ -16,7 +16,9 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
  *   "success": true|false,
  *   "message": "...",
  *   "data": { ... } | [ ... ],
- *   "meta": { ... }   // hanya untuk paginated response
+ *   "meta": { ... },  // hanya untuk paginated response
+ *   "error": { "code": "..." },  // hanya untuk error response
+ *   "timestamp": "2026-07-11T12:00:00Z"  // ISO-8601
  * }
  */
 trait ApiResponseTrait
@@ -33,6 +35,7 @@ trait ApiResponseTrait
             'success' => true,
             'message' => $message,
             'data' => $data,
+            'timestamp' => now()->toIso8601String(),
         ];
 
         return response()->json($response, $code);
@@ -66,6 +69,7 @@ trait ApiResponseTrait
         return response()->json([
             'success' => true,
             'message' => $message,
+            'timestamp' => now()->toIso8601String(),
         ], 200); // 200 instead of 204 karena 204 tidak boleh punya body
     }
 
@@ -94,20 +98,33 @@ trait ApiResponseTrait
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
             ],
+            'timestamp' => now()->toIso8601String(),
         ]);
     }
 
     /**
      * Response error.
+     *
+     * @param  string|null  $errorCode  Stable string identifier for the error
+     *                                  (e.g., 'VALIDATION_FAILED', 'NOT_FOUND').
+     *                                  Auto-derived from HTTP status when null:
+     *                                  400→BAD_REQUEST, 401→UNAUTHENTICATED,
+     *                                  403→FORBIDDEN, 404→NOT_FOUND,
+     *                                  422→VALIDATION_FAILED, 500→SERVER_ERROR.
      */
     protected function error(
         string $message = 'Terjadi kesalahan.',
         int $code = 400,
         mixed $errors = null,
+        ?string $errorCode = null,
     ): JsonResponse {
         $response = [
             'success' => false,
             'message' => $message,
+            'error' => [
+                'code' => $errorCode ?? $this->defaultErrorCode($code),
+            ],
+            'timestamp' => now()->toIso8601String(),
         ];
 
         if ($errors !== null) {
@@ -118,11 +135,27 @@ trait ApiResponseTrait
     }
 
     /**
+     * Map HTTP status codes to default stable error code strings.
+     */
+    private function defaultErrorCode(int $httpCode): string
+    {
+        return match ($httpCode) {
+            400 => 'BAD_REQUEST',
+            401 => 'UNAUTHENTICATED',
+            403 => 'FORBIDDEN',
+            404 => 'NOT_FOUND',
+            422 => 'VALIDATION_FAILED',
+            500 => 'SERVER_ERROR',
+            default => 'REQUEST_ERROR',
+        };
+    }
+
+    /**
      * Response not found (404).
      */
     protected function notFound(string $message = 'Data tidak ditemukan.'): JsonResponse
     {
-        return $this->error($message, 404);
+        return $this->error($message, 404, errorCode: 'NOT_FOUND');
     }
 
     /**
@@ -130,7 +163,7 @@ trait ApiResponseTrait
      */
     protected function unauthorized(string $message = 'Tidak memiliki akses.'): JsonResponse
     {
-        return $this->error($message, 401);
+        return $this->error($message, 401, errorCode: 'UNAUTHENTICATED');
     }
 
     /**
@@ -138,6 +171,6 @@ trait ApiResponseTrait
      */
     protected function validationError(mixed $errors, string $message = 'Validasi gagal.'): JsonResponse
     {
-        return $this->error($message, 422, $errors);
+        return $this->error($message, 422, $errors, errorCode: 'VALIDATION_FAILED');
     }
 }

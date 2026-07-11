@@ -97,29 +97,29 @@
 
 ### Versioning /v1/
 
-- [ ] Edit `routes/api.php`: wrap semua route dalam `Route::prefix('v1')->group(function () { ... })`
-- [ ] Pastikan route publik `/` tetap di luar prefix v1 (health check)
-- [ ] Update semua endpoint path di Flutter service dari `/auth/login` → `/v1/auth/login`, dst (macro search-replace perlu hati-hati)
-- [ ] Update semua test backend yang hit endpoint lama
-- [ ] Update semua test frontend yang mock endpoint
+- [x] Edit `routes/api.php`: wrap semua route dalam `Route::prefix('v1')->group(function () { ... })`
+- [x] Pastikan route publik `/` tetap di luar prefix v1 (health check)
+- [x] Update semua endpoint path di Flutter service dari `/auth/login` → `/v1/auth/login`, dst (macro search-replace perlu hati-hati)
+- [x] Update semua test backend yang hit endpoint lama
+- [x] Update semua test frontend yang mock endpoint
 
 ### Response Format Standardisasi
 
-- [ ] Pertahankan `ApiResponseTrait` schema: `{ success, message, data, meta? }`
-- [ ] Tambah field `error.code` (stable string) ke semua error response
-  - [ ] Update `ValidationException` render di `bootstrap/app.php` → tambah `error: { code: 'VALIDATION_FAILED' }`
-  - [ ] Update `ModelNotFoundException` → `error: { code: 'NOT_FOUND' }`
-  - [ ] Update `AuthenticationException` → `error: { code: 'UNAUTHENTICATED' }`
-  - [ ] Update catch-all `Throwable` → `error: { code: 'SERVER_ERROR' }`
-- [ ] Standardkan urutan field di semua API Resources (timestamp + casts konsisten)
-- [ ] Tambahkan `timestamp` ISO-8601 ke semua response (optional but recommended)
+- [x] Pertahankan `ApiResponseTrait` schema: `{ success, message, data, meta? }`
+- [x] Tambah field `error.code` (stable string) ke semua error response
+  - [x] Update `ValidationException` render di `bootstrap/app.php` → tambah `error: { code: 'VALIDATION_FAILED' }`
+  - [x] Update `ModelNotFoundException` → `error: { code: 'NOT_FOUND' }`
+  - [x] Update `AuthenticationException` → `error: { code: 'UNAUTHENTICATED' }`
+  - [x] Update catch-all `Throwable` → `error: { code: 'SERVER_ERROR' }`
+- [x] Standardkan urutan field di semua API Resources (timestamp + casts konsisten)
+- [x] Tambahkan `timestamp` ISO-8601 ke semua response (optional but recommended)
 
 ### Validation — FormRequest untuk semua endpoint
 
-- [ ] Buat `ResetPasswordRequest` (pindahkan inline validation dari `AuthController::verifyAndResetPassword`)
-- [ ] Buat `GetSecurityQuestionRequest` (pindahkan inline validation dari `AuthController::getSecurityQuestion`)
-- [ ] Audit semua controller method yang masih pakai `$request->validate()` inline, pindahkan ke FormRequest
-- [ ] Pastikan semua FormRequest extend `ApiFormRequest` (sudah ada base class)
+- [x] Buat `ResetPasswordRequest` (pindahkan inline validation dari `AuthController::verifyAndResetPassword`)
+- [x] Buat `GetSecurityQuestionRequest` (pindahkan inline validation dari `AuthController::getSecurityQuestion`)
+- [x] Audit semua controller method yang masih pakai `$request->validate()` inline, pindahkan ke FormRequest
+- [x] Pastikan semua FormRequest extend `ApiFormRequest` (sudah ada base class)
 
 ### Flutter — DTO + Exception Parser
 

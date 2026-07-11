@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\HomepageRecommendationRequest;
 use App\Http\Resources\RecommendedProjectRecommendationCollection;
 use App\Models\HomepageSection;
 use App\Models\RecommendedProject;
@@ -23,11 +24,9 @@ class HomepageRecommendationController extends Controller
     ) {
     }
 
-    public function index(Request $request): RecommendedProjectRecommendationCollection
+    public function index(HomepageRecommendationRequest $request): RecommendedProjectRecommendationCollection
     {
-        $validated = $request->validate([
-            'limit' => 'nullable|integer|min:1|max:50',
-        ]);
+        $validated = $request->validated();
 
         $section = HomepageSection::query()
             ->where('key', $this->sectionKey())
