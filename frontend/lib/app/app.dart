@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:klass_app/core/config/theme.dart';
@@ -12,7 +14,8 @@ import 'package:klass_app/features/profile/screens/settings_screen.dart';
 import 'package:klass_app/features/freelancer/screens/freelancer_jobs_screen.dart';
 import 'package:klass_app/features/freelancer/screens/freelancer_portfolio_screen.dart';
 import 'package:klass_app/features/freelancer/screens/freelancer_home_screen.dart';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/data/auth_repository.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
 import 'package:klass_app/core/storage/locale_preferences_service.dart';
 import 'package:klass_app/shared/widgets/bottom_nav.dart';
 import 'package:klass_app/core/config/animations.dart';
@@ -32,13 +35,15 @@ class AppBootstrapState {
 Future<AppBootstrapState> loadInitialAppState() async {
   final prefs = await SharedPreferences.getInstance();
   final hasAuthToken = prefs.getString('auth_token') != null;
-  final cachedRole = await AuthService().getUserRole();
+  final userStr = prefs.getString('user_data');
+  final Map<String, dynamic>? user = userStr != null ? Map<String, dynamic>.from(jsonDecode(userStr)) : null;
+  final cachedRole = AuthRepository.normalizeRoleValue(user?['role']);
   final savedLocale = await const LocalePreferencesService().loadSavedLocale(
     supportedLocales: KlassApp.supportedLocales,
   );
 
   return AppBootstrapState(
-    role: hasAuthToken ? AuthService.resolveAppRole(cachedRole) : 'teacher',
+    role: hasAuthToken ? AuthRepository.resolveAppRole(cachedRole) : 'teacher',
     isGuest: !hasAuthToken,
     locale: savedLocale,
   );
@@ -149,7 +154,7 @@ class KlassAppState extends State<KlassApp> {
   }
 }
 
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   const MainShell({
     super.key,
     this.initialRole = 'teacher',
@@ -160,11 +165,10 @@ class MainShell extends StatefulWidget {
   final bool initialIsGuest;
 
   @override
-  State<MainShell> createState() => MainShellState();
+  ConsumerState<MainShell> createState() => MainShellState();
 }
 
-class MainShellState extends State<MainShell> {
-  final AuthService _authService = AuthService();
+class MainShellState extends ConsumerState<MainShell> {
   int _currentIndex = 0;
   bool _shouldFocusHomePrompt = false;
   late String _userRole;
@@ -180,15 +184,12 @@ class MainShellState extends State<MainShell> {
 
   Future<void> _loadUserRole() async {
     try {
-      final isLoggedIn = await _authService.isLoggedIn();
-      final role = await _authService.getUserRole();
-      if (!mounted) {
-        return;
-      }
+      final authState = await ref.read(authProvider.future);
+      if (!mounted) return;
 
       setState(() {
-        _isGuest = !isLoggedIn;
-        _userRole = isLoggedIn ? AuthService.resolveAppRole(role) : 'teacher';
+        _isGuest = authState.isGuest;
+        _userRole = authState.isGuest ? 'teacher' : authState.role;
       });
     } catch (_) {
       if (mounted) {
@@ -201,6 +202,8 @@ class MainShellState extends State<MainShell> {
   }
 
   Future<void> reloadRole() async {
+    final authNotifier = ref.read(authProvider.notifier);
+    await authNotifier.refreshUser();
     await _loadUserRole();
     setState(() {
       _currentIndex = 0;

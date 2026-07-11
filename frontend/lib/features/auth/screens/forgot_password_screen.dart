@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
 import 'package:klass_app/core/network/cancelable_state_mixin.dart';
-import 'package:klass_app/core/providers/dio_provider.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -13,7 +12,6 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> with CancelableState {
-  late final AuthService _authService;
   final _emailController = TextEditingController();
   final _answerController = TextEditingController();
   final _newPasswordController = TextEditingController();
@@ -24,12 +22,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> wit
   
   String? _securityQuestion;
   bool _questionFetched = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _authService = AuthService(dio: ref.read(dioProvider));
-  }
 
   Future<void> _fetchQuestion() async {
     final localizations = AppLocalizations.of(context)!;
@@ -46,7 +38,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> wit
     });
 
     try {
-      final question = await _authService.getSecurityQuestion(email, cancelToken: cancelToken);
+      final authNotifier = ref.read(authProvider.notifier);
+      final question = await authNotifier.getSecurityQuestion(email, cancelToken: cancelToken);
       setState(() {
         if (question != null && question.isNotEmpty) {
           _securityQuestion = question;
@@ -85,7 +78,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> wit
     });
 
     try {
-      final success = await _authService.verifyAndResetPassword(email, answer, newPassword, cancelToken: cancelToken);
+      final authNotifier = ref.read(authProvider.notifier);
+      final success = await authNotifier.verifyAndResetPassword(email, answer, newPassword, cancelToken: cancelToken);
       if (success) {
         setState(() {
           _successMessage = localizations.forgotPasswordSuccess;

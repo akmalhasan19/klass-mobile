@@ -274,13 +274,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   }
 
   Future<void> _submitPrompt(String text) async {
-    final isAuthenticated = await requireAuth(context);
+    final isAuthenticated = await requireAuth(context, ref);
 
     if (!isAuthenticated || !mounted) {
       return;
     }
 
-    final isTeacher = await requireRole(context, 'teacher');
+    final isTeacher = await requireRole(context, ref, 'teacher');
 
     if (!isTeacher || !mounted) {
       return;
@@ -491,7 +491,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                               return ProjectDetailsBottomSheet(
                                 project: p,
                                 onRecreate: (description) async {
-                                  if (await requireAuth(context)) {
+                                  if (await requireAuth(context, ref)) {
                                     _promptController.text = description;
                                   }
                                 },

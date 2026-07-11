@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/data/auth_repository.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
 import 'package:klass_app/app/app.dart';
 import 'package:klass_app/features/auth/screens/forgot_password_screen.dart';
 import 'package:klass_app/core/network/cancelable_state_mixin.dart';
-import 'package:klass_app/core/providers/dio_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +16,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState {
-  late final AuthService _authService;
   bool _isLogin = true;
   bool _isLoading = false;
   String _errorMessage = '';
@@ -25,12 +24,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _authService = AuthService(dio: ref.read(dioProvider));
-  }
 
   @override
   void dispose() {
@@ -42,6 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
 
   void _submit() async {
     final localizations = AppLocalizations.of(context)!;
+    final authNotifier = ref.read(authProvider.notifier);
 
     setState(() {
       _isLoading = true;
@@ -49,15 +43,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
     });
 
     try {
-      bool success = false;
       if (_isLogin) {
-        success = await _authService.login(
+        await authNotifier.login(
           _emailController.text.trim(),
           _passwordController.text,
           cancelToken: cancelToken,
         );
       } else {
-        success = await _authService.register(
+        await authNotifier.register(
           _nameController.text.trim(),
           _emailController.text.trim(),
           _passwordController.text,
@@ -66,45 +59,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
         );
       }
 
-      if (success) {
-        // Fetch user profile right after login/register
-        final userProfile = await _authService.getMe(cancelToken: cancelToken);
-        final role = AuthService.getRoleFromUserData(userProfile);
-        final isFreelancer = AuthService.resolveAppRole(role) == 'freelancer';
-        
-        if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isFreelancer 
-                ? localizations.loginSuccessFreelancer
-                : localizations.loginSuccess,
-              style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
-            ),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
+      final authState = ref.read(authProvider);
+      if (authState.hasError) {
+        setState(() {
+          _errorMessage = authState.error.toString().replaceFirst('Exception: ', '');
+          _isLoading = false;
+        });
+        return;
+      }
 
-        await KlassApp.mainShellKey.currentState?.reloadRole();
-
-        if (!mounted) return;
-
-        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
-      } else {
+      if (!authState.hasValue) {
         setState(() {
           _errorMessage = localizations.loginGenericError;
+          _isLoading = false;
         });
+        return;
       }
+
+      final user = authState.value!.user;
+      final role = AuthRepository.getRoleFromUserData(user);
+      final isFreelancer = AuthRepository.resolveAppRole(role) == 'freelancer';
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isFreelancer 
+              ? localizations.loginSuccessFreelancer
+              : localizations.loginSuccess,
+            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+
+      await KlassApp.mainShellKey.currentState?.reloadRole();
+
+      if (!mounted) return;
+
+      Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
     } catch (e) {
       setState(() {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      setState(() {
         _isLoading = false;
       });
     }

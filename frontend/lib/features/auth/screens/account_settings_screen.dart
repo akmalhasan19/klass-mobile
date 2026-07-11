@@ -7,9 +7,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/shared/widgets/feature_coming_soon.dart';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
 import 'package:klass_app/core/network/cancelable_state_mixin.dart';
-import 'package:klass_app/core/providers/dio_provider.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -19,7 +18,6 @@ class AccountSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> with CancelableState {
-  late final AuthService _authService;
   Map<String, dynamic>? _user;
   bool _isUploadingAvatar = false;
   final ImagePicker _picker = ImagePicker();
@@ -40,7 +38,6 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> w
   @override
   void initState() {
     super.initState();
-    _authService = AuthService(dio: ref.read(dioProvider));
     _loadUserData();
   }
 
@@ -68,7 +65,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> w
     setState(() => _isUploadingAvatar = true);
 
     try {
-      final newUrl = await _authService.uploadAvatar(image.path, cancelToken: cancelToken);
+      final authNotifier = ref.read(authProvider.notifier);
+      final newUrl = await authNotifier.uploadAvatar(image.path, cancelToken: cancelToken);
       if (newUrl != null && mounted) {
         setState(() {
           if (_user != null) {

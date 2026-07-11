@@ -1,18 +1,19 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/app/app.dart';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
 
 class LogoutHelper {
   static Future<void> execute({
     required BuildContext context,
-    required Dio dio,
+    required WidgetRef ref,
     bool popToRoot = false,
     VoidCallback? onBeforeLogout,
   }) async {
     onBeforeLogout?.call();
 
-    await AuthService(dio: dio).logout();
+    final authNotifier = ref.read(authProvider.notifier);
+    await authNotifier.logout();
 
     if (!context.mounted) return;
 

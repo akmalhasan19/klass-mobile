@@ -7,11 +7,10 @@ import 'package:klass_app/shared/widgets/top_right_accent.dart';
 import 'package:klass_app/shared/widgets/layer2_white_clipper.dart';
 import 'package:klass_app/core/config/animations.dart';
 import 'package:klass_app/shared/widgets/feature_coming_soon.dart';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
 import 'package:klass_app/core/storage/locale_preferences_service.dart';
 import 'package:klass_app/app/app.dart';
 import 'package:klass_app/core/utils/logout_helper.dart';
-import 'package:klass_app/core/providers/dio_provider.dart';
 
 /// Settings Screen — mereplikasi halaman Settings dari Klass Next.js.
 /// Fitur: AI Preferences, Interface & Theme, Workspace & Data,
@@ -38,21 +37,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isUpdatingLocale = false;
   // ignore: unused_field
   String? _userRole;
-  late final AuthService _authService;
 
   @override
   void initState() {
     super.initState();
-    _authService = AuthService(dio: ref.read(dioProvider));
     _fetchUserRole();
   }
 
   Future<void> _fetchUserRole() async {
-    final role = await _authService.getUserRole();
-    if (mounted) {
-      setState(() {
-        _userRole = role;
-      });
+    final authState = ref.read(authProvider);
+    if (authState.hasValue) {
+      if (mounted) {
+        setState(() {
+          _userRole = authState.value!.role;
+        });
+      }
     }
   }
 
@@ -79,7 +78,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    await LogoutHelper.execute(context: context, dio: ref.read(dioProvider), popToRoot: true);
+    await LogoutHelper.execute(context: context, ref: ref, popToRoot: true);
   }
 
   Future<void> _handleLocaleSelection(Locale locale) async {

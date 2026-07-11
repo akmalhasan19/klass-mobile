@@ -10,12 +10,11 @@ import 'package:klass_app/features/profile/screens/help_screen.dart';
 import 'package:klass_app/shared/widgets/feature_coming_soon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
 import 'package:klass_app/features/auth/screens/login_screen.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
 import 'package:klass_app/core/utils/logout_helper.dart';
 import 'package:klass_app/core/network/cancelable_state_mixin.dart';
-import 'package:klass_app/core/providers/dio_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   final String role;
@@ -32,7 +31,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> with CancelableState {
-  late final AuthService _authService;
   Map<String, dynamic>? _user;
   late bool _isLoading;
   late final ScrollController _scrollController;
@@ -44,7 +42,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with CancelableSt
   @override
   void initState() {
     super.initState();
-    _authService = AuthService(dio: ref.read(dioProvider));
     _scrollController = ScrollController();
     _isLoading = !widget.isGuest;
 
@@ -80,10 +77,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with CancelableSt
     }
 
     // Fetch latest from API
-    final me = await _authService.getMe(cancelToken: cancelToken);
-    if (me != null && mounted) {
+    final authNotifier = ref.read(authProvider.notifier);
+    await authNotifier.refreshUser(cancelToken: cancelToken);
+    final authState = ref.read(authProvider);
+    if (authState.hasValue && mounted) {
       setState(() {
-        _user = me;
+        _user = authState.value!.user;
         _isLoading = false;
       });
     } else if (_user == null && mounted) {
@@ -99,7 +98,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with CancelableSt
     // 3. Reset MainShell to guest/teacher mode and navigate to Home tab
     await LogoutHelper.execute(
       context: context,
-      dio: ref.read(dioProvider),
+      ref: ref,
       onBeforeLogout: () {
         setState(() {
           _user = null;
@@ -1416,7 +1415,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with CancelableSt
       child: InkWell(
         onTap: () async {
           if (actionKey == 'account_settings') {
-            if (await requireAuth(context)) {
+            if (await requireAuth(context, ref)) {
               if (mounted) {
                 Navigator.of(context)
                     .push(
@@ -1442,7 +1441,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with CancelableSt
               ),
             );
               } else if (actionKey == 'register_freelancer') {
-            if (await requireAuth(context)) {
+            if (await requireAuth(context, ref)) {
               if (mounted) {
                     final localizations = _localizations();
                 FeatureComingSoon.show(

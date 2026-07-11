@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
 
-class FreelancerDetailsBottomSheet extends StatelessWidget {
+class FreelancerDetailsBottomSheet extends ConsumerWidget {
   final Map<String, dynamic> freelancer;
 
   const FreelancerDetailsBottomSheet({
@@ -12,7 +13,7 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final localizations = AppLocalizations.of(context);
     final displayName =
       (freelancer['name'] ?? freelancer['creator_id'] ?? localizations?.freelancerDetailsUnknown ?? 'Unknown').toString();
@@ -205,7 +206,7 @@ class FreelancerDetailsBottomSheet extends StatelessWidget {
                       shadowColor: const Color(0xFF529F60).withValues(alpha: 0.3),
                     ),
                     onPressed: () async {
-                      if (await requireAuth(context)) {
+                      if (await requireAuth(context, ref)) {
                         if (context.mounted) Navigator.pop(context);
                       }
                     },

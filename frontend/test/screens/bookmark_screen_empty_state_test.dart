@@ -7,8 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/features/bookmark/screens/bookmark_screen.dart';
 import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/providers/secure_token_store_provider.dart';
+import 'package:klass_app/core/storage/secure_token_store.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../helpers/in_memory_secure_storage.dart';
 
 class _TopicsEmptyAdapter implements HttpClientAdapter {
   @override
@@ -52,7 +55,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [dioProvider.overrideWithValue(dio)],
+        overrides: [
+          dioProvider.overrideWithValue(dio),
+          secureTokenStoreProvider.overrideWithValue(
+            SecureTokenStore(storage: InMemorySecureStorage()),
+          ),
+        ],
         child: const MaterialApp(
           home: BookmarkScreen(),
         ),
@@ -71,16 +79,26 @@ void main() {
   testWidgets('Buat Project Pertama CTA triggers create callback when user is authenticated', (tester) async {
     SharedPreferences.setMockInitialValues({
       'auth_token': 'test-token',
+      'user_data': '{"role":"teacher"}',
     });
 
     final dio = _createTestDio();
     dio.httpClientAdapter = _TopicsEmptyAdapter();
 
+    final secureStorage = InMemorySecureStorage();
+    await secureStorage.write('auth_token', 'test-token');
+    await secureStorage.write('user_data', '{"role":"teacher"}');
+
     var createCallbackCalled = false;
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [dioProvider.overrideWithValue(dio)],
+        overrides: [
+          dioProvider.overrideWithValue(dio),
+          secureTokenStoreProvider.overrideWithValue(
+            SecureTokenStore(storage: secureStorage),
+          ),
+        ],
         child: MaterialApp(
           home: BookmarkScreen(
             onCreateNewModule: () {

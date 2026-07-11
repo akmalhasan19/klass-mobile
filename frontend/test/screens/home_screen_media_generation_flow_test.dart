@@ -8,10 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/features/home/screens/home_screen.dart';
 import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/providers/secure_token_store_provider.dart';
+import 'package:klass_app/core/storage/secure_token_store.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:klass_app/features/home/widgets/prompt_input_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../helpers/in_memory_secure_storage.dart';
 
 class _MediaFlowAdapter implements HttpClientAdapter {
   int homepageRecommendationRequests = 0;
@@ -267,7 +270,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [dioProvider.overrideWithValue(dio)],
+        overrides: [
+          dioProvider.overrideWithValue(dio),
+          secureTokenStoreProvider.overrideWithValue(
+            SecureTokenStore(storage: InMemorySecureStorage()),
+          ),
+        ],
         child: const MaterialApp(
           home: Scaffold(
             body: HomeScreen(role: 'teacher'),

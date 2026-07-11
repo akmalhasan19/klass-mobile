@@ -4,11 +4,13 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:klass_app/app/app.dart';
 import 'package:klass_app/features/auth/screens/login_screen.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FlowMockAdapter implements HttpClientAdapter {
@@ -110,19 +112,35 @@ class _FlowMockAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   late _FlowMockAdapter adapter;
+  late Dio dio;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     adapter = _FlowMockAdapter();
-    ApiService().dio.httpClientAdapter = adapter;
+    dio = _createTestDio();
+    dio.httpClientAdapter = adapter;
   });
 
   Future<void> login(WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(home: MainShell(key: KlassApp.mainShellKey)));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dioProvider.overrideWithValue(dio)],
+        child: MaterialApp(home: MainShell(key: KlassApp.mainShellKey)),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 300));
     final context = KlassApp.mainShellKey.currentContext!;
     if (!context.mounted) return;

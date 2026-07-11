@@ -11,8 +11,11 @@ import 'package:klass_app/features/freelancer/screens/freelancer_home_screen.dar
 import 'package:klass_app/features/home/screens/home_screen.dart';
 import 'package:klass_app/features/profile/screens/settings_screen.dart';
 import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/providers/secure_token_store_provider.dart';
+import 'package:klass_app/core/storage/secure_token_store.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../helpers/in_memory_secure_storage.dart';
 
 class _MainShellAdapter implements HttpClientAdapter {
   _MainShellAdapter({this.user, this.meDelay = Duration.zero});
@@ -110,7 +113,12 @@ Future<_MainShellAdapter> _pumpMainShell(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [dioProvider.overrideWithValue(dio)],
+      overrides: [
+        dioProvider.overrideWithValue(dio),
+        secureTokenStoreProvider.overrideWithValue(
+          SecureTokenStore(storage: InMemorySecureStorage()),
+        ),
+      ],
       child: KlassApp(
         initialLocale: locale,
         homeOverride: shell,

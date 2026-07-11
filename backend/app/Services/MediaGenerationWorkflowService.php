@@ -4,9 +4,12 @@ namespace App\Services;
 
 use App\MediaGeneration\MediaGenerationLifecycle;
 use App\Models\MediaGeneration;
+use App\Services\Concerns\TracksStepTiming;
 
 class MediaGenerationWorkflowService
 {
+    use TracksStepTiming;
+
     private const STATUS_ORDER = [
         MediaGenerationLifecycle::QUEUED => 0,
         MediaGenerationLifecycle::INTERPRETING => 1,
@@ -39,11 +42,11 @@ class MediaGenerationWorkflowService
 
         $attempt ??= 1;
 
-        $generation = $this->ensureClassified($generation, $attempt, $jobContext);
-        $generation = $this->ensureGenerated($generation, $attempt, $jobContext);
-        $generation = $this->ensurePublished($generation, $attempt, $jobContext);
+        $generation = $this->timedStep($generation, 'ensure_classified', fn () => $this->ensureClassified($generation, $attempt, $jobContext));
+        $generation = $this->timedStep($generation, 'ensure_generated', fn () => $this->ensureGenerated($generation, $attempt, $jobContext));
+        $generation = $this->timedStep($generation, 'ensure_published', fn () => $this->ensurePublished($generation, $attempt, $jobContext));
 
-        return $this->ensureCompleted($generation, $attempt, $jobContext);
+        return $this->timedStep($generation, 'ensure_completed', fn () => $this->ensureCompleted($generation, $attempt, $jobContext));
     }
 
     protected function ensureClassified(MediaGeneration $generation, int $attempt, array $jobContext): MediaGeneration

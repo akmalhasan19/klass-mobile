@@ -74,7 +74,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> with Cancelable
         padding: const EdgeInsets.only(bottom: 90), // Above bottom nav
         child: FloatingActionButton(
           onPressed: () async {
-            if (await requireAuth(context)) {
+            if (await requireAuth(context, ref)) {
               widget.onCreateNewModule?.call();
             }
           },
@@ -368,7 +368,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> with Cancelable
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      if (await requireAuth(context)) {
+                      if (await requireAuth(context, ref)) {
                         widget.onCreateNewModule?.call();
                       }
                     },
@@ -431,7 +431,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> with Cancelable
             child: InkWell(
               borderRadius: BorderRadius.circular(24),
               onTap: () async {
-                if (await requireAuth(context)) {
+                if (await requireAuth(context, ref)) {
                   widget.onCreateNewModule?.call();
                 }
               },

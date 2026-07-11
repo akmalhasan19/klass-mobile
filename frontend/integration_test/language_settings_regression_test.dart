@@ -4,13 +4,15 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:klass_app/app/app.dart';
 import 'package:klass_app/features/freelancer/screens/freelancer_home_screen.dart';
 import 'package:klass_app/features/home/screens/home_screen.dart';
 import 'package:klass_app/features/profile/screens/settings_screen.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/storage/locale_preferences_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -99,18 +101,31 @@ Future<void> _pumpBootstrappedApp(
   await _renderBootstrappedApp(tester, user: user);
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 Future<void> _renderBootstrappedApp(
   WidgetTester tester, {
   Map<String, dynamic>? user,
 }) async {
-  ApiService().dio.httpClientAdapter = _LanguageSettingsAdapter(user: user);
+  final dio = _createTestDio();
+  dio.httpClientAdapter = _LanguageSettingsAdapter(user: user);
   final appState = await loadInitialAppState();
 
   await tester.pumpWidget(
-    KlassApp(
-      initialRole: appState.role,
-      initialIsGuest: appState.isGuest,
-      initialLocale: appState.locale,
+    ProviderScope(
+      overrides: [dioProvider.overrideWithValue(dio)],
+      child: KlassApp(
+        initialRole: appState.role,
+        initialIsGuest: appState.isGuest,
+        initialLocale: appState.locale,
+      ),
     ),
   );
 

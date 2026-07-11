@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/core/config/app_colors.dart';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
 
-/// Checks if the current user has the required role.
-/// Shows an "Access Restricted" dialog if the user doesn't have the required role.
-///
-/// Returns true if the user has the required role, false otherwise.
-Future<bool> requireRole(BuildContext context, String requiredRole) async {
-  final authService = AuthService();
-  final role = await authService.getUserRole();
+Future<bool> requireRole(BuildContext context, WidgetRef ref, String requiredRole) async {
+  final authState = ref.read(authProvider);
+  if (!authState.hasValue) return false;
 
-  if (role == null) return false;
-  if (role == 'admin') return true; // Admin can access everything
+  final role = authState.value!.role;
+  if (role == 'admin') return true;
 
   if (requiredRole == 'teacher' && (role == 'teacher' || role == 'user')) {
     return true;
@@ -20,14 +17,12 @@ Future<bool> requireRole(BuildContext context, String requiredRole) async {
     return true;
   }
 
-  // Show access restricted dialog
   if (context.mounted) {
     _showAccessRestrictedDialog(context, requiredRole);
   }
   return false;
 }
 
-/// Shows a dialog informing the user that the feature is restricted to a specific role.
 void _showAccessRestrictedDialog(BuildContext context, String requiredRole) {
   final roleLabel = requiredRole == 'teacher' ? 'Teacher' : 'Freelancer';
   final roleIcon = requiredRole == 'teacher' 

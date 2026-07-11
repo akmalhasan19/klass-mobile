@@ -5,9 +5,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/core/config/api_config.dart';
-import 'package:klass_app/features/auth/data/auth_service.dart';
+import 'package:klass_app/features/auth/data/auth_api.dart';
+import 'package:klass_app/features/auth/data/auth_repository.dart';
+import 'package:klass_app/core/storage/secure_token_store.dart';
 import 'package:klass_app/core/storage/locale_preferences_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../helpers/in_memory_secure_storage.dart';
 
 class _LogoutAdapter implements HttpClientAdapter {
   @override
@@ -68,7 +71,7 @@ void main() {
     expect(restored, isNull);
   });
 
-  test('AuthService.logout preserves locale preference while clearing auth state', () async {
+  test('AuthRepository.logout preserves locale preference while clearing auth state', () async {
     SharedPreferences.setMockInitialValues({
       'auth_token': 'token',
       'user_data': '{"role":"teacher"}',
@@ -78,7 +81,11 @@ void main() {
 
     final dio = _createTestDio();
     dio.httpClientAdapter = _LogoutAdapter();
-    await AuthService(dio: dio).logout();
+    final repository = AuthRepository(
+      api: AuthApi(dio),
+      tokenStore: SecureTokenStore(storage: InMemorySecureStorage()),
+    );
+    await repository.logout();
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('auth_token'), isNull);

@@ -4,11 +4,13 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:klass_app/app/app.dart';
 import 'package:klass_app/features/auth/screens/login_screen.dart';
-import 'package:klass_app/core/network/api_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
+import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _LoginFlowAdapter implements HttpClientAdapter {
@@ -79,6 +81,15 @@ class _LoginFlowAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Dio _createTestDio() {
+  return Dio(BaseOptions(
+    baseUrl: ApiConfig.baseUrl,
+    connectTimeout: const Duration(milliseconds: ApiConfig.connectTimeout),
+    receiveTimeout: const Duration(milliseconds: ApiConfig.receiveTimeout),
+    sendTimeout: const Duration(milliseconds: ApiConfig.sendTimeout),
+  ));
+}
+
 Future<void> _pumpLoginFlow(
   WidgetTester tester, {
   required Map<String, dynamic> loginUser,
@@ -86,15 +97,18 @@ Future<void> _pumpLoginFlow(
 }) async {
   SharedPreferences.setMockInitialValues({});
 
-  final api = ApiService();
-  api.dio.httpClientAdapter = _LoginFlowAdapter(
+  final dio = _createTestDio();
+  dio.httpClientAdapter = _LoginFlowAdapter(
     loginUser: loginUser,
     meUser: meUser,
   );
 
   await tester.pumpWidget(
-    MaterialApp(
-      home: MainShell(key: KlassApp.mainShellKey),
+    ProviderScope(
+      overrides: [dioProvider.overrideWithValue(dio)],
+      child: MaterialApp(
+        home: MainShell(key: KlassApp.mainShellKey),
+      ),
     ),
   );
 
