@@ -268,7 +268,7 @@ W17-18:    [====] Fase 6 Migration (blue-green + cache migration + cutover)
 
 ### Task 3.1: Development Environment
 
-- [ ] Create Rust project structure:
+- [x] Create Rust project structure:
   ```
   gateway/
     Cargo.toml
@@ -293,37 +293,37 @@ W17-18:    [====] Fase 6 Migration (blue-green + cache migration + cutover)
     docker-compose.yml
     Dockerfile
   ```
-- [ ] `docker-compose.yml` untuk local dev:
-  - [ ] `postgres:17` (DB aplikasi mock)
-  - [ ] `redis:7-alpine` (Stream queue mock)
-  - [ ] `minio/minio` (R2/S3-compatible mock)
-  - [ ] `rust-gateway` service dengan `cargo-watch -x run`
-- [ ] Hot reload: `cargo watch -x "run"` + `SQLX_OFFLINE=true` untuk compile tanpa live DB
-- [ ] `.env.local` template dengan semua env vars (paritas Laravel + LLM Adapter)
+- [x] `docker-compose.yml` untuk local dev:
+  - [x] `postgres:17` (DB aplikasi mock)
+  - [x] `redis:7-alpine` (Stream queue mock)
+  - [x] `minio/minio` (R2/S3-compatible mock)
+  - [x] `rust-gateway` service dengan `cargo-watch -x run`
+- [x] Hot reload: `cargo watch -x "run"` + `SQLX_OFFLINE=true` untuk compile tanpa live DB
+- [x] `.env.local` template dengan semua env vars (paritas Laravel + LLM Adapter)
 
 ### Task 3.2: CI/CD Pipeline
 
-- [ ] GitHub Actions workflow `.github/workflows/gateway-ci.yml`:
-  - [ ] Stage `lint`: `cargo clippy -D warnings`
-  - [ ] Stage `fmt-check`: `cargo fmt -- --check`
-  - [ ] Stage `test`: `cargo nextest run` + `SQLX_OFFLINE=true`
-  - [ ] Stage `build`: multi-stage Docker build
-  - [ ] Stage `deploy`: manual approval → deploy ke Render
-- [ ] Multi-stage Dockerfile Rust (target image <30MB):
-  - [ ] Builder stage: `rustlang/rust:nightly`, `cargo fetch`, `SQLX_OFFLINE=true cargo build --release`
-  - [ ] Runtime stage: `debian:bookworm-slim`, copy binary only
-- [ ] Cache `~/.cargo` + `target/` di GitHub Actions
-- [ ] `cargo sqlx prepare --check` di CI setiap query baru
+- [x] GitHub Actions workflow `.github/workflows/gateway-ci.yml`:
+  - [x] Stage `lint`: `cargo clippy -D warnings`
+  - [x] Stage `fmt-check`: `cargo fmt -- --check`
+  - [x] Stage `test`: `cargo nextest run` + `SQLX_OFFLINE=true`
+  - [x] Stage `build`: multi-stage Docker build
+  - [x] Stage `deploy`: manual approval → deploy ke Render
+- [x] Multi-stage Dockerfile Rust (target image <30MB):
+  - [x] Builder stage: `rust:1.78-slim-bookworm`, `cargo fetch`, `SQLX_OFFLINE=true cargo build --release`
+  - [x] Runtime stage: `debian:bookworm-slim`, copy binary only
+- [x] Cache `~/.cargo` + `target/` di GitHub Actions
+- [x] `cargo sqlx prepare --check` di CI setiap query baru
 
 ### Task 3.3: Infrastructure Setup
 
-- [ ] Render Web Service: create project, tier Starter ($7), pilih region sama Neon
-- [ ] Set env vars di Render (paritas .env Laravel + LLM Adapter + Redis URL)
-- [ ] Upstash Redis: create account, free tier, dapatkan `REDIS_URL`
-- [ ] Render health check endpoint: `GET /health` → `{"status":"ok"}`
-- [ ] Render auto-deploy dari `main` branch (setelah manual approval untuk production)
-- [ ] Monitoring: `axum-prometheus` middleware → push ke Grafana Cloud free tier ATAU Render dashboard
-- [ ] Log: `tracing` JSON stdout → Render logs (atau Papertrail temporary)
+- [x] Render Web Service: create project, tier Starter ($7), pilih region sama Neon
+- [x] Set env vars di Render (paritas .env Laravel + LLM Adapter + Redis URL)
+- [x] Upstash Redis: create account, free tier, dapatkan `REDIS_URL`
+- [x] Render health check endpoint: `GET /health` → `{"status":"ok"}`
+- [x] Render auto-deploy dari `main` branch (setelah manual approval untuk production)
+- [x] Monitoring: `axum-prometheus` middleware → push ke Render dashboard
+- [x] Log: `tracing` JSON stdout → Render logs
 
 ### Task 3.4: Database Setup
 
