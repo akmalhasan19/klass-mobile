@@ -12,6 +12,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
     this.onRegenerate,
     this.onHireFreelancer,
     this.onViewHistory,
+    this.onPreview,
   });
 
   final MediaGenerationService service;
@@ -20,6 +21,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
   final Future<void> Function()? onRegenerate;
   final Future<void> Function()? onHireFreelancer;
   final VoidCallback? onViewHistory;
+  final VoidCallback? onPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +146,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
               onDownload: onDownload,
               onRegenerate: onRegenerate,
               onHireFreelancer: onHireFreelancer,
+              onPreview: onPreview,
             ),
             if (onViewHistory != null) ...[
               const SizedBox(height: 12),
@@ -715,11 +718,35 @@ class _CompletionHeroPanel extends StatelessWidget {
 }
 
 class _ActionCluster extends StatelessWidget {
-  const _ActionCluster({required this.isIndonesian, required this.canAct, required this.onDownload, required this.onRegenerate, required this.onHireFreelancer});
-  final bool isIndonesian; final bool canAct; final Future<void> Function()? onDownload; final Future<void> Function()? onRegenerate; final Future<void> Function()? onHireFreelancer;
+  const _ActionCluster({required this.isIndonesian, required this.canAct, required this.onDownload, required this.onRegenerate, required this.onHireFreelancer, this.onPreview});
+  final bool isIndonesian; final bool canAct; final Future<void> Function()? onDownload; final Future<void> Function()? onRegenerate; final Future<void> Function()? onHireFreelancer; final VoidCallback? onPreview;
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // ── Preview button (secondary, shown when preview URL is available) ──
+      if (onPreview != null) ...[
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: onPreview,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF0E4C5C),
+              minimumSize: const Size(double.infinity, 52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              side: const BorderSide(color: Color(0xFFD4E8D6), width: 1.5),
+              elevation: 1,
+            ),
+            icon: const Icon(Icons.visibility_rounded, size: 22),
+            label: Text(
+              isIndonesian ? 'Lihat Preview' : 'View Preview',
+              style: const TextStyle(fontFamily: 'Inter', fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+      // ── Download button (primary) ──
       SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -730,6 +757,7 @@ class _ActionCluster extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 12),
+      // ── Secondary actions ──
       Row(children: [
         Expanded(child: OutlinedButton.icon(
           onPressed: canAct && onRegenerate != null ? () async => onRegenerate?.call() : null,

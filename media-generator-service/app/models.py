@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.contracts import (
     ARTIFACT_METADATA_VERSION,
@@ -12,6 +12,7 @@ from app.contracts import (
     PREVIEW_SCHEMA_VERSION,
     RESPONSE_SCHEMA_VERSION,
     SUPPORTED_EXPORT_FORMATS,
+    SUPPORTED_PREVIEW_FORMATS,
 )
 
 
@@ -93,6 +94,33 @@ class GenerationSpec(StrictModel):
     teacher_delivery_summary: str = Field(min_length=1, max_length=1000)
     contract_versions: ContractVersions
     content_integrity: dict[str, Any] | None = Field(default=None)
+    # ── Optional fields for PPTX preview / template selection (Fase 4) ──
+    template_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100,
+        description="PPTX master template identifier (e.g. 'klass-educational-v1'). "
+        "When omitted the generator uses its default template.",
+    )
+    preview_format: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        description="Requested preview rendering engine. Currently only 'marp_html' is supported. "
+        "The service generates previews for slide-based formats by default "
+        "when the sidecar is available; this field confirms the client's "
+        "preferred engine format.",
+    )
+
+    @field_validator("preview_format")
+    @classmethod
+    def check_preview_format(cls, v: str | None) -> str | None:
+        if v is not None and v not in SUPPORTED_PREVIEW_FORMATS:
+            raise ValueError(
+                f"Unsupported preview_format '{v}'. "
+                f"Supported formats: {SUPPORTED_PREVIEW_FORMATS}"
+            )
+        return v
 
     @model_validator(mode="after")
     def validate_consistency(self) -> "GenerationSpec":
@@ -158,6 +186,16 @@ class ArtifactMetadata(StrictModel):
     artifact_locator: ArtifactLocator
     generator: GeneratorIdentity
     warnings: list[str] = Field(default_factory=list)
+    layout_sources: list[str] | None = Field(
+        default=None,
+        description="Per-slide layout source annotation ('template' or 'canvas'). "
+        "Only populated for pptx artifacts; None for other formats.",
+    )
+    preview_url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description="Signed URL for the HTML preview artifact, if generated.",
+    )
 
     @model_validator(mode="after")
     def validate_cross_fields(self) -> "ArtifactMetadata":

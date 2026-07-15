@@ -24,3 +24,8 @@ MIME_TYPES = {
 
 LARAVEL_ERROR_ARTIFACT_INVALID = "artifact_invalid"
 LARAVEL_ERROR_PYTHON_SERVICE_UNAVAILABLE = "python_service_unavailable"
+
+# Identifiers for available PPTX master templates — matches template_id in manifest.
+SUPPORTED_TEMPLATE_IDS = ("klass-educational-v1",)
+# Supported preview formats for slide-based artifacts (pptx/pdf).
+SUPPORTED_PREVIEW_FORMATS = ("marp_html",)

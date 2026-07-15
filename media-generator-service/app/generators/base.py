@@ -22,6 +22,7 @@ class RenderSummary:
     page_count: int | None = None
     slide_count: int | None = None
     warnings: list[str] = field(default_factory=list)
+    layout_sources: list[str] | None = None
 
 
 class BaseGenerator(ABC):
@@ -61,6 +62,7 @@ class BaseGenerator(ABC):
                         "version": settings.service_version,
                     },
                     "warnings": summary.warnings,
+                    "layout_sources": summary.layout_sources,
                 }
             )
 

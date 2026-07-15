@@ -274,6 +274,10 @@ async def generate_artifact(
         artifact_metadata=artifact_metadata,
         settings=settings,
     )
+    # Mutate the metadata dict so it includes the signed preview URL (if the
+    # request asked for a preview and we successfully rendered it).  This is
+    # set here rather than in the generator because the signed locator depends
+    # on the request context.
     response_artifact_metadata = {
         **artifact_metadata,
         "artifact_locator": response_artifact_locator,
@@ -306,6 +310,10 @@ async def generate_artifact(
                 "mime_type": HTML_MIME_TYPE,
                 "locator": preview_locator,
             }
+            # Also embed the preview URL in the artifact metadata so consumers
+            # that read ``artifact_metadata.preview_url`` can find it without
+            # parsing the separate ``preview_delivery`` envelope.
+            response_artifact_metadata["preview_url"] = preview_locator["value"]
         except Exception as exc:
             logger.warning(
                 "Preview HTML rendering failed for generation %s (non-fatal): %s",

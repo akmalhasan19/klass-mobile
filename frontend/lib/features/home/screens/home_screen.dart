@@ -12,6 +12,7 @@ import 'package:klass_app/shared/widgets/layer2_white_clipper.dart';
 import 'package:klass_app/features/media_generation/widgets/project_details_bottom_sheet.dart';
 import 'package:klass_app/features/freelancer/widgets/freelancer_details_bottom_sheet.dart';
 import 'package:klass_app/features/media_generation/widgets/media_generation_status_card.dart';
+import 'package:klass_app/features/media_generation/widgets/media_preview_screen.dart';
 import 'package:klass_app/core/config/animations.dart';
 import 'package:klass_app/features/home/data/home_service.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_action_service.dart';
@@ -346,6 +347,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
     } catch (_) {
       _showGenerationMessage(_localizedArtifactMessage(errorMessageId));
     }
+  }
+
+  void _openPreview(String previewUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MediaPreviewScreen(
+          previewUrl: previewUrl,
+          title: _mediaGenerationService.submittedPrompt ?? 'Preview',
+        ),
+      ),
+    );
   }
 
   String? _artifactUrl() {
@@ -837,6 +850,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                                   service: _mediaGenerationService,
                                   onRefreshStatus: _mediaGenerationService.canRefreshStatus
                                       ? _mediaGenerationService.pollNow
+                                      : null,
+                                  onPreview: _mediaGenerationService.isSuccess &&
+                                          _mediaGenerationService.previewUrl != null &&
+                                          _mediaGenerationService.previewUrl!.isNotEmpty
+                                      ? () => _openPreview(_mediaGenerationService.previewUrl!)
                                       : null,
                                   onDownload: _mediaGenerationService.isSuccess
                                       ? _handleDownloadGeneratedArtifact

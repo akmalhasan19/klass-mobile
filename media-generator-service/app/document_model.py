@@ -87,6 +87,7 @@ class RenderDocument:
     assets: list[RenderAsset]
     activity_blocks: list[RenderActivity]
     teacher_delivery_summary: str
+    template_id: str | None = None
 
 
 def _map_sections(sections: list[Section]) -> list[RenderSection]:
@@ -139,4 +140,6 @@ def build_render_document(spec: GenerationSpec) -> RenderDocument:
         assets=_map_assets(spec.assets),
         activity_blocks=_map_activities(spec.assessment_or_activity_blocks),
         teacher_delivery_summary=spec.teacher_delivery_summary,
+        # Optional fields (additive, backward-compatible)
+        template_id=spec.template_id,
     )

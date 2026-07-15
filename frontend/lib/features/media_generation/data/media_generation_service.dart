@@ -56,6 +56,20 @@ class MediaGenerationService extends ChangeNotifier {
   Map<String, dynamic>? get artifact => _mapAt(_resource, ['artifact']);
   Map<String, dynamic>? get publication => _mapAt(_resource, ['publication']);
 
+  /// Signed URL for the HTML preview artifact (marp preview).
+  /// Populated when the artifact format is pptx or pdf and the sidecar is
+  /// available.  The URL points to a self-contained HTML file served via
+  /// ``GET /v1/artifacts/download``.
+  String? get previewUrl {
+    final delivery = deliveryPayload;
+    // Try the delivery_payload.preview_url first (newer proto-based contract).
+    final fromDelivery = _stringAt(delivery, ['preview_url']);
+    if (fromDelivery != null) return fromDelivery;
+    // Fallback: artifact_metadata.preview_url
+    final resource = _resource;
+    return _stringAt(resource, ['artifact_metadata', 'preview_url']);
+  }
+
   Future<bool> submitPrompt({
     required String prompt,
     String preferredOutputType = 'auto',

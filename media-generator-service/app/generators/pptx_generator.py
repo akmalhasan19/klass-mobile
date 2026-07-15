@@ -70,9 +70,14 @@ class PptxGenerator(BaseGenerator):
 
         result = injector.inject(blueprint, output_path)
 
+        # Collect per-slide layout sources from the blueprint (set by the
+        # injector during _fill_slide / _delegate_canvas).
+        layout_sources = [s.layout_source for s in blueprint.slides if s.layout_source]
+
         return RenderSummary(
             slide_count=result.slide_count,
             warnings=list(result.warnings),
+            layout_sources=layout_sources or None,
         )
 
     def _resolve_registry(self) -> TemplateRegistry:

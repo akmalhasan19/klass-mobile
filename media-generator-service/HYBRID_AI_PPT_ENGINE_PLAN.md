@@ -412,34 +412,34 @@ Full flow 4 menit terpenuhi dengan margin sangat besar — media gen hanya ~5-10
 
 ### FASE 4: Flutter-Backend Contract Finalize
 
-- [ ] **Task 4.1: Finalisasi request/response contract**
-  - [ ] Request: tetap `media_generation_spec.v1` (backward-compat)
-  - [ ] Field opsional baru (additive): `template_id?: str`, `preview_format?: "marp_html"`
-  - [ ] Response `POST /v1/generate` tambah field `data.preview_delivery` (signed URL HTML) saat `export_format in ("pptx","pdf")`
-  - [ ] `artifact_metadata` tambah `preview_url`, `layout_sources[]`
+- [x] **Task 4.1: Finalisasi request/response contract**
+  - [x] Request: tetap `media_generation_spec.v1` (backward-compat)
+  - [x] Field opsional baru (additive): `template_id?: str`, `preview_format?: "marp_html"`
+  - [x] Response `POST /v1/generate` tambah field `data.preview_delivery` (signed URL HTML) saat `export_format in ("pptx","pdf")`
+  - [x] `artifact_metadata` tambah `preview_url`, `layout_sources[]`
 
-- [ ] **Task 4.2: Extend artifact download endpoint**
-  - [ ] `GET /v1/artifacts/download` handle `.html`, `.pdf`, `.pptx` (sudah ada, cuma perluas prefix/extension)
-  - [ ] Test: download `.html` → 200, `Content-Type: text/html`
+- [x] **Task 4.2: Extend artifact download endpoint**
+  - [x] `GET /v1/artifacts/download` handle `.html`, `.pdf`, `.pptx` (sudah ada, cuma perluas prefix/extension)
+  - [x] Test: download `.html` → 200, `Content-Type: text/html`
 
-- [ ] **Task 4.3: Update proto file (advisorial)**
-  - [ ] Update `proto/klass/media/v1/media_generation.proto`: tambah `optional string preview_url = 6;` di `ArtifactInfo`
-  - [ ] Proto field opsional, tidak break Gateway existing
-  - [ ] Gateway forward `preview_delivery.value` ke sini
+- [x] **Task 4.3: Update proto file (advisorial)**
+  - [x] Update `proto/klass/media/v1/media_generation.proto`: tambah `optional string preview_url = 6;` di `ArtifactInfo`
+  - [x] Proto field opsional, tidak break Gateway existing
+  - [x] Gateway forward `preview_delivery.value` ke sini
 
-- [ ] **Task 4.4: Flutter changes (advisorial, di luar service ini)**
-  - [ ] Tambah `flutter_inappwebview: ^6.x` ke `frontend/pubspec.yaml`
-  - [ ] Widget preview: `InAppWebView` load `preview_url`
-  - [ ] Tombol download pakai `artifact.url` (sudah ada)
-  - [ ] UI lain tetap (status card, polling, dll)
+- [x] **Task 4.4: Flutter changes (advisorial, di luar service ini)**
+  - [x] Tambah `flutter_inappwebview: ^6.x` ke `frontend/pubspec.yaml`
+  - [x] Widget preview: `InAppWebView` load `preview_url`
+  - [x] Tombol download pakai `artifact.url` (sudah ada)
+  - [x] UI lain tetap (status card, polling, dll)
 
-- [ ] **Task 4.5: Contract test + E2E**
-  - [ ] Test: response lulus `GenerateSuccessResponse.model_validate`
-  - [ ] Test: signed URL preview 200, mime `text/html`
-  - [ ] Test: `artifact_metadata.slide_count` konsisten
-  - [ ] Test: HMAC tidak berubah (preview signed URL pakai secret yang sama)
-  - [ ] Test: timeout/retry — Marp render 30s; total request timeout Gateway→MediaGen tetap 60s
-  - [ ] Gate: end-to-end Flutter submit → preview tampil di Webview → download PPTX editable
+- [x] **Task 4.5: Contract test + E2E**
+  - [x] Test: response lulus `GenerateSuccessResponse.model_validate`
+  - [x] Test: signed URL preview 200, mime `text/html`
+  - [x] Test: `artifact_metadata.slide_count` konsisten
+  - [x] Test: HMAC tidak berubah (preview signed URL pakai secret yang sama)
+  - [x] Test: timeout/retry — Marp render 30s; total request timeout Gateway→MediaGen tetap 60s
+  - [x] Gate: end-to-end Flutter submit → preview tampil di Webview → download PPTX editable
 
 ---
 

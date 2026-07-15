@@ -43,6 +43,10 @@ def build_slide_blueprint(render_document: RenderDocument) -> SlideBlueprint:
     ``GenerationSpec`` directly; callers should use
     :func:`app.document_model.build_render_document` first, keeping the
     ``GenerationSpec`` → ``RenderDocument`` step reusable for other formats.
+
+    If *render_document* specifies a ``template_id`` it is forwarded to
+    ``SlideBlueprint.theme_id``, allowing Flutter / Gateway requests to
+    select a different PPTX master template.
     """
     deck_meta = DeckMeta(
         title=render_document.title,
@@ -58,10 +62,16 @@ def build_slide_blueprint(render_document: RenderDocument) -> SlideBlueprint:
     slides.extend(_build_content_slides(render_document))
     slides.extend(_build_assessment_slide(render_document))
 
-    return SlideBlueprint(
+    blueprint = SlideBlueprint(
         deck_meta=deck_meta,
         slides=slides,
     )
+
+    # Forward the caller's template preference into the blueprint.
+    if render_document.template_id:
+        blueprint.theme_id = render_document.template_id
+
+    return blueprint
 
 
 def _build_title_slide(render_document: RenderDocument) -> Slide:
