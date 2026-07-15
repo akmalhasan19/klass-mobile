@@ -342,71 +342,71 @@ Full flow 4 menit terpenuhi dengan margin sangat besar — media gen hanya ~5-10
 
 ### FASE 3: Core PPTX Engine (Template Injection + Canvas Fallback)
 
-- [ ] **Task 3.1: Sediakan master template + manifest**
-  - [ ] Buat `app/templates/__init__.py` dan `app/templates/registry.py`
-  - [ ] Sediakan `app/templates/masters/klass-educational-v1.pptx` (master desainer)
-  - [ ] Buat `app/templates/manifests/klass-educational-v1.json` (placeholder mapping)
-  - [ ] Validasi shape names ada di master saat startup — fail fast dengan `ServiceMisconfiguredError` jika mismatch
+- [x] **Task 3.1: Sediakan master template + manifest**
+  - [x] Buat `app/templates/__init__.py` dan `app/templates/registry.py`
+  - [x] Sediakan `app/templates/masters/klass-educational-v1.pptx` (master desainer)
+  - [x] Buat `app/templates/manifests/klass-educational-v1.json` (placeholder mapping)
+  - [x] Validasi shape names ada di master saat startup — fail fast dengan `ServiceMisconfiguredError` jika mismatch
 
-- [ ] **Task 3.2: Implementasikan `TemplateRegistry`**
-  - [ ] `app/templates/registry.py`: load semua template saat lifespan startup
-  - [ ] Cache manifest (JSON, immutable) — boleh share across requests
-  - [ ] Re-open master `.pptx` path per request (bukan deepcopy — `python-pptx` tidak thread-safe)
-  - [ ] API: `registry.get(template_id) -> (master_path, manifest)`
+- [x] **Task 3.2: Implementasikan `TemplateRegistry`**
+  - [x] `app/templates/registry.py`: load semua template saat lifespan startup
+  - [x] Cache manifest (JSON, immutable) — boleh share across requests
+  - [x] Re-open master `.pptx` path per request (bukan deepcopy — `python-pptx` tidak thread-safe)
+  - [x] API: `registry.get(template_id) -> (master_path, manifest)`
 
-- [ ] **Task 3.3: Implementasikan `placeholder_resolver.py`**
-  - [ ] Buat `app/engines/pptx_injector/placeholder_resolver.py`
-  - [ ] `resolve_shape(slide, shape_name) -> Shape` (cari di `slide.shapes` by `shape.name`)
-  - [ ] Handle missing shape → return None + warning
-  - [ ] Support kind: "text" (set text_frame), "image" (placeholder for future)
+- [x] **Task 3.3: Implementasikan `placeholder_resolver.py`**
+  - [x] Buat `app/engines/pptx_injector/placeholder_resolver.py`
+  - [x] `resolve_shape(slide, shape_name) -> Shape` (cari di `slide.shapes` by `shape.name`)
+  - [x] Handle missing shape → return None + warning
+  - [x] Support kind: "text" (set text_frame), "image" (placeholder for future)
 
-- [ ] **Task 3.4: Implementasikan `injector.py` (Template Injection)**
-  - [ ] Buat `app/engines/pptx_injector/injector.py` (lihat prototype §5a)
-  - [ ] `TemplateInjector.__init__(master_path, manifest)`
-  - [ ] `inject(blueprint, output_path) -> InjectionResult`
-  - [ ] Per-slide: capacity gate → fill atau delegate canvas
-  - [ ] Preserve master formatting: set text pada run pertama (jangan replace text_frame.text)
-  - [ ] `InjectionResult { slide_count, fallback_slides, warnings }`
+- [x] **Task 3.4: Implementasikan `injector.py` (Template Injection)**
+  - [x] Buat `app/engines/pptx_injector/injector.py` (lihat prototype §5a)
+  - [x] `TemplateInjector.__init__(master_path, manifest)`
+  - [x] `inject(blueprint, output_path) -> InjectionResult`
+  - [x] Per-slide: capacity gate → fill atau delegate canvas
+  - [x] Preserve master formatting: set text pada run pertama (jangan replace text_frame.text)
+  - [x] `InjectionResult { slide_count, fallback_slides, warnings }`
 
-- [ ] **Task 3.5: Implementasikan `font_metrics.py` (fit check)**
-  - [ ] Buat `app/engines/canvas_calculator/font_metrics.py`
-  - [ ] `estimate_box(text, font_pt, box_w_emu) -> height_emu`
-  - [ ] chars-per-line ≈ `width / (0.5 * font_pt)`
-  - [ ] lines = ceil(total_chars / chars_per_line)
-  - [ ] height = lines × font_pt × 1.2 (line spacing)
+- [x] **Task 3.5: Implementasikan `font_metrics.py` (fit check)**
+  - [x] Buat `app/engines/canvas_calculator/font_metrics.py`
+  - [x] `estimate_box(text, font_pt, box_w_emu) -> height_emu`
+  - [x] chars-per-line ≈ `width / (0.5 * font_pt)`
+  - [x] lines = ceil(total_chars / chars_per_line)
+  - [x] height = lines × font_pt × 1.2 (line spacing)
 
-- [ ] **Task 3.6: Implementasikan `layout_engine.py` (Canvas Calculator)**
-  - [ ] Buat `app/engines/canvas_calculator/layout_engine.py` (lihat prototype §5b)
-  - [ ] `CanvasLayoutEngine.__init__(slide_width, slide_height, margin, gap, title_band)`
-  - [ ] `render_slide(presentation, slide)` — hitung grid, delegate ke shape_renderer
-  - [ ] `_pick_columns(card_count)`: 1→1, 2→2, 3-4→2, 5-9→3, ≥10→4
-  - [ ] `_grid(columns, rows)` → list[Box] dengan X/Y/W/H EMU
+- [x] **Task 3.6: Implementasikan `layout_engine.py` (Canvas Calculator)**
+  - [x] Buat `app/engines/canvas_calculator/layout_engine.py` (lihat prototype §5b)
+  - [x] `CanvasLayoutEngine.__init__(slide_width, slide_height, margin, gap, title_band)`
+  - [x] `render_slide(presentation, slide)` — hitung grid, delegate ke shape_renderer
+  - [x] `_pick_columns(card_count)`: 1→1, 2→2, 3-4→2, 5-9→3, ≥10→4
+  - [x] `_grid(columns, rows)` → list[Box] dengan X/Y/W/H EMU
 
-- [ ] **Task 3.7: Implementasikan `shape_renderer.py`**
-  - [ ] Buat `app/engines/canvas_calculator/shape_renderer.py`
-  - [ ] Render card box: `ROUNDED_RECTANGLE` + text frame + bullet runs
-  - [ ] Styling: fill putih, border biru-muda, font size per column count
-  - [ ] Handle heading (bold) + body_blocks (bullet/checklist/paragraph)
+- [x] **Task 3.7: Implementasikan `shape_renderer.py`**
+  - [x] Buat `app/engines/canvas_calculator/shape_renderer.py`
+  - [x] Render card box: `ROUNDED_RECTANGLE` + text frame + bullet runs
+  - [x] Styling: fill putih, border biru-muda, font size per column count
+  - [x] Handle heading (bold) + body_blocks (bullet/checklist/paragraph)
 
-- [ ] **Task 3.8: Refactor `pptx_generator.py` → delegate ke engine**
-  - [ ] Update `app/generators/pptx_generator.py` `render()`:
-    - [ ] Build blueprint dari render_document
-    - [ ] Call `TemplateInjector.inject(blueprint, out)`
-    - [ ] Untuk slide fallback, call `CanvasLayoutEngine.render_slide`
-    - [ ] Kumpulkan `RenderSummary.warnings` (+ `fallback_slides`)
-  - [ ] Hapus kode hardcoded layout lama (`_add_title_slide`, `_add_section_slide`, dll)
+- [x] **Task 3.8: Refactor `pptx_generator.py` → delegate ke engine**
+  - [x] Update `app/generators/pptx_generator.py` `render()`:
+    - [x] Build blueprint dari render_document
+    - [x] Call `TemplateInjector.inject(blueprint, out)`
+    - [x] Untuk slide fallback, call `CanvasLayoutEngine.render_slide`
+    - [x] Kumpulkan `RenderSummary.warnings` (+ `fallback_slides`)
+  - [x] Hapus kode hardcoded layout lama (`_add_title_slide`, `_add_section_slide`, dll)
 
-- [ ] **Task 3.9: Update registry wiring**
-  - [ ] Update `app/generators/registry.py`: pastikan PptxGenerator dan PdfGenerator instantiate dengan dependency injection (template registry, sidecar manager)
-  - [ ] Update lifespan: start template registry + sidecar
+- [x] **Task 3.9: Update registry wiring**
+  - [x] Update `app/generators/registry.py`: pastikan PptxGenerator dan PdfGenerator instantiate dengan dependency injection (template registry, sidecar manager)
+  - [x] Update lifespan: start template registry + sidecar
 
-- [ ] **Task 3.10: Unit + integration test Fase 3**
-  - [ ] Buat `tests/test_pptx_injector.py` — test inject mengisi placeholder (assert shape.text)
-  - [ ] Buat `tests/test_canvas_calculator.py` — test overflow 3/4-col trigger canvas (assert shape count = cards)
-  - [ ] Test `slide_count` benar, warnings tercatat
-  - [ ] Test file editable (buka di PowerPoint tidak error — validasi via python-pptx re-open)
-  - [ ] Update `tests/test_generators.py` assertion jika perlu (test `test_pptx_generator_renders_title_section_and_activity_slides`)
-  - [ ] Gate: PPTX editable dengan campuran slide template + canvas, backward-compat
+- [x] **Task 3.10: Unit + integration test Fase 3**
+  - [x] Buat `tests/test_pptx_injector.py` — test inject mengisi placeholder (assert shape.text)
+  - [x] Buat `tests/test_canvas_calculator.py` — test overflow 3/4-col trigger canvas (assert shape count = cards)
+  - [x] Test `slide_count` benar, warnings tercatat
+  - [x] Test file editable (buka di PowerPoint tidak error — validasi via python-pptx re-open)
+  - [x] Update `tests/test_generators.py` assertion jika perlu (test `test_pptx_generator_renders_title_section_and_activity_slides`)
+  - [x] Gate: PPTX editable dengan campuran slide template + canvas, backward-compat
 
 ---
 

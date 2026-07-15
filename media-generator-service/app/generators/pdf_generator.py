@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from app.contracts import PDF_MIME_TYPE
 from app.document_model import RenderDocument
@@ -12,6 +13,9 @@ from app.engines.marp.marp_renderer import MarpRenderer
 from app.errors import GenerationError
 from app.generators.base import BaseGenerator, RenderSummary
 
+if TYPE_CHECKING:
+    from app.engines.marp.sidecar.sidecar_manager import SidecarManager
+
 logger = logging.getLogger("klass-media-generator")
 
 # PDF generation is delegated to the warm Chromium sidecar, which is also the
@@ -20,8 +24,32 @@ _SIDECAR_TIMEOUT_SECONDS = 60
 
 
 class PdfGenerator(BaseGenerator):
+    """Generate a PDF artifact by delegating to the Marp + Chromium sidecar.
+
+    The generator is a thin orchestrator: it builds the universal
+    ``SlideBlueprint``, converts it to Marp markdown, and hands it to the sidecar
+    (running warm Chromium) for HTML-then-PDF rendering.
+
+    The ``sidecar_manager`` is injectable. When omitted (e.g. in tests or before
+    the lifespan has wired the real manager), a lazy fallback reads the
+    module-level global from ``app.main`` — the same workaround as the previous
+    ``_require_sidecar`` pattern, but exposed as an explicit field for clarity.
+    """
+
     export_format = "pdf"
     mime_type = PDF_MIME_TYPE
+
+    def __init__(
+        self,
+        sidecar_manager: SidecarManager | None = None,
+    ) -> None:
+        """
+        Args:
+            sidecar_manager: Injected Marp sidecar instance. When ``None``, a
+                lazy fallback reads the module-level global from ``app.main``,
+                keeping ``PdfGenerator()`` usable in tests without DI.
+        """
+        self._sidecar_manager = sidecar_manager
 
     def render(self, render_document: RenderDocument, output_path: Path) -> RenderSummary:
         sidecar_manager = self._require_sidecar()
@@ -57,21 +85,22 @@ class PdfGenerator(BaseGenerator):
         # PDF page count. This avoids taking a hard dependency on a PDF parser.
         return RenderSummary(page_count=len(blueprint.slides))
 
-    @staticmethod
-    def _require_sidecar():
-        # Lazy import avoids a circular import: ``app.main`` imports the
-        # generator registry (which imports this module) at startup, but the
-        # sidecar global is only populated once the lifespan has started.
-        from app.main import sidecar_manager
+    def _require_sidecar(self):
+        # Use the injected sidecar if available; otherwise fall back to the
+        # module-level global (for backward compat before lifespan wiring).
+        manager = self._sidecar_manager
+        if manager is None:
+            from app.main import sidecar_manager as _global_sidecar
+            manager = _global_sidecar
 
-        if sidecar_manager is None or not sidecar_manager.is_ready:
+        if manager is None or not manager.is_ready:
             raise GenerationError(
                 "marp_sidecar_unavailable",
                 "The Marp sidecar is not available; PDF generation requires it.",
                 {},
             )
 
-        return sidecar_manager
+        return manager
 
     @staticmethod
     def _run_async(coro):

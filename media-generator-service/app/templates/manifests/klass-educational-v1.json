@@ -1,0 +1,74 @@
+{
+  "template_id": "klass-educational-v1",
+  "version": "1.0.0",
+  "slide_layouts": [
+    {
+      "layout_id": "title",
+      "slide_type": "title",
+      "slide_index": 0,
+      "placeholders": [
+        {
+          "placeholder_id": "title",
+          "shape_name": "Title 1",
+          "kind": "text"
+        },
+        {
+          "placeholder_id": "subtitle",
+          "shape_name": "Subtitle 2",
+          "kind": "text"
+        },
+        {
+          "placeholder_id": "body",
+          "shape_name": "Objectives Box 3",
+          "kind": "text",
+          "capacity": {
+            "max_cards": 4,
+            "max_chars": 1000
+          }
+        }
+      ]
+    },
+    {
+      "layout_id": "content",
+      "slide_type": "content",
+      "slide_index": 1,
+      "placeholders": [
+        {
+          "placeholder_id": "title",
+          "shape_name": "Title 1",
+          "kind": "text"
+        },
+        {
+          "placeholder_id": "body",
+          "shape_name": "Content Placeholder 3",
+          "kind": "text",
+          "capacity": {
+            "max_cards": 6,
+            "max_chars": 1500
+          }
+        }
+      ]
+    },
+    {
+      "layout_id": "assessment",
+      "slide_type": "assessment",
+      "slide_index": 2,
+      "placeholders": [
+        {
+          "placeholder_id": "title",
+          "shape_name": "Title 1",
+          "kind": "text"
+        },
+        {
+          "placeholder_id": "body",
+          "shape_name": "Content Placeholder 3",
+          "kind": "text",
+          "capacity": {
+            "max_cards": 8,
+            "max_chars": 2000
+          }
+        }
+      ]
+    }
+  ]
+}

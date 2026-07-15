@@ -34,6 +34,7 @@ from app.generators.registry import GeneratorRegistry
 from app.models import GenerateErrorResponse, GenerateRequest, GenerateSuccessResponse
 from app.preview.preview_handler import build_preview_locator, store_preview_html
 from app.settings import Settings, get_settings
+from app.templates.registry import TemplateRegistry
 
 logger = logging.getLogger("klass-media-generator")
 registry = GeneratorRegistry()
@@ -41,6 +42,10 @@ registry = GeneratorRegistry()
 # Module-level sidecar manager — started during lifespan, accessible by
 # health endpoint and by generators (via the registry or module import).
 sidecar_manager: SidecarManager | None = None
+
+# Module-level template registry — loaded during lifespan, provides
+# master .pptx templates and manifests for PPTX generation.
+template_registry: TemplateRegistry | None = None
 
 
 def build_error_response(request: Request, exc: MediaGeneratorError) -> JSONResponse:
@@ -73,7 +78,29 @@ def configure_logging(settings: Settings) -> None:
 async def lifespan(_: FastAPI):
     configure_logging(get_settings())
     settings = get_settings()
-    global sidecar_manager
+    global sidecar_manager, template_registry, registry
+
+    # ── Bootstrap template registry ────────────────────────────────────
+    logger.info("Loading PPTX master templates…")
+    try:
+        from pathlib import Path
+
+        templates_dir = Path(__file__).resolve().parent / "templates"
+        tpl_registry = TemplateRegistry()
+        tpl_registry.load_templates(templates_dir)
+        template_registry = tpl_registry
+        logger.info(
+            "Template registry loaded: %s",
+            template_registry.template_ids,
+        )
+    except Exception as exc:
+        logger.critical("Failed to load PPTX templates: %s", exc)
+        template_registry = None
+        raise ServiceMisconfiguredError(
+            "PPTX master templates failed to load. "
+            "PPTX generation will be unavailable.",
+            {"startup_error": str(exc)},
+        ) from exc
 
     # ── Bootstrap sidecar ──────────────────────────────────────────────
     logger.info("Starting Marp sidecar (Node + Chromium warm)…")
@@ -90,6 +117,22 @@ async def lifespan(_: FastAPI):
             "HTML previews and PDF generation will be unavailable.",
             {"startup_error": str(exc)},
         ) from exc
+
+    # ── Rebuild generator registry with injected dependencies ──────────
+    # The module-level ``registry`` is created at import time (before deps
+    # exist). Now that the template registry and sidecar are live, rebuild
+    # it so generators receive their real dependencies instead of relying
+    # on lazy fallback / circular imports per-request.
+    logger.info(
+        "Rebuilding generator registry with template_registry=%s, "
+        "sidecar_manager=%s",
+        template_registry is not None,
+        sidecar_manager is not None,
+    )
+    registry = GeneratorRegistry(
+        template_registry=template_registry,
+        sidecar_manager=sidecar_manager,
+    )
 
     try:
         yield
@@ -163,6 +206,14 @@ def health_payload(settings: Settings) -> dict[str, object]:
             "uptime_seconds": round(sidecar_manager.uptime_seconds, 1),
         }
 
+    # Template registry status
+    template_info: dict[str, object] = {"enabled": False}
+    if template_registry is not None:
+        template_info = {
+            "enabled": True,
+            "templates": template_registry.template_ids,
+        }
+
     return {
         "schema_version": HEALTH_SCHEMA_VERSION,
         "status": "ok",
@@ -182,6 +233,7 @@ def health_payload(settings: Settings) -> dict[str, object]:
             "max_request_age_seconds": settings.request_max_age_seconds,
         },
         "sidecar": sidecar_info,
+        "templates": template_info,
     }
 
 
