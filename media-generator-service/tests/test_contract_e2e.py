@@ -1,4 +1,4 @@
-"""Contract + E2E tests for the generation API (Fase 4: Task 4.5).
+"""Contract + E2E tests for the generation API.
 
 Covers the gate criteria specified in the implementation plan:
 
@@ -7,7 +7,7 @@ Covers the gate criteria specified in the implementation plan:
    the Pydantic model without error.
 
 2. Signed preview URL returns ``200`` with ``Content-Type: text/html``
-   (already tested in ``test_preview_api.py`` — referenced here).
+   (tested in ``test_preview_api.py`` — referenced here).
 
 3. ``artifact_metadata.slide_count`` is consistent with the actual number
    of slides in the output file.
@@ -16,11 +16,12 @@ Covers the gate criteria specified in the implementation plan:
    signed URLs — no divergence in signing material.
 
 5. Timeout / retry configuration is consistent with the Gateway contract
-   (Marp render ≤ 30s, total request ≤ 60s).
+   (render <= 30s, total request <= 60s).
 
-6. Response includes the new Fase 4 additive fields (``preview_url``,
-   ``layout_sources``) when applicable.
+6. Response includes additive fields (``preview_url``, ``layout_sources``)
+   when applicable.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -40,20 +41,45 @@ from tests.helpers import (
 )
 
 # ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+
+_MASTERS_DIR = Path(__file__).resolve().parent.parent / "app" / "templates" / "masters"
+_HTML_MASTER_PATH = _MASTERS_DIR / "klass-educational-v1.html"
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _mock_ready_sidecar(
-    html: str = "<html><body>Preview</body></html>",
-) -> MagicMock:
+def _mock_ready_sidecar() -> MagicMock:
+    """Return a mock ``SidecarManager`` that appears ready.
+
+    After Fase 2B the sidecar only has ``html_to_pdf`` (no more ``render_html``
+    or ``render_pdf``).  The ``html_to_pdf`` is used by ``PdfGenerator``.
+    """
     sc = MagicMock()
-    sc.render_html = AsyncMock(return_value=html)
-    sc.render_pdf = AsyncMock(return_value=b"%PDF-1.4-mock")
+    sc.html_to_pdf = AsyncMock(return_value=b"%PDF-1.4-mock")
     sc.is_running = True
     sc.is_ready = True
     sc.uptime_seconds = 42.0
     return sc
+
+
+def _mock_template_registry() -> MagicMock:
+    """Return a mock ``TemplateRegistry`` that resolves the real HTML master."""
+    tr = MagicMock()
+    tr.get_html_master.return_value = _HTML_MASTER_PATH
+    return tr
+
+
+def _patch_deps(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Patch ``app.main`` globals for both sidecar and template registry."""
+    import app.main
+
+    monkeypatch.setattr(app.main, "sidecar_manager", _mock_ready_sidecar())
+    monkeypatch.setattr(app.main, "template_registry", _mock_template_registry())
 
 
 def _extract_signed_url_params(locator: dict[str, str]) -> dict[str, list[str]]:
@@ -71,9 +97,7 @@ def test_response_passes_generate_success_response_validation(
     client, monkeypatch,
 ) -> None:
     """The raw JSON response round-trips through ``GenerateSuccessResponse``."""
-    import app.main
-
-    monkeypatch.setattr(app.main, "sidecar_manager", _mock_ready_sidecar())
+    _patch_deps(monkeypatch)
 
     body, headers, _ = signed_request_content("pptx")
     response = client.post("/v1/generate", content=body, headers=headers)
@@ -105,7 +129,7 @@ def test_response_without_sidecar_passes_validation(client) -> None:
     payload = response.json()
 
     validated = GenerateSuccessResponse.model_validate(payload)
-    # No preview delivery because no sidecar.
+    # No preview delivery because no sidecar and no template_registry.
     assert validated.data.preview_delivery is None
     assert validated.data.artifact_metadata.slide_count == 4
 
@@ -114,9 +138,7 @@ def test_response_without_sidecar_passes_validation(client) -> None:
 
 def test_docx_response_passes_validation(client, monkeypatch) -> None:
     """DOCX response (no preview) still validates correctly."""
-    import app.main
-
-    monkeypatch.setattr(app.main, "sidecar_manager", _mock_ready_sidecar())
+    _patch_deps(monkeypatch)
 
     body, headers, _ = signed_request_content("docx")
     response = client.post("/v1/generate", content=body, headers=headers)
@@ -137,10 +159,8 @@ def test_docx_response_passes_validation(client, monkeypatch) -> None:
 
 
 def test_slide_count_matches_actual_slides(client, monkeypatch) -> None:
-    """``artifact_metadata.slide_count`` equals ``len(presentation.slides)``."""
-    import app.main
-
-    monkeypatch.setattr(app.main, "sidecar_manager", _mock_ready_sidecar())
+    """artifact_metadata.slide_count equals len(presentation.slides)."""
+    _patch_deps(monkeypatch)
 
     body, headers, payload_dict = signed_request_content("pptx")
     response = client.post("/v1/generate", content=body, headers=headers)
@@ -172,16 +192,8 @@ def test_slide_count_matches_actual_slides(client, monkeypatch) -> None:
 def test_preview_url_uses_same_hmac_secret_as_artifact(
     client, monkeypatch,
 ) -> None:
-    """HMAC signatures for preview and artifact use the same secret.
-
-    This test verifies that ``build_signed_artifact_locator`` (which generates
-    the signed URL) was called with the same secret for both the artifact and
-    the preview.  Since both go through ``artifact_download._build_artifact_signature``
-    with the module-level secret, they will use the same signing material.
-    """
-    import app.main
-
-    monkeypatch.setattr(app.main, "sidecar_manager", _mock_ready_sidecar())
+    """HMAC signatures for preview and artifact use the same secret."""
+    _patch_deps(monkeypatch)
 
     body, headers, _ = signed_request_content("pptx")
     response = client.post("/v1/generate", content=body, headers=headers)
@@ -223,13 +235,12 @@ def test_preview_url_uses_same_hmac_secret_as_artifact(
 def test_hmac_signature_algorithm_is_sha256(
     client, monkeypatch,
 ) -> None:
-    """The HMAC signature algorithm is ``hmac-sha256``."""
-    import app.main
+    """The HMAC signature algorithm is hmac-sha256."""
     from app.contracts import SIGNATURE_ALGORITHM
 
     assert SIGNATURE_ALGORITHM == "hmac-sha256"
 
-    monkeypatch.setattr(app.main, "sidecar_manager", _mock_ready_sidecar())
+    _patch_deps(monkeypatch)
 
     body, headers, _ = signed_request_content("pptx")
     response = client.post("/v1/generate", content=body, headers=headers)
@@ -249,34 +260,34 @@ def test_hmac_signature_algorithm_is_sha256(
 # ---------------------------------------------------------------------------
 
 
-def test_marp_render_timeout_is_within_gateway_budget() -> None:
-    """Marp sidecar render timeout (≤ 30s) + margin fits within 60s Gateway budget.
+def test_chromium_render_timeout_is_within_gateway_budget() -> None:
+    """Sidecar render timeout (<= 30s) + margin fits within 60s Gateway budget.
 
-    The Gateway→MediaGen timeout is 60s.  Marp render takes at most 30s,
+    The Gateway -> MediaGen timeout is 60s.  Chromium render takes at most 30s,
     which leaves 30s for:
-    - LLM interpretation (≤ 10s typical)
-    - Template injection / canvas rendering (≤ 5s typical)
-    - Preview HTML rendering (≤ 10s typical)
-    - R2 upload (≤ 5s typical)
+    - LLM interpretation (<= 10s typical)
+    - Template injection / canvas rendering (<= 5s typical)
+    - Preview HTML rendering (<= 5s typical — Jinja2, not Marp anymore)
+    - R2 upload (<= 5s typical)
     """
     from app.settings import get_settings
 
     settings = get_settings()
-    marp_timeout = settings.marp_sidecar_render_timeout_seconds
-    gateway_timeout = 60  # Gateway→MediaGen timeout (contract)
+    render_timeout = settings.marp_sidecar_render_timeout_seconds
+    gateway_timeout = 60  # Gateway -> MediaGen timeout (contract)
 
-    assert marp_timeout <= 30, (
-        f"Marp render timeout ({marp_timeout}s) should be ≤ 30s "
+    assert render_timeout <= 30, (
+        f"Sidecar render timeout ({render_timeout}s) should be <= 30s "
         f"to fit within the {gateway_timeout}s Gateway budget"
     )
-    remaining = gateway_timeout - marp_timeout
+    remaining = gateway_timeout - render_timeout
     assert remaining >= 20, (
-        f"Only {remaining}s remaining after Marp render — "
+        f"Only {remaining}s remaining after Chromium render — "
         f"need at least 20s for the rest of the pipeline"
     )
 
 
-def test_marp_sidecar_config_defaults_are_safe() -> None:
+def test_sidecar_config_defaults_are_safe() -> None:
     """Default sidecar settings are within safe limits."""
     from app.settings import get_settings
 
@@ -300,10 +311,8 @@ def test_marp_sidecar_config_defaults_are_safe() -> None:
 def test_artifact_metadata_includes_preview_url_on_success(
     client, monkeypatch,
 ) -> None:
-    """When a preview is generated, ``artifact_metadata.preview_url`` is set."""
-    import app.main
-
-    monkeypatch.setattr(app.main, "sidecar_manager", _mock_ready_sidecar())
+    """When a preview is generated, artifact_metadata.preview_url is set."""
+    _patch_deps(monkeypatch)
 
     body, headers, _ = signed_request_content("pptx")
     response = client.post("/v1/generate", content=body, headers=headers)
@@ -328,7 +337,7 @@ def test_artifact_metadata_includes_preview_url_on_success(
 
 
 def test_artifact_metadata_excludes_preview_url_without_sidecar(client) -> None:
-    """Without sidecar, ``preview_url`` is absent (None)."""
+    """Without sidecar, preview_url is absent (None)."""
     body, headers, _ = signed_request_content("pptx")
     response = client.post("/v1/generate", content=body, headers=headers)
 
@@ -345,10 +354,8 @@ def test_artifact_metadata_excludes_preview_url_without_sidecar(client) -> None:
 def test_pptx_artifact_metadata_includes_layout_sources(
     client, monkeypatch,
 ) -> None:
-    """PPTX metadata includes ``layout_sources`` when generated with canvas fallback."""
-    import app.main
-
-    monkeypatch.setattr(app.main, "sidecar_manager", _mock_ready_sidecar())
+    """PPTX metadata includes layout_sources when generated with canvas fallback."""
+    _patch_deps(monkeypatch)
 
     body, headers, _ = signed_request_content("pptx")
     response = client.post("/v1/generate", content=body, headers=headers)
@@ -360,8 +367,8 @@ def test_pptx_artifact_metadata_includes_layout_sources(
     # The sample request produces 4 slides, all within template capacity,
     # so all should be "template".
     layout_sources = metadata.get("layout_sources")
-    # Note: layout_sources may be None if the generator didn't populate it
-    # (depends on engine wiring).  If present, verify the format.
+    # Note: layout_sources may be None if the generator didn't populate it.
+    # If present, verify the format.
     if layout_sources is not None:
         assert isinstance(layout_sources, list)
         assert len(layout_sources) == 4, f"expected 4 sources, got {len(layout_sources)}"
@@ -386,14 +393,12 @@ def test_health_endpoint_reports_template_registry(client) -> None:
 
     templates = payload.get("templates")
     assert templates is not None, "expected 'templates' in health payload"
-    # Template registry may or may not be loaded (depends on test env).
-    # At minimum the field structure should be present.
     assert isinstance(templates, dict)
     assert "enabled" in templates
 
 
 def test_model_validate_artifact_metadata_with_all_fields() -> None:
-    """``ArtifactMetadata`` validates correctlty with all Fase 4 fields."""
+    """ArtifactMetadata validates correctly with all additive fields."""
     from app.contracts import ARTIFACT_METADATA_VERSION
 
     metadata = ArtifactMetadata.model_validate({
@@ -419,7 +424,7 @@ def test_model_validate_artifact_metadata_with_all_fields() -> None:
 
 
 def test_model_validate_artifact_metadata_without_optional_fields() -> None:
-    """``ArtifactMetadata`` validates correctly without Fase 4 optional fields."""
+    """ArtifactMetadata validates correctly without additive optional fields."""
     from app.contracts import ARTIFACT_METADATA_VERSION
 
     metadata = ArtifactMetadata.model_validate({

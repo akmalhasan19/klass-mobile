@@ -27,8 +27,7 @@ from app.contracts import (
 )
 from app.document_model import build_render_document
 from app.engines.blueprint_builder import build_slide_blueprint
-from app.engines.marp.marp_markdown_builder import build_marp_markdown
-from app.engines.marp.marp_renderer import MarpRenderer
+from app.engines.html_template import HtmlTemplateEngine
 from app.engines.marp.sidecar.sidecar_manager import SidecarManager, build_sidecar_manager
 from app.errors import ContractValidationError, MediaGeneratorError, ServiceMisconfiguredError
 from app.generators.registry import GeneratorRegistry
@@ -104,17 +103,17 @@ async def lifespan(_: FastAPI):
         ) from exc
 
     # ── Bootstrap sidecar ──────────────────────────────────────────────
-    logger.info("Starting Marp sidecar (Node + Chromium warm)…")
+    logger.info("Starting Chromium sidecar (Node + Playwright warm)…")
     try:
         manager = build_sidecar_manager(settings)
         await manager.start()
         sidecar_manager = manager
-        logger.info("Marp sidecar started and ready")
+        logger.info("Chromium sidecar started and ready")
     except Exception as exc:
-        logger.critical("Failed to start Marp sidecar: %s", exc)
+        logger.critical("Failed to start Chromium sidecar: %s", exc)
         sidecar_manager = None
         raise ServiceMisconfiguredError(
-            "Marp sidecar (Node + Chromium) failed to start. "
+            "Chromium sidecar (Node + Playwright) failed to start. "
             "HTML previews and PDF generation will be unavailable.",
             {"startup_error": str(exc)},
         ) from exc
@@ -140,13 +139,13 @@ async def lifespan(_: FastAPI):
     finally:
         # ── Shutdown sidecar ───────────────────────────────────────────
         if sidecar_manager is not None:
-            logger.info("Shutting down Marp sidecar…")
+            logger.info("Shutting down Chromium sidecar…")
             try:
                 await sidecar_manager.stop()
             except Exception as exc:
-                logger.warning("Error during Marp sidecar shutdown: %s", exc)
+                logger.warning("Error during Chromium sidecar shutdown: %s", exc)
             sidecar_manager = None
-            logger.info("Marp sidecar stopped")
+            logger.info("Chromium sidecar stopped")
 
 
 app = FastAPI(
@@ -294,19 +293,25 @@ async def generate_artifact(
 
     # ── Preview HTML rendering (best-effort, pptx/pdf only) ──────────
     preview_delivery: dict[str, object] | None = None
-    if payload.generation_spec.export_format in ("pptx", "pdf") and sidecar_manager is not None:
+    if payload.generation_spec.export_format in ("pptx", "pdf") and sidecar_manager is not None and template_registry is not None:
         try:
-            renderer = MarpRenderer(sidecar_manager)
             blueprint = build_slide_blueprint(render_document)
-            markdown = build_marp_markdown(blueprint)
 
-            # Allocate a temp file for the preview HTML.
-            preview_path = store_preview_html(
-                "", payload.generation_id, render_document.title,
+            # Determine the HTML master template from the request's
+            # template preference (falls back to the default).
+            template_id = (
+                payload.generation_spec.template_id
+                or render_document.template_id
+                or "klass-educational-v1"
             )
-            # Render HTML to the allocated path (overwrites the empty file).
-            await renderer.render_html(markdown, preview_path)
+            html_master = template_registry.get_html_master(template_id)
+            html_engine = HtmlTemplateEngine(master_path=html_master)
+            html = html_engine.render(blueprint)
 
+            # Persist the self-contained HTML and build a signed preview URL.
+            preview_path = store_preview_html(
+                html, payload.generation_id, render_document.title,
+            )
             preview_locator = build_preview_locator(
                 request,
                 generation_id=payload.generation_id,

@@ -103,16 +103,16 @@
 > **Gate**: PDF + preview generate via HTML template lulus integration test; visual parity dengan PPTX terverifikasi
 > **Keputusan**: Reuse Playwright Chromium (hapus `@marp-team/marp-core`, keep `playwright`)
 
-- [ ] **FASE 2: Migrasi Engine PDF + Preview**
-  - [ ] **2A [SEKUENSIAL] Menunggu Fase 0A + 0C selesai** — Implementasi `HtmlTemplateEngine`. `jinja2.render(template, context)` dari `SlideBlueprint` → HTML self-contained. Context builder map blueprint slides → Jinja2 variables.
+- [x] **FASE 2: Migrasi Engine PDF + Preview**
+  - [x] **2A [SEKUENSIAL] Menunggu Fase 0A + 0C selesai** — Implementasi `HtmlTemplateEngine`. `jinja2.render(template, context)` dari `SlideBlueprint` → HTML self-contained. Context builder map blueprint slides → Jinja2 variables.
     - Output: `app/engines/html_template/engine.py`, `app/engines/html_template/context_builder.py`
-  - [ ] **2B [SEKUENSIAL] Menunggu Fase 2A selesai** — Modifikasi Node sidecar (`marp_sidecar.js`): hapus `@marp-team/marp-core`, hapus `render_html(markdown)`. Tambah `html_to_pdf(html)` — `page.setContent(html)` + `page.pdf({ preferCSSPageSize, printBackground })`. Keep Playwright Chromium warm + lifecycle. Update `sidecar_manager.py` RPC method.
+  - [x] **2B [SEKUENSIAL] Menunggu Fase 2A selesai** — Modifikasi Node sidecar (`marp_sidecar.js`): hapus `@marp-team/marp-core`, hapus `render_html(markdown)`. Tambah `html_to_pdf(html)` — `page.setContent(html)` + `page.pdf({ preferCSSPageSize, printBackground })`. Keep Playwright Chromium warm + lifecycle. Update `sidecar_manager.py` RPC method.
     - Output: Update `app/engines/marp/sidecar/marp_sidecar.js`, `sidecar_manager.py`
-  - [ ] **2C [SEKUENSIAL] Menunggu Fase 2B selesai** — Implementasi `PdfRenderer` (HTML string → sidecar `html_to_pdf` → PDF bytes → file) + `PreviewHandler` (HTML string → self-contained `.html` → signed URL via `artifact_download.py`). Refactor `PdfGenerator.render()` delegate ke engine baru.
+  - [x] **2C [SEKUENSIAL] Menunggu Fase 2B selesai** — Implementasi `PdfRenderer` (HTML string → sidecar `html_to_pdf` → PDF bytes → file) + `PreviewHandler` (HTML string → self-contained `.html` → signed URL via `artifact_download.py`). Refactor `PdfGenerator.render()` delegate ke engine baru.
     - Output: `app/engines/html_template/pdf_renderer.py`, update `app/generators/pdf_generator.py`, update `app/preview/preview_handler.py`
-  - [ ] **2D [SEKUENSIAL] Menunggu Fase 2C selesai** — Unit tests PDF/preview engine: HTML rendering (assert Jinja2 output), PDF generation (`%PDF-` header, page_count), preview self-contained (no external URLs), sidecar `html_to_pdf`, error mapping.
+  - [x] **2D [SEKUENSIAL] Menunggu Fase 2C selesai** — Unit tests PDF/preview engine: HTML rendering (assert Jinja2 output), PDF generation (`%PDF-` header, page_count), preview self-contained (no external URLs), sidecar `html_to_pdf`, error mapping.
     - Output: `tests/test_html_template_engine.py`, `tests/test_pdf_renderer.py`
-  - [ ] **2E [SEKUENSIAL] Menunggu Fase 2D selesai** — Integration test PDF + preview: full `POST /v1/generate` `export_format=pdf`, verify `preview_delivery` signed URL, download PDF + preview HTML, validate magic bytes + WebView compatibility. Visual parity check PDF↔PPTX.
+  - [x] **2E [SEKUENSIAL] Menunggu Fase 2D selesai** — Integration test PDF + preview: full `POST /v1/generate` `export_format=pdf`, verify `preview_delivery` signed URL, download PDF + preview HTML, validate magic bytes + WebView compatibility. Visual parity check PDF↔PPTX.
     - Output: Update `tests/test_api.py`, `tests/test_preview_api.py`, `tests/test_contract_e2e.py`
 
 ---

@@ -1,8 +1,14 @@
-"""Long-running Node sidecar manager for the Marp pipeline (Pillar 1).
+"""Long-running Node sidecar manager for Chromium PDF rendering.
 
-This module owns the lifecycle of ``marp_sidecar.js`` (spawned once at
-startup, kept warm for the process lifetime) and bridges it to the asyncio
-world via a line-delimited JSON-RPC protocol over the child's stdio.
+This module owns the lifecycle of the Node sidecar process (``marp_sidecar.js``,
+to be renamed to ``chromium_sidecar.js`` in Fase 4), spawned once at startup,
+kept warm for the process lifetime, and bridges it to the asyncio world via a
+line-delimited JSON-RPC protocol over the child's stdio.
+
+After the Marp-to-Jinja2 migration (Fase 2) the sidecar's only rendering method
+is ``html_to_pdf`` — it receives a self-contained HTML string (produced by the
+:class:`app.engines.html_template.engine.HtmlTemplateEngine`) and returns PDF
+bytes via Playwright's Chromium ``page.setContent()`` + ``page.pdf()``.
 
 Design notes
 ------------
@@ -41,7 +47,7 @@ logger = logging.getLogger("klass-media-generator")
 
 
 class SidecarError(Exception):
-    """Transport/protocol failure talking to the Marp sidecar process."""
+    """Transport/protocol failure talking to the Chromium sidecar process."""
 
     def __init__(self, message: str, code: str | None = None) -> None:
         super().__init__(message)
@@ -81,7 +87,7 @@ def build_sidecar_manager(settings: Settings) -> "SidecarManager":
 
 
 class SidecarManager:
-    """Spawn, supervise, and RPC-proxy the Marp Node sidecar."""
+    """Spawn, supervise, and RPC-proxy the Chromium Node sidecar."""
 
     def __init__(self, config: SidecarConfig | None = None) -> None:
         self._config = config or SidecarConfig()
@@ -157,20 +163,17 @@ class SidecarManager:
             return 0.0
         return time.monotonic() - self._started_at
 
-    async def render_html(self, markdown: str, theme_css: str | None = None) -> str:
-        """Render Marp markdown to a self-contained HTML string."""
-        result = await self._request(
-            "render_html", {"markdown": markdown, "theme_css": theme_css}
-        )
-        if not isinstance(result, dict) or "html" not in result:
-            raise SidecarError("sidecar render_html returned no html field")
-        return result["html"]
+    async def html_to_pdf(self, html: str) -> bytes:
+        """Render self-contained HTML to PDF bytes via warm Chromium.
 
-    async def render_pdf(self, html: str) -> bytes:
-        """Render self-contained HTML to PDF bytes via warm Chromium."""
-        result = await self._request("render_pdf", {"html": html})
+        This is the only rendering method on the sidecar after the Marp-to-Jinja2
+        migration (Fase 2).  The ``HtmlTemplateEngine`` (Fase 2A) now produces the
+        HTML string; this method feeds it to Chromium ``page.setContent()`` +
+        ``page.pdf()`` via the sidecar.
+        """
+        result = await self._request("html_to_pdf", {"html": html})
         if not isinstance(result, dict) or "pdf" not in result:
-            raise SidecarError("sidecar render_pdf returned no pdf field")
+            raise SidecarError("sidecar html_to_pdf returned no pdf field")
         return base64.b64decode(result["pdf"])
 
     async def health(self) -> dict[str, Any]:
@@ -312,7 +315,7 @@ class SidecarManager:
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # pragma: no cover - defensive
-            logger.warning("marp sidecar stdout reader error: %s", exc)
+            logger.warning("chromium sidecar stdout reader error: %s", exc)
         finally:
             self._on_process_exited()
 
@@ -323,7 +326,7 @@ class SidecarManager:
             async for raw in stderr:
                 text = raw.decode("utf-8", errors="replace").rstrip()
                 if text:
-                    logger.debug("marp-sidecar: %s", text)
+                    logger.debug("chromium-sidecar: %s", text)
         except asyncio.CancelledError:
             raise
         except Exception:  # pragma: no cover - defensive
@@ -336,7 +339,7 @@ class SidecarManager:
         try:
             message = json.loads(line)
         except json.JSONDecodeError:
-            logger.warning("non-JSON line from sidecar: %s", line[:200])
+            logger.warning("non-JSON line from chromium sidecar: %s", line[:200])
             return
 
         if message.get("ready") is True:
@@ -403,7 +406,7 @@ class SidecarManager:
                 return
             self._restarting = True
         try:
-            logger.warning("restarting marp sidecar (reason: %s)", reason)
+            logger.warning("restarting chromium sidecar (reason: %s)", reason)
             await self._terminate_process()
             self._ready.clear()
             self._render_count = 0

@@ -1,7 +1,6 @@
 import readline from 'node:readline';
 import process from 'node:process';
 
-import { Marp } from '@marp-team/marp-core';
 import { chromium } from 'playwright';
 
 const RENDER_TIMEOUT_MS = Number(process.env.MARP_SIDECAR_RENDER_TIMEOUT_MS ?? 30000);
@@ -14,7 +13,7 @@ function send(message) {
 }
 
 function log(message) {
-  process.stderr.write(`[marp-sidecar] ${message}\n`);
+  process.stderr.write(`[chromium-sidecar] ${message}\n`);
 }
 
 async function ensureBrowser() {
@@ -32,43 +31,7 @@ async function ensureBrowser() {
   return browser;
 }
 
-function withMarpDirective(markdown) {
-  const fm = /^---\s*\n([\s\S]*?)\n---\s*\n?/.exec(markdown || '');
-  if (fm) {
-    if (/^\s*marp\s*:/m.test(fm[1])) {
-      return markdown;
-    }
-    const body = markdown.slice(fm[0].length);
-    return `---\n${fm[1].replace(/\s+$/, '')}\nmarp: true\n---\n${body}`;
-  }
-  return `---\nmarp: true\n---\n\n${markdown || ''}`;
-}
-
-function buildMarp(themeCss) {
-  const marp = new Marp({ inlineSVG: false });
-  if (themeCss) {
-    const theme = marp.themeSet.add(themeCss);
-    if (theme) {
-      // marp-core expects the default to be a Theme *instance*, not a name.
-      marp.themeSet.default = theme;
-    }
-  }
-  return marp;
-}
-
-function assembleHtml(html, css) {
-  return `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">` +
-    `<meta name="viewport" content="width=device-width, initial-scale=1">` +
-    `<style>${css}</style></head><body>${html}</body></html>`;
-}
-
-async function renderHtml(params) {
-  const marp = buildMarp(params.theme_css);
-  const { html, css } = marp.render(withMarpDirective(params.markdown));
-  return { html: assembleHtml(html, css) };
-}
-
-async function renderPdf(params) {
+async function htmlToPdf(params) {
   const b = await ensureBrowser();
   const context = await b.newContext({ viewport: { width: 1280, height: 720 } });
   try {
@@ -86,8 +49,7 @@ async function health() {
 }
 
 const METHODS = {
-  render_html: renderHtml,
-  render_pdf: renderPdf,
+  html_to_pdf: htmlToPdf,
   health,
 };
 

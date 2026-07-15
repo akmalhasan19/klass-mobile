@@ -52,6 +52,34 @@ def test_generate_pdf_returns_artifact_metadata_with_page_count(running_client) 
     assert download_response.status_code == 200
     assert download_response.content.startswith(b"%PDF")
 
+    # ── Preview delivery verification ────────────────────────────────
+    preview_delivery = payload["data"].get("preview_delivery")
+    if preview_delivery is not None:
+        # Verify preview delivery structure.
+        assert preview_delivery["schema_version"] == "media_generator_preview.v1"
+        assert preview_delivery["mime_type"] == "text/html"
+        assert preview_delivery["locator"]["kind"] == "signed_url"
+
+        # Download the preview HTML and verify self-contained.
+        preview_url = preview_delivery["locator"]["value"]
+        parsed_preview = urlparse(preview_url)
+        preview_response = running_client.get(
+            f"{parsed_preview.path}?{parsed_preview.query}"
+        )
+        assert preview_response.status_code == 200
+        content_type = preview_response.headers.get("content-type", "")
+        assert content_type.startswith("text/html")
+
+        # Verify the preview HTML is self-contained (WebView compatible).
+        html_text = preview_response.content.decode("utf-8")
+        assert "Handout Pecahan Kelas 5" in html_text
+        assert "http://" not in html_text
+        assert "https://" not in html_text
+        assert 'src="' not in html_text
+
+        # Verify preview_url in artifact metadata matches.
+        assert payload["data"]["artifact_metadata"].get("preview_url") == preview_url
+
     cleanup_artifact(payload["data"]["artifact_metadata"])
 
 

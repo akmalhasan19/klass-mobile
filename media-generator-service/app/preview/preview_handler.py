@@ -1,8 +1,9 @@
 """Build a signed preview URL for a self-contained HTML artifact.
 
-This module is the bridge between the Marp rendering pipeline (which
-produces self-contained HTML) and the existing signed-URL artifact-download
-infrastructure (``app.artifact_download``).
+This module is the bridge between the HTML template engine (which
+produces self-contained HTML via :class:`HtmlTemplateEngine`) and the
+existing signed-URL artifact-download infrastructure
+(``app.artifact_download``).
 
 Flow
 ----
@@ -18,6 +19,10 @@ No changes to ``artifact_download.py`` are required because:
   name starts with ``klass_media_`` (``klass_media_html_`` matches).
 * ``media_type_for_filename`` delegates to ``mimetypes.guess_type``,
   which returns ``text/html`` for ``.html`` files.
+
+After the Marp-to-Jinja2 migration (Fase 2), the HTML string input comes
+from :class:`app.engines.html_template.engine.HtmlTemplateEngine` instead
+of the old ``SidecarManager.render_html()``.
 """
 from __future__ import annotations
 
@@ -45,7 +50,8 @@ def store_preview_html(html: str, generation_id: str, title: str) -> Path:
     Parameters
     ----------
     html:
-        Self-contained HTML string (the output of ``SidecarManager.render_html``).
+        Self-contained HTML string (the output of
+        ``HtmlTemplateEngine.render()``).
     generation_id:
         Opaque generation identifier — embedded in the filename for traceability.
     title:
