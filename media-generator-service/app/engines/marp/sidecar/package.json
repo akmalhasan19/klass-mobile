@@ -1,0 +1,18 @@
+{
+  "name": "klass-marp-sidecar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Long-running Node sidecar for Marp HTML + PDF rendering over stdio JSON-RPC.",
+  "type": "module",
+  "main": "marp_sidecar.js",
+  "scripts": {
+    "start": "node marp_sidecar.js"
+  },
+  "dependencies": {
+    "@marp-team/marp-core": "^4.0.0",
+    "playwright": "^1.45.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -7,7 +7,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.contracts import (
     ARTIFACT_METADATA_VERSION,
     GENERATION_SPEC_VERSION,
+    HTML_MIME_TYPE,
     INTERPRETATION_SCHEMA_VERSION,
+    PREVIEW_SCHEMA_VERSION,
     RESPONSE_SCHEMA_VERSION,
     SUPPORTED_EXPORT_FORMATS,
 )
@@ -179,7 +181,14 @@ class GenerateResponseData(StrictModel):
     generation_id: str = Field(min_length=1, max_length=100)
     artifact_delivery: ArtifactLocator
     artifact_metadata: ArtifactMetadata
+    preview_delivery: PreviewDelivery | None = Field(default=None)
     contracts: ResponseContracts
+
+
+class PreviewDelivery(StrictModel):
+    schema_version: Literal[PREVIEW_SCHEMA_VERSION]
+    mime_type: Literal[HTML_MIME_TYPE]
+    locator: ArtifactLocator
 
 
 class GenerateSuccessResponse(StrictModel):

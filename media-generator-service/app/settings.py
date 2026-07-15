@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 
 from app import SERVICE_VERSION
 
@@ -17,6 +18,14 @@ class Settings:
     artifact_url_ttl_seconds: int
     public_base_url: str
     log_level: str
+    marp_sidecar_node_executable: str
+    marp_sidecar_script_path: str
+    marp_sidecar_ready_timeout_seconds: int
+    marp_sidecar_render_timeout_seconds: int
+    marp_sidecar_max_concurrent_renders: int
+    marp_sidecar_health_interval_seconds: int
+    marp_sidecar_restart_render_count: int
+    marp_sidecar_restart_idle_seconds: int
 
     @property
     def rotation_enabled(self) -> bool:
@@ -80,6 +89,44 @@ def get_settings() -> Settings:
         ),
         public_base_url=(os.getenv("MEDIA_GENERATION_PYTHON_PUBLIC_BASE_URL") or "").strip().rstrip("/"),
         log_level=_clean_str(os.getenv("MEDIA_GENERATION_PYTHON_LOG_LEVEL"), "info").lower(),
+        marp_sidecar_node_executable=_clean_str(
+            os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_NODE_EXECUTABLE"),
+            "node",
+        ),
+        marp_sidecar_script_path=_clean_str(
+            os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_SCRIPT_PATH"),
+            str(Path(__file__).resolve().parent / "engines" / "marp" / "sidecar" / "marp_sidecar.js"),
+        ),
+        marp_sidecar_ready_timeout_seconds=_clean_int(
+            os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_READY_TIMEOUT_SECONDS"),
+            30,
+            minimum=1,
+        ),
+        marp_sidecar_render_timeout_seconds=_clean_int(
+            os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_RENDER_TIMEOUT_SECONDS"),
+            30,
+            minimum=1,
+        ),
+        marp_sidecar_max_concurrent_renders=_clean_int(
+            os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_MAX_CONCURRENT_RENDERS"),
+            4,
+            minimum=1,
+        ),
+        marp_sidecar_health_interval_seconds=_clean_int(
+            os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_HEALTH_INTERVAL_SECONDS"),
+            30,
+            minimum=1,
+        ),
+        marp_sidecar_restart_render_count=_clean_int(
+            os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_RESTART_RENDER_COUNT"),
+            100,
+            minimum=1,
+        ),
+        marp_sidecar_restart_idle_seconds=_clean_int(
+            os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_RESTART_IDLE_SECONDS"),
+            3600,
+            minimum=30,
+        ),
     )
 
 

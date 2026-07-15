@@ -1,49 +1,22 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from pathlib import Path
-from typing import cast
-from xml.sax.saxutils import escape
-
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
-from reportlab.pdfgen.canvas import Canvas
 
 from app.contracts import PDF_MIME_TYPE
-from app.document_model import RenderDocument, RenderSection, localized_label
+from app.document_model import RenderDocument
+from app.engines.blueprint_builder import build_slide_blueprint
+from app.engines.marp.marp_markdown_builder import build_marp_markdown
+from app.engines.marp.marp_renderer import MarpRenderer
+from app.errors import GenerationError
 from app.generators.base import BaseGenerator, RenderSummary
 
+logger = logging.getLogger("klass-media-generator")
 
-class PageCountingCanvas(Canvas):
-    def __init__(self, *args, title: str, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._saved_page_states: list[dict[str, object]] = []
-        self.page_count = 0
-        self._title = title
-
-    def showPage(self) -> None:
-        self._saved_page_states.append(dict(self.__dict__))
-        self._startPage()
-
-    def save(self) -> None:
-        self._saved_page_states.append(dict(self.__dict__))
-        self.page_count = len(self._saved_page_states)
-
-        for state in self._saved_page_states:
-            self.__dict__.update(state)
-            self._draw_footer()
-            super().showPage()
-
-        super().save()
-
-    def _draw_footer(self) -> None:
-        self.setFont("Helvetica", 8)
-        self.setFillColor(colors.HexColor("#57606A"))
-        self.drawString(18 * mm, 10 * mm, self._title[:90])
-        self.drawRightString(192 * mm, 10 * mm, f"Page {self._pageNumber} of {self.page_count}")
+# PDF generation is delegated to the warm Chromium sidecar, which is also the
+# render budget ceiling for the whole request (Gateway → MediaGen = 60s).
+_SIDECAR_TIMEOUT_SECONDS = 60
 
 
 class PdfGenerator(BaseGenerator):
@@ -51,144 +24,70 @@ class PdfGenerator(BaseGenerator):
     mime_type = PDF_MIME_TYPE
 
     def render(self, render_document: RenderDocument, output_path: Path) -> RenderSummary:
-        styles = self._styles()
-        story: list[object] = []
+        sidecar_manager = self._require_sidecar()
 
-        story.append(Paragraph(escape(render_document.title), styles["title"]))
-        story.append(Spacer(1, 6 * mm))
-        story.append(Paragraph(escape(render_document.summary), styles["body"]))
-        story.append(Spacer(1, 5 * mm))
+        # Reuse the universal blueprint + Marp markdown so the PDF is produced
+        # from the exact same source as the HTML preview (structural parity).
+        blueprint = build_slide_blueprint(render_document)
+        markdown = build_marp_markdown(blueprint)
 
-        if render_document.learning_objectives:
-            story.append(Paragraph(escape(localized_label(render_document.language, "learning_objectives")), styles["section_heading"]))
-            for objective in render_document.learning_objectives:
-                story.append(Paragraph(f"- {escape(objective)}", styles["bullet"]))
-            story.append(Spacer(1, 4 * mm))
+        renderer = MarpRenderer(sidecar_manager)
 
-        for section in render_document.sections:
-            self._append_section(story, render_document, section, styles)
+        # Marp derives the PDF from its self-contained HTML: render the HTML
+        # string first, then hand it to the warm Chromium PDF path. The HTML is
+        # only an intermediate here (the preview artifact is produced elsewhere),
+        # so we keep it in a sibling temp file and discard it afterwards.
+        html_path = output_path.with_suffix(".preview.html")
+        try:
+            self._run_async(renderer.render_html(markdown, html_path))
+            html = html_path.read_text(encoding="utf-8")
+            self._run_async(renderer.render_pdf(html, output_path))
+        except GenerationError:
+            raise
+        except Exception as exc:
+            raise GenerationError(
+                "pdf_marp_render_failed",
+                "Failed to render the PDF artifact via the Marp pipeline.",
+                {"export_format": self.export_format},
+            ) from exc
+        finally:
+            html_path.unlink(missing_ok=True)
 
-        if render_document.activity_blocks:
-            story.append(Paragraph(escape(localized_label(render_document.language, "activity_blocks")), styles["section_heading"]))
-            for block in render_document.activity_blocks:
-                story.append(Paragraph(escape(block.title), styles["sub_heading"]))
-                story.append(Paragraph(escape(block.instructions), styles["body"]))
-                story.append(Spacer(1, 2 * mm))
+        # Marp emits exactly one page per slide, so the deck slide count is the
+        # PDF page count. This avoids taking a hard dependency on a PDF parser.
+        return RenderSummary(page_count=len(blueprint.slides))
 
-        template = SimpleDocTemplate(
-            str(output_path),
-            pagesize=A4,
-            leftMargin=16 * mm,
-            rightMargin=16 * mm,
-            topMargin=18 * mm,
-            bottomMargin=18 * mm,
-            title=render_document.title,
-        )
+    @staticmethod
+    def _require_sidecar():
+        # Lazy import avoids a circular import: ``app.main`` imports the
+        # generator registry (which imports this module) at startup, but the
+        # sidecar global is only populated once the lifespan has started.
+        from app.main import sidecar_manager
 
-        canvas_holder: dict[str, PageCountingCanvas] = {}
+        if sidecar_manager is None or not sidecar_manager.is_ready:
+            raise GenerationError(
+                "marp_sidecar_unavailable",
+                "The Marp sidecar is not available; PDF generation requires it.",
+                {},
+            )
 
-        def canvas_factory(*args, **kwargs):
-            canvas = PageCountingCanvas(*args, title=render_document.title, **kwargs)
-            canvas_holder["canvas"] = canvas
-            return canvas
+        return sidecar_manager
 
-        template.build(story, canvasmaker=canvas_factory)
-        page_count = cast(PageCountingCanvas, canvas_holder["canvas"]).page_count
+    @staticmethod
+    def _run_async(coro):
+        """Bridge a coroutine into the running event loop (or a fresh one).
 
-        return RenderSummary(page_count=max(1, page_count))
+        ``MarpRenderer`` is async and the sidecar is bound to the uvicorn event
+        loop (futures/subprocess created on the running loop). ``render`` itself
+        is called synchronously from ``BaseGenerator.generate``, so we schedule
+        the coroutine on the already-running loop via
+        ``run_coroutine_threadsafe`` and block on the resulting future. Outside
+        an event loop (e.g. a plain unit test) we fall back to ``asyncio.run``.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coro)
 
-    def _styles(self) -> dict[str, ParagraphStyle]:
-        sample = getSampleStyleSheet()
-
-        return {
-            "title": ParagraphStyle(
-                "KlassTitle",
-                parent=sample["Title"],
-                fontName="Helvetica-Bold",
-                fontSize=20,
-                leading=24,
-                textColor=colors.HexColor("#0B1F33"),
-                alignment=TA_CENTER,
-                spaceAfter=10,
-            ),
-            "section_heading": ParagraphStyle(
-                "KlassSectionHeading",
-                parent=sample["Heading2"],
-                fontName="Helvetica-Bold",
-                fontSize=13,
-                leading=16,
-                textColor=colors.HexColor("#0F4C5C"),
-                spaceBefore=8,
-                spaceAfter=4,
-            ),
-            "sub_heading": ParagraphStyle(
-                "KlassSubHeading",
-                parent=sample["Heading3"],
-                fontName="Helvetica-Bold",
-                fontSize=11,
-                leading=14,
-                textColor=colors.HexColor("#0B1F33"),
-                spaceBefore=4,
-                spaceAfter=2,
-            ),
-            "body": ParagraphStyle(
-                "KlassBody",
-                parent=sample["BodyText"],
-                fontName="Helvetica",
-                fontSize=10,
-                leading=14,
-                textColor=colors.HexColor("#1F2933"),
-                spaceAfter=3,
-            ),
-            "purpose": ParagraphStyle(
-                "KlassPurpose",
-                parent=sample["BodyText"],
-                fontName="Helvetica-Oblique",
-                fontSize=9.5,
-                leading=13,
-                textColor=colors.HexColor("#52606D"),
-                spaceAfter=4,
-            ),
-            "bullet": ParagraphStyle(
-                "KlassBullet",
-                parent=sample["BodyText"],
-                fontName="Helvetica",
-                fontSize=10,
-                leading=14,
-                leftIndent=10,
-                firstLineIndent=0,
-                spaceAfter=2,
-                textColor=colors.HexColor("#1F2933"),
-            ),
-            "label": ParagraphStyle(
-                "KlassLabel",
-                parent=sample["BodyText"],
-                fontName="Helvetica-Bold",
-                fontSize=9,
-                leading=12,
-                textColor=colors.HexColor("#0B1F33"),
-            ),
-        }
-
-    def _append_section(
-        self,
-        story: list[object],
-        render_document: RenderDocument,
-        section: RenderSection,
-        styles: dict[str, ParagraphStyle],
-    ) -> None:
-        story.append(Paragraph(escape(section.title), styles["section_heading"]))
-
-        for block in section.blocks:
-            if block.kind == "paragraph":
-                story.append(Paragraph(escape(block.content), styles["body"]))
-                continue
-
-            if block.kind == "bullet":
-                story.append(Paragraph(f"- {escape(block.content)}", styles["bullet"]))
-                continue
-
-            prefix = "[ ] " if block.kind == "checklist" else "Note: "
-            story.append(Paragraph(escape(prefix + block.content), styles["bullet"]))
-
-        story.append(Spacer(1, 3 * mm))
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        return future.result(timeout=_SIDECAR_TIMEOUT_SECONDS)

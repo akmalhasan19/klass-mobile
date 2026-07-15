@@ -18,18 +18,29 @@ from app.contracts import (
     ARTIFACT_METADATA_VERSION,
     GENERATION_SPEC_VERSION,
     HEALTH_SCHEMA_VERSION,
+    HTML_MIME_TYPE,
     IMPLEMENTED_EXPORT_FORMATS,
+    PREVIEW_SCHEMA_VERSION,
     RESPONSE_SCHEMA_VERSION,
     SIGNATURE_ALGORITHM,
 )
 from app.document_model import build_render_document
-from app.errors import ContractValidationError, MediaGeneratorError
+from app.engines.blueprint_builder import build_slide_blueprint
+from app.engines.marp.marp_markdown_builder import build_marp_markdown
+from app.engines.marp.marp_renderer import MarpRenderer
+from app.engines.marp.sidecar.sidecar_manager import SidecarManager, build_sidecar_manager
+from app.errors import ContractValidationError, MediaGeneratorError, ServiceMisconfiguredError
 from app.generators.registry import GeneratorRegistry
 from app.models import GenerateErrorResponse, GenerateRequest, GenerateSuccessResponse
+from app.preview.preview_handler import build_preview_locator, store_preview_html
 from app.settings import Settings, get_settings
 
 logger = logging.getLogger("klass-media-generator")
 registry = GeneratorRegistry()
+
+# Module-level sidecar manager — started during lifespan, accessible by
+# health endpoint and by generators (via the registry or module import).
+sidecar_manager: SidecarManager | None = None
 
 
 def build_error_response(request: Request, exc: MediaGeneratorError) -> JSONResponse:
@@ -61,7 +72,37 @@ def configure_logging(settings: Settings) -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     configure_logging(get_settings())
-    yield
+    settings = get_settings()
+    global sidecar_manager
+
+    # ── Bootstrap sidecar ──────────────────────────────────────────────
+    logger.info("Starting Marp sidecar (Node + Chromium warm)…")
+    try:
+        manager = build_sidecar_manager(settings)
+        await manager.start()
+        sidecar_manager = manager
+        logger.info("Marp sidecar started and ready")
+    except Exception as exc:
+        logger.critical("Failed to start Marp sidecar: %s", exc)
+        sidecar_manager = None
+        raise ServiceMisconfiguredError(
+            "Marp sidecar (Node + Chromium) failed to start. "
+            "HTML previews and PDF generation will be unavailable.",
+            {"startup_error": str(exc)},
+        ) from exc
+
+    try:
+        yield
+    finally:
+        # ── Shutdown sidecar ───────────────────────────────────────────
+        if sidecar_manager is not None:
+            logger.info("Shutting down Marp sidecar…")
+            try:
+                await sidecar_manager.stop()
+            except Exception as exc:
+                logger.warning("Error during Marp sidecar shutdown: %s", exc)
+            sidecar_manager = None
+            logger.info("Marp sidecar stopped")
 
 
 app = FastAPI(
@@ -112,6 +153,16 @@ async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResp
 
 
 def health_payload(settings: Settings) -> dict[str, object]:
+    # Sidecar status — simple sync properties, no RPC call needed.
+    sidecar_info: dict[str, object] = {"enabled": False}
+    if sidecar_manager is not None:
+        sidecar_info = {
+            "enabled": True,
+            "running": sidecar_manager.is_running,
+            "ready": sidecar_manager.is_ready,
+            "uptime_seconds": round(sidecar_manager.uptime_seconds, 1),
+        }
+
     return {
         "schema_version": HEALTH_SCHEMA_VERSION,
         "status": "ok",
@@ -130,6 +181,7 @@ def health_payload(settings: Settings) -> dict[str, object]:
             "accepted_secret_count": len(settings.accepted_shared_secrets),
             "max_request_age_seconds": settings.request_max_age_seconds,
         },
+        "sidecar": sidecar_info,
     }
 
 
@@ -175,6 +227,40 @@ async def generate_artifact(
         "artifact_locator": response_artifact_locator,
     }
 
+    # ── Preview HTML rendering (best-effort, pptx/pdf only) ──────────
+    preview_delivery: dict[str, object] | None = None
+    if payload.generation_spec.export_format in ("pptx", "pdf") and sidecar_manager is not None:
+        try:
+            renderer = MarpRenderer(sidecar_manager)
+            blueprint = build_slide_blueprint(render_document)
+            markdown = build_marp_markdown(blueprint)
+
+            # Allocate a temp file for the preview HTML.
+            preview_path = store_preview_html(
+                "", payload.generation_id, render_document.title,
+            )
+            # Render HTML to the allocated path (overwrites the empty file).
+            await renderer.render_html(markdown, preview_path)
+
+            preview_locator = build_preview_locator(
+                request,
+                generation_id=payload.generation_id,
+                preview_path=preview_path,
+                title=render_document.title,
+                settings=settings,
+            )
+            preview_delivery = {
+                "schema_version": PREVIEW_SCHEMA_VERSION,
+                "mime_type": HTML_MIME_TYPE,
+                "locator": preview_locator,
+            }
+        except Exception as exc:
+            logger.warning(
+                "Preview HTML rendering failed for generation %s (non-fatal): %s",
+                payload.generation_id,
+                exc,
+            )
+
     response = GenerateSuccessResponse.model_validate(
         {
             "schema_version": RESPONSE_SCHEMA_VERSION,
@@ -184,6 +270,7 @@ async def generate_artifact(
                 "generation_id": payload.generation_id,
                 "artifact_delivery": response_artifact_locator,
                 "artifact_metadata": response_artifact_metadata,
+                "preview_delivery": preview_delivery,
                 "contracts": {
                     "artifact_metadata": ARTIFACT_METADATA_VERSION,
                 },

@@ -266,77 +266,77 @@ Full flow 4 menit terpenuhi dengan margin sangat besar — media gen hanya ~5-10
 
 ### FASE 2: Marp Preview API (HTML Generator) + PDF via Sidecar
 
-- [ ] **Task 2.1: Setup Node sidecar infrastructure**
-  - [ ] Buat `app/engines/marp/sidecar/package.json` dengan deps `@marp-team/marp-core`, `playwright`
-  - [ ] Buat `app/engines/marp/sidecar/marp_sidecar.js`
-  - [ ] Spawn Chromium sekali saat startup, kirim `{"ready":true}` ke stdout
-  - [ ] Implementasi JSON-RPC over stdio: `render_html(md)`, `render_pdf(html)`
-  - [ ] Per request: Playwright page baru (reuse browser), cleanup setelah render
-  - [ ] Handle error: invalid markdown, Chromium crash, timeout
+- [x] **Task 2.1: Setup Node sidecar infrastructure**
+  - [x] Buat `app/engines/marp/sidecar/package.json` dengan deps `@marp-team/marp-core`, `playwright`
+  - [x] Buat `app/engines/marp/sidecar/marp_sidecar.js`
+  - [x] Spawn Chromium sekali saat startup, kirim `{"ready":true}` ke stdout
+  - [x] Implementasi JSON-RPC over stdio: `render_html(md)`, `render_pdf(html)`
+  - [x] Per request: Playwright page baru (reuse browser), cleanup setelah render
+  - [x] Handle error: invalid markdown, Chromium crash, timeout
 
-- [ ] **Task 2.2: Implementasikan `SidecarManager` (Python)**
-  - [ ] Buat `app/engines/marp/sidecar/sidecar_manager.py`
-  - [ ] `asyncio` wrapper untuk stdio JSON-RPC (request/response correlation by id)
-  - [ ] `SidecarManager.start()` → spawn node process, wait for ready signal
-  - [ ] `SidecarManager.stop()` → graceful shutdown (SIGTERM → kill)
-  - [ ] Health check heartbeat tiap 30s
-  - [ ] Auto-restart on crash/unresponsive (timeout 30s)
-  - [ ] `asyncio.Semaphore` max 4 paralel render
-  - [ ] Restart sidecar setiap N=100 render atau 1 jam (configurable) untuk memory cleanup
+- [x] **Task 2.2: Implementasikan `SidecarManager` (Python)**
+  - [x] Buat `app/engines/marp/sidecar/sidecar_manager.py`
+  - [x] `asyncio` wrapper untuk stdio JSON-RPC (request/response correlation by id)
+  - [x] `SidecarManager.start()` → spawn node process, wait for ready signal
+  - [x] `SidecarManager.stop()` → graceful shutdown (SIGTERM → kill)
+  - [x] Health check heartbeat tiap 30s
+  - [x] Auto-restart on crash/unresponsive (timeout 30s)
+  - [x] `asyncio.Semaphore` max 4 paralel render
+  - [x] Restart sidecar setiap N=100 render atau 1 jam (configurable) untuk memory cleanup
 
-- [ ] **Task 2.3: Buat Marp markdown builder**
-  - [ ] Buat `app/engines/marp/marp_markdown_builder.py`
-  - [ ] Fungsi `build_marp_markdown(blueprint) -> str`
-  - [ ] Header directives: `--- marp: true\ntheme: klass-default\npaginate: true\nsize: 16:9 ---`
-  - [ ] Per-slide: `<!-- _class: {slide_type} -->` + heading + card bullets
-  - [ ] Handle semua slide_type (title, section, content, assessment)
+- [x] **Task 2.3: Buat Marp markdown builder**
+  - [x] Buat `app/engines/marp/marp_markdown_builder.py`
+  - [x] Fungsi `build_marp_markdown(blueprint) -> str`
+  - [x] Header directives: `--- marp: true\ntheme: klass-default\npaginate: true\nsize: 16:9 ---`
+  - [x] Per-slide: `<!-- _class: {slide_type} -->` + heading + card bullets
+  - [x] Handle semua slide_type (title, section, content, assessment)
 
-- [ ] **Task 2.4: Buat custom Marp theme CSS**
-  - [ ] Buat `app/engines/marp/themes/klass-default.css`
-  - [ ] Theme struktural (warna/font mendekati master template — parity struktural)
-  - [ ] CSS classes: `title`, `section`, `content`, `assessment` (match slide_type)
-  - [ ] Card layout: grid/flex untuk multi-column
+- [x] **Task 2.4: Buat custom Marp theme CSS**
+  - [x] Buat `app/engines/marp/themes/klass-default.css`
+  - [x] Theme struktural (warna/font mendekati master template — parity struktural)
+  - [x] CSS classes: `title`, `section`, `content`, `assessment` (match slide_type)
+  - [x] Card layout: grid/flex untuk multi-column
 
-- [ ] **Task 2.5: Implementasikan `marp_renderer.py`**
-  - [ ] Buat `app/engines/marp/marp_renderer.py`
-  - [ ] `render_html(markdown, out_html)` → call `sidecar.render_html(md)`, write to file
-  - [ ] `render_pdf(markdown, out_pdf)` → call `sidecar.render_pdf(html)`, write to file
-  - [ ] Raise `GenerationError` on failure
-  - [ ] Theme CSS di-inline ke markdown (via `--theme` flag atau inline directive)
+- [x] **Task 2.5: Implementasikan `marp_renderer.py`**
+  - [x] Buat `app/engines/marp/marp_renderer.py`
+  - [x] `render_html(markdown, out_html)` → call `sidecar.render_html(md)`, write to file
+  - [x] `render_pdf(markdown, out_pdf)` → call `sidecar.render_pdf(html)`, write to file
+  - [x] Raise `GenerationError` on failure
+  - [x] Theme CSS di-inline ke markdown (via `--theme` flag atau inline directive)
 
-- [ ] **Task 2.6: Integrasikan sidecar ke FastAPI lifespan**
-  - [ ] Update `app/main.py` lifespan: `await sidecar.start()` sebelum accept request
-  - [ ] Shutdown: `await sidecar.stop()` graceful
-  - [ ] Health endpoint report sidecar status (`/v1/health` tambah `sidecar: {status, uptime}`)
+- [x] **Task 2.6: Integrasikan sidecar ke FastAPI lifespan**
+  - [x] Update `app/main.py` lifespan: `await sidecar.start()` sebelum accept request
+  - [x] Shutdown: `await sidecar.stop()` graceful
+  - [x] Health endpoint report sidecar status (`/v1/health` tambah `sidecar: {status, uptime}`)
 
-- [ ] **Task 2.7: Buat preview handler + extend artifact_download**
-  - [ ] Buat `app/preview/__init__.py` dan `app/preview/preview_handler.py`
-  - [ ] Simpan HTML ke temp dir dengan prefix `klass_media_html_`
-  - [ ] Bangun signed URL via `build_signed_artifact_locator`
-  - [ ] Update `app/artifact_download.py:142` `normalize_downloadable_artifact_path` — perluas prefix check agar menerima `klass_media_html_` + extension `.html`
+- [x] **Task 2.7: Buat preview handler + extend artifact_download**
+  - [x] Buat `app/preview/__init__.py` dan `app/preview/preview_handler.py`
+  - [x] Simpan HTML ke temp dir dengan prefix `klass_media_html_`
+  - [x] Bangun signed URL via `build_signed_artifact_locator`
+  - [x] Update `app/artifact_download.py:142` `normalize_downloadable_artifact_path` — perluas prefix check agar menerima `klass_media_html_` + extension `.html`
 
-- [ ] **Task 2.8: Extend contracts & models**
-  - [ ] Update `app/contracts.py`: tambah `PREVIEW_SCHEMA_VERSION = "media_generator_preview.v1"`, `MIME_TYPES["html"] = "text/html"`
-  - [ ] Update `app/models.py`: tambah `PreviewDelivery` model, extend `GenerateSuccessResponse` dengan `preview_delivery` field opsional
+- [x] **Task 2.8: Extend contracts & models**
+  - [x] Update `app/contracts.py`: tambah `PREVIEW_SCHEMA_VERSION = "media_generator_preview.v1"`, `MIME_TYPES["html"] = "text/html"`
+  - [x] Update `app/models.py`: tambah `PreviewDelivery` model, extend `GenerateSuccessResponse` dengan `preview_delivery` field opsional
 
-- [ ] **Task 2.9: Refactor `pdf_generator.py` → delegate ke Marp**
-  - [ ] Update `app/generators/pdf_generator.py` `render()` → delegate ke `marp_renderer.render_pdf`
-  - [ ] Ganti reportlab dengan Marp PDF (parity tinggi dengan preview)
-  - [ ] `RenderSummary` tetap `page_count`
-  - [ ] Hapus dependency reportlab dari `requirements.txt` (opsional, keep untuk safety)
+- [x] **Task 2.9: Refactor `pdf_generator.py` → delegate ke Marp**
+  - [x] Update `app/generators/pdf_generator.py` `render()` → delegate ke `marp_renderer.render_pdf`
+  - [x] Ganti reportlab dengan Marp PDF (parity tinggi dengan preview)
+  - [x] `RenderSummary` tetap `page_count`
+  - [x] Hapus dependency reportlab dari `requirements.txt` (opsional, keep untuk safety)
 
-- [ ] **Task 2.10: Update `main.py` response + Dockerfile**
-  - [ ] Update `app/main.py` `generate_artifact`: saat `export_format in ("pptx","pdf")`, render preview HTML paralel, tambah `data.preview_delivery` ke response
-  - [ ] Update `Dockerfile`: base `python:3.11-slim` + multi-stage install Node 20 + Playwright Chromium + system deps
-  - [ ] System deps: `libnss3`, `libnspr4`, `libatk1.0-0`, `libatk-bridge2.0-0`, `libcups2`, `libdrm2`, `libdbus-1-3`, `libxkbcommon0`, `libatspi2.0-0`, `libxcomposite1`, `libxdamage1`, `libxfixes3`, `libxrandr2`, `libgbm1`, `libpango-1.0-0`, `libcairo2`, `libasound2`
-  - [ ] `npm install --omit=dev` + `npx playwright install chromium` di sidecar dir
+- [x] **Task 2.10: Update `main.py` response + Dockerfile**
+  - [x] Update `app/main.py` `generate_artifact`: saat `export_format in ("pptx","pdf")`, render preview HTML paralel, tambah `data.preview_delivery` ke response
+  - [x] Update `Dockerfile`: base `python:3.11-slim` + multi-stage install Node 20 + Playwright Chromium + system deps
+  - [x] System deps: `libnss3`, `libnspr4`, `libatk1.0-0`, `libatk-bridge2.0-0`, `libcups2`, `libdrm2`, `libdbus-1-3`, `libxkbcommon0`, `libatspi2.0-0`, `libxcomposite1`, `libxdamage1`, `libxfixes3`, `libxrandr2`, `libgbm1`, `libpango-1.0-0`, `libcairo2`, `libasound2`
+  - [x] `npm install --omit=dev` + `npx playwright install chromium` di sidecar dir
 
-- [ ] **Task 2.11: Unit + integration test Fase 2**
-  - [ ] Buat `tests/test_sidecar_manager.py` — test start/stop/health/restart
-  - [ ] Buat `tests/test_marp_markdown_builder.py` — test blueprint → markdown
-  - [ ] Buat `tests/test_marp_renderer.py` — test HTML valid (contains `<div class="marp"`), PDF `%PDF-`
-  - [ ] Buat `tests/test_preview_api.py` — test signed URL preview 200, mime `text/html`
-  - [ ] Gate: preview HTML & PDF ter-render, signed URL jalan, PDF menggantikan reportlab
+- [x] **Task 2.11: Unit + integration test Fase 2**
+  - [x] Buat `tests/test_sidecar_manager.py` — test start/stop/health/restart
+  - [x] Buat `tests/test_marp_markdown_builder.py` — test blueprint → markdown
+  - [x] Buat `tests/test_marp_renderer.py` — test HTML valid (contains `<div class="marp"`), PDF `%PDF-`
+  - [x] Buat `tests/test_preview_api.py` — test signed URL preview 200, mime `text/html`
+  - [x] Gate: preview HTML & PDF ter-render, signed URL jalan, PDF menggantikan reportlab
 
 ---
 

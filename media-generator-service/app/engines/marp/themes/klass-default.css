@@ -1,0 +1,318 @@
+/*
+ * klass-default — Custom Marp theme for Klass educational materials.
+ *
+ * Structural-parity colours lifted directly from ``pptx_generator.py``
+ * (RGBColor values) so that the HTML preview and the downloadable PPTX
+ * share the same visual language.
+ *
+ * Usage in Marp front matter:
+ *   ---\nmarp: true\ntheme: klass-default\npaginate: true\nsize: 16:9\n---
+ *
+ * Slide-type classes are applied via ``<!-- _class: {slide_type} -->``
+ * directives emitted by ``marp_markdown_builder.py``.
+ *
+ * Multi-card layout uses ``<div class="cards">`` / ``<div class="card">``
+ * wrappers; this theme renders them as a responsive CSS grid.
+ */
+
+@import 'default';
+
+/* ── Theme metadata (Marp uses this for themeSet matching) ─────────────── */
+
+@theme klass-default
+
+/* ── Design tokens (CSS custom properties) ─────────────────────────────── */
+
+:root {
+  /* Palette — sourced from pptx_generator.py RGBColor literals */
+  --klass-primary:      #0B1F33;   /* RGBColor(11, 31, 51)  — title text        */
+  --klass-body:         #1F2933;   /* RGBColor(31, 41, 51)  — body text          */
+  --klass-muted:        #52606D;   /* RGBColor(82, 96, 109) — subtitle / hint    */
+  --klass-accent:       #0F4C5C;   /* RGBColor(15, 76, 92)  — accent / heading   */
+  --klass-accent-alt:   #385898;   /* RGBColor(56, 88, 152) — assessment accent   */
+  --klass-bg-title:     #ECF4F7;   /* RGBColor(236, 244, 247) — title slide bg    */
+  --klass-bg-content:   #F8FBFD;   /* RGBColor(248, 251, 253) — content slide bg  */
+  --klass-border:       #BCCCDC;   /* RGBColor(188, 204, 220) — card / box border */
+  --klass-card-fill:    #FFFFFF;   /* RGBColor(255, 255, 255) — card background   */
+  --klass-code-bg:      #ECF4F7;   /* inline code background                      */
+
+  /* Typography — system stack that matches Segoe UI (Windows) feel */
+  --klass-font:         'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --klass-font-mono:    'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+
+  /* Spacing scale */
+  --klass-space-xs:     0.4rem;
+  --klass-space-sm:     0.8rem;
+  --klass-space-md:     1.2rem;
+  --klass-space-lg:     2.0rem;
+}
+
+/* ── Base slide ────────────────────────────────────────────────────────── */
+
+section {
+  font-family: var(--klass-font);
+  font-size: 28px;
+  line-height: 1.5;
+  color: var(--klass-body);
+  background-color: var(--klass-bg-content);
+  padding: var(--klass-space-lg) 3.2rem;
+  justify-content: flex-start;
+}
+
+/* ── Headings ──────────────────────────────────────────────────────────── */
+
+h1 {
+  font-size: 2.0em;            /* ~56px at 28px base — close to Pt(28) in PPTX */
+  font-weight: 700;
+  color: var(--klass-primary);
+  margin-bottom: 0.3em;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: 1.7em;            /* ~48px — close to Pt(24) */
+  font-weight: 700;
+  color: var(--klass-primary);
+  margin-bottom: 0.35em;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 1.15em;           /* ~32px — card heading */
+  font-weight: 700;
+  color: var(--klass-accent);
+  margin-bottom: 0.25em;
+  line-height: 1.3;
+}
+
+/* ── Paragraphs & text ─────────────────────────────────────────────────── */
+
+p {
+  font-size: 1em;
+  color: var(--klass-body);
+  margin-bottom: 0.4em;
+}
+
+strong {
+  font-weight: 700;
+  color: var(--klass-primary);
+}
+
+em {
+  font-style: italic;
+}
+
+/* ── Lists (bullets & checklists) ───────────────────────────────────────── */
+
+ul {
+  padding-left: 1.6em;
+  margin-bottom: 0.4em;
+}
+
+ul li {
+  font-size: 0.95em;
+  color: var(--klass-body);
+  margin-bottom: 0.2em;
+  line-height: 1.45;
+}
+
+ul li::marker {
+  color: var(--klass-accent);
+}
+
+/* Checklist items — Marp renders ``- [ ]`` as <li> with checkbox */
+ul li input[type="checkbox"] {
+  margin-right: 0.4em;
+  accent-color: var(--klass-accent);
+}
+
+/* ── Blockquotes (note blocks) ─────────────────────────────────────────── */
+
+blockquote {
+  border-left: 4px solid var(--klass-accent);
+  background-color: var(--klass-bg-title);
+  padding: var(--klass-space-sm) var(--klass-space-md);
+  margin: var(--klass-space-sm) 0;
+  border-radius: 6px;
+  font-size: 0.9em;
+  color: var(--klass-muted);
+}
+
+blockquote p {
+  color: var(--klass-muted);
+}
+
+/* ── Code ──────────────────────────────────────────────────────────────── */
+
+code {
+  font-family: var(--klass-font-mono);
+  font-size: 0.85em;
+  background-color: var(--klass-code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+
+pre {
+  background-color: var(--klass-primary);
+  color: #E2E8F0;
+  padding: var(--klass-space-sm);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ── Links ─────────────────────────────────────────────────────────────── */
+
+a {
+  color: var(--klass-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────── */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+  margin: var(--klass-space-sm) 0;
+}
+
+th {
+  background-color: var(--klass-accent);
+  color: #FFFFFF;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.5em 0.8em;
+}
+
+td {
+  padding: 0.45em 0.8em;
+  border-bottom: 1px solid var(--klass-border);
+}
+
+tr:nth-child(even) td {
+  background-color: var(--klass-bg-title);
+}
+
+/* ── Pagination (Marp built-in) ────────────────────────────────────────── */
+
+section::after {
+  font-family: var(--klass-font);
+  font-size: 14px;
+  color: var(--klass-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SLIDE-TYPE VARIANTS
+   Applied via ``<!-- _class: {slide_type} -->`` directives.
+   Marp wraps each slide in <section class="{slide_type}">
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Title slide ───────────────────────────────────────────────────────── */
+
+section.title {
+  background-color: var(--klass-bg-title);
+  justify-content: center;
+  text-align: left;
+  padding: var(--klass-space-lg) 4.0rem;
+}
+
+section.title h1 {
+  font-size: 2.4em;
+  margin-bottom: 0.2em;
+}
+
+/* Subtitle — rendered as <p> immediately after <h1> */
+section.title h1 + p {
+  font-size: 1.15em;
+  color: var(--klass-muted);
+  margin-top: 0;
+  max-width: 75%;
+}
+
+/* ── Section divider slide ─────────────────────────────────────────────── */
+
+section.section {
+  background-color: var(--klass-bg-title);
+  justify-content: center;
+  text-align: left;
+}
+
+section.section h2 {
+  font-size: 2.2em;
+  color: var(--klass-accent);
+  border-bottom: 4px solid var(--klass-accent);
+  padding-bottom: 0.25em;
+  display: inline-block;
+}
+
+/* ── Content slide ─────────────────────────────────────────────────────── */
+
+section.content {
+  background-color: var(--klass-bg-content);
+}
+
+section.content h2 {
+  border-bottom: 3px solid var(--klass-accent);
+  padding-bottom: 0.2em;
+  margin-bottom: var(--klass-space-md);
+}
+
+/* ── Assessment slide ──────────────────────────────────────────────────── */
+
+section.assessment {
+  background-color: var(--klass-bg-content);
+}
+
+section.assessment h2 {
+  color: var(--klass-accent-alt);
+  border-bottom: 3px solid var(--klass-accent-alt);
+  padding-bottom: 0.2em;
+  margin-bottom: var(--klass-space-md);
+}
+
+section.assessment h3 {
+  color: var(--klass-accent-alt);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MULTI-CARD GRID LAYOUT
+   The builder emits:
+     <div class="cards">
+       <div class="card"> ... </div>
+       <div class="card"> ... </div>
+     </div>
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cards {
+  display: grid;
+  gap: var(--klass-space-md);
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: var(--klass-space-sm);
+}
+
+.card {
+  background-color: var(--klass-card-fill);
+  border: 2px solid var(--klass-border);
+  border-radius: 12px;
+  padding: var(--klass-space-md);
+  box-sizing: border-box;
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+.card p,
+.card ul {
+  font-size: 0.88em;
+}
+
+.card blockquote {
+  font-size: 0.82em;
+}
