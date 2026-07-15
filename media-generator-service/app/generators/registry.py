@@ -28,7 +28,9 @@ class GeneratorRegistry:
         sidecar_manager: SidecarManager | None = None,
     ) -> None:
         self._generators = {
-            "docx": DocxGenerator(),
+            "docx": DocxGenerator(
+                template_registry=template_registry,
+            ),
             "pdf": PdfGenerator(
                 sidecar_manager=sidecar_manager,
             ),

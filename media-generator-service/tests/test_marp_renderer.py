@@ -246,8 +246,8 @@ def test_renderer_works_with_real_default_theme(tmp_path: Path) -> None:
 
     asyncio.run(renderer.render_html("---\nmarp: true\n---\n\n# Test", tmp_path / "out.html"))
 
-    # Theme CSS should contain @theme klass-default.
+    # Theme CSS should contain @theme klass-educational-v1 (matches theme_id).
     call_kwargs = sidecar.render_html.call_args
     theme_css = call_kwargs.kwargs.get("theme_css") or (call_kwargs.args[1] if len(call_kwargs.args) > 1 else None)
     assert theme_css is not None
-    assert "@theme klass-default" in theme_css
+    assert "@theme klass-educational-v1" in theme_css

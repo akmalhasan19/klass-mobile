@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="{{ deck.language or 'id' }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ deck.title }}</title>
+  <style>
+    /* ===================================================================
+       Klass educational master template (developer prototype — Fase 0A)
+       Design tokens mirror the PPTX master (klass-educational-v1.pptx)
+       for visual parity across PDF / preview / PPTX:
+         --ink:        #0B1F33  (deep navy — primary text / titles)
+         --accent:     #0F4C5C  (teal — bands, rules, emphasis)
+         --accent-2:   #1B98A4  (light teal — secondary emphasis)
+         --paper:      #FFFFFF
+         --muted:      #5B6B7B  (supporting text)
+         --surface:    #F2F6F8  (card background)
+       Self-contained: all CSS is inline, no external resources, so the
+       rendered file is safe to load directly in the Flutter InAppWebView.
+       =================================================================== */
+    :root {
+      --ink: #0B1F33;
+      --accent: #0F4C5C;
+      --accent-2: #1B98A4;
+      --paper: #FFFFFF;
+      --muted: #5B6B7B;
+      --surface: #F2F6F8;
+      --rule: #D7E2E8;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #E9EEF2;
+      color: var(--ink);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @page {
+      size: 1280px 720px;
+      margin: 0;
+    }
+
+    .slide {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      margin: 0 auto 24px;
+      background: var(--paper);
+      padding: 56px 72px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      page-break-after: always;
+      box-shadow: 0 8px 24px rgba(11, 31, 51, 0.12);
+    }
+    .slide:last-child { page-break-after: auto; }
+
+    /* Accent band — visual signature shared with the PPTX master. */
+    .slide::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 12px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+
+    .slide-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 24px;
+      margin: 8px 0 20px;
+    }
+    .brand {
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .brand .sub {
+      color: var(--muted);
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .slide-title {
+      font-size: 40px;
+      line-height: 1.15;
+      margin: 0 0 12px;
+      color: var(--ink);
+      font-weight: 800;
+    }
+    .slide-subtitle {
+      font-size: 20px;
+      line-height: 1.4;
+      color: var(--muted);
+      margin: 0 0 24px;
+    }
+
+    .cards {
+      display: grid;
+      gap: 20px;
+      align-content: start;
+      flex: 1 1 auto;
+    }
+    .card {
+      background: var(--surface);
+      border-left: 4px solid var(--accent-2);
+      border-radius: 10px;
+      padding: 18px 22px;
+    }
+    .card-heading {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 10px;
+      color: var(--accent);
+    }
+    .card-body { display: flex; flex-direction: column; gap: 8px; }
+
+    .block { font-size: 17px; line-height: 1.5; }
+    .block.bullet, .block.checklist {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .block .marker { color: var(--accent); font-weight: 700; }
+    .block.note {
+      background: #FFF7E6;
+      border-left: 4px solid #E0A23B;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #6B4E12;
+    }
+
+    /* Title slide — centred hero. */
+    .slide-title .hero {
+      margin: auto 0;
+      text-align: center;
+    }
+    .slide-title .hero .slide-title { font-size: 52px; margin-bottom: 18px; }
+    .slide-title .hero .slide-subtitle { font-size: 22px; max-width: 880px; margin: 0 auto 28px; }
+    .slide-title .cards { justify-content: center; max-width: 760px; margin: 0 auto; }
+    .slide-title .card { text-align: left; }
+
+    .slide-footer {
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid var(--rule);
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .slide-footer .deck-title { font-weight: 600; color: var(--ink); }
+  </style>
+</head>
+<body>
+{% for slide in slides %}
+  <section class="slide slide-{{ slide.slide_type }}">
+    <div class="slide-header">
+      <div class="brand">
+        Klass{% if deck.subject %}<span class="sub">{{ deck.subject }}{% if deck.sub_subject %} · {{ deck.sub_subject }}{% endif %}</span>{% endif %}
+      </div>
+      <div class="brand">{{ deck.language | upper }}</div>
+    </div>
+
+    {% if slide.slide_type == 'title' %}
+      <div class="hero">
+        <h1 class="slide-title">{{ slide.title }}</h1>
+        {% if slide.subtitle %}<p class="slide-subtitle">{{ slide.subtitle }}</p>{% endif %}
+      </div>
+    {% else %}
+      <h1 class="slide-title">{{ slide.title }}</h1>
+      {% if slide.subtitle %}<p class="slide-subtitle">{{ slide.subtitle }}</p>{% endif %}
+    {% endif %}
+
+    <div class="cards" style="grid-template-columns: repeat({{ slide.columns_hint or 1 }}, minmax(0, 1fr));">
+      {% for card in slide.cards %}
+        <div class="card">
+          {% if card.heading %}<h3 class="card-heading">{{ card.heading }}</h3>{% endif %}
+          <div class="card-body">
+            {% for block in card.body_blocks %}
+              {% if block.kind == 'bullet' %}
+                <div class="block bullet"><span class="marker">•</span><span>{{ block.content }}</span></div>
+              {% elif block.kind == 'checklist' %}
+                <div class="block checklist"><span class="marker">☐</span><span>{{ block.content }}</span></div>
+              {% elif block.kind == 'note' %}
+                <div class="block note">{{ block.content }}</div>
+              {% else %}
+                <div class="block paragraph">{{ block.content }}</div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="slide-footer">
+      <span class="deck-title">{{ deck.title }}</span>
+      <span>{{ loop.index }} / {{ slides | length }}</span>
+    </div>
+  </section>
+{% endfor %}
+</body>
+</html>

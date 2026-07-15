@@ -21,3 +21,17 @@ def configured_service(monkeypatch: pytest.MonkeyPatch):
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def running_client() -> TestClient:
+    """``TestClient`` whose lifespan (and warm Marp/Chromium sidecar) is active.
+
+    The default ``client`` fixture deliberately does **not** enter the app
+    lifespan, so the sidecar stays ``None`` and the "without sidecar" graceful
+    paths can be exercised.  PDF/preview integration tests need the real
+    rendering pipeline, so they use this fixture instead — it runs the startup
+    sequence (which spawns and warms the sidecar) and tears it down on exit.
+    """
+    with TestClient(app) as client:
+        yield client

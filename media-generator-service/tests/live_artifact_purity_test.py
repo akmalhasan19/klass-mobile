@@ -131,10 +131,19 @@ def test_docx_artifact() -> tuple[list[str], list[str]]:
 
 def test_pdf_artifact() -> tuple[list[str], list[str]]:
     """Generate and inspect PDF artifact."""
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
     request = sample_request("pdf")
     render_doc = build_render_document(request.generation_spec)
     generator = PdfGenerator()
-    metadata = generator.generate(request, render_doc, get_settings())
+    # Start the app lifespan so the warm Marp/Chromium sidecar (required for
+    # PDF rendering) is available.  Wrapping in the context manager keeps this
+    # working both under pytest and when run directly via ``python
+    # live_artifact_purity_test.py`` (main()).
+    with TestClient(app) as _client:
+        metadata = generator.generate(request, render_doc, get_settings())
 
     artifact_path = Path(metadata["artifact_locator"]["value"])
     raw_bytes = artifact_path.read_bytes()

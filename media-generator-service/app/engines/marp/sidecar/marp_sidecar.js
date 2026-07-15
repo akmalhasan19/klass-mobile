@@ -48,8 +48,9 @@ function buildMarp(themeCss) {
   const marp = new Marp({ inlineSVG: false });
   if (themeCss) {
     const theme = marp.themeSet.add(themeCss);
-    if (theme && theme.meta && theme.meta.name) {
-      marp.themeSet.default = theme.meta.name;
+    if (theme) {
+      // marp-core expects the default to be a Theme *instance*, not a name.
+      marp.themeSet.default = theme;
     }
   }
   return marp;

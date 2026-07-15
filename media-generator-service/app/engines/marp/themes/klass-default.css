@@ -6,7 +6,7 @@
  * share the same visual language.
  *
  * Usage in Marp front matter:
- *   ---\nmarp: true\ntheme: klass-default\npaginate: true\nsize: 16:9\n---
+ *   ---\nmarp: true\ntheme: klass-educational-v1\npaginate: true\nsize: 16:9\n---
  *
  * Slide-type classes are applied via ``<!-- _class: {slide_type} -->``
  * directives emitted by ``marp_markdown_builder.py``.
@@ -19,7 +19,7 @@
 
 /* ── Theme metadata (Marp uses this for themeSet matching) ─────────────── */
 
-@theme klass-default
+/* @theme klass-educational-v1 */
 
 /* ── Design tokens (CSS custom properties) ─────────────────────────────── */
 

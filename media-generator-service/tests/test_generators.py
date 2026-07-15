@@ -11,7 +11,7 @@ from app.generators.pdf_generator import PdfGenerator
 from app.generators.pptx_generator import PptxGenerator
 from app.generators.registry import GeneratorRegistry
 from app.settings import get_settings
-from tests.helpers import cleanup_artifact, sample_request
+from tests.helpers import artifact_path_from_metadata, cleanup_artifact, sample_request
 
 
 def test_docx_generator_renders_expected_sections_and_text() -> None:
@@ -20,8 +20,17 @@ def test_docx_generator_renders_expected_sections_and_text() -> None:
     generator = DocxGenerator()
 
     metadata = generator.generate(request_payload, render_document, get_settings())
-    document = Document(metadata["artifact_locator"]["value"])
-    paragraph_text = "\n".join(paragraph.text for paragraph in document.paragraphs if paragraph.text.strip())
+
+    # ── Magic bytes: DOCX is a ZIP archive ────────────────────────────
+    artifact_path = artifact_path_from_metadata(metadata)
+    assert artifact_path is not None
+    raw_bytes = artifact_path.read_bytes()
+    assert raw_bytes[:2] == b"PK"
+
+    # ── Verify content via python-docx ────────────────────────────────
+    document = Document(str(artifact_path))
+    assert len(document.paragraphs) > 0
+    paragraph_text = "\n".join(p.text for p in document.paragraphs if p.text.strip())
 
     assert metadata["title"] == "Handout Pecahan Kelas 5"
     assert "Handout ringkas untuk memperkenalkan pecahan senilai dan latihan dasar." in paragraph_text
@@ -40,7 +49,7 @@ def test_docx_generator_renders_expected_sections_and_text() -> None:
     cleanup_artifact(metadata)
 
 
-def test_pdf_generator_writes_pdf_header_and_page_count() -> None:
+def test_pdf_generator_writes_pdf_header_and_page_count(running_client) -> None:
     request_payload = sample_request("pdf")
     render_document = build_render_document(request_payload.generation_spec)
     generator = PdfGenerator()

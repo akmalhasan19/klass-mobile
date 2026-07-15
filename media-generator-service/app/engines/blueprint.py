@@ -2,9 +2,11 @@
 
 This module defines the **single source of truth** consumed by:
 
-- **Marp pipeline** (preview HTML + PDF): ``SlideBlueprint`` → Marp markdown
+- **HTML Template pipeline** (preview HTML + PDF): ``SlideBlueprint`` → Jinja2
+  HTML master (``app/templates/masters/*.html``) → Chromium PDF/preview
 - **Template Injector** (PPTX): ``SlideBlueprint`` → master ``.pptx`` placeholder fill
 - **Canvas Calculator** (PPTX fallback): ``SlideBlueprint`` → programmatic shapes
+- **DOCX Template pipeline** (Fase 1): ``SlideBlueprint`` → ``.docx`` master
 
 The models mirror the ``ConfigDict(extra="forbid", str_strip_whitespace=True)``
 convention established in :pymod:`app.models` (:class:`StrictModel`).
@@ -167,6 +169,11 @@ class DeckMeta(_BlueprintStrictModel):
         audience_level: Target audience descriptor.
         tone: Tone descriptor (e.g. ``"encouraging"``).
         learning_objectives: Ordered list of learning objectives.
+        subject: Optional subject label (e.g. ``"Matematika"``) used for
+            header/footer branding and future subject-specific template
+            variants.  **Additive** — ``None`` preserves backward compat.
+        sub_subject: Optional sub-subject label (e.g. ``"Pecahan"``).
+            **Additive** — ``None`` preserves backward compat.
     """
 
     title: str = Field(
@@ -197,6 +204,22 @@ class DeckMeta(_BlueprintStrictModel):
     learning_objectives: list[str] = Field(
         default_factory=list,
         description="Ordered list of learning objectives.",
+    )
+    subject: str | None = Field(
+        default=None,
+        max_length=200,
+        description=(
+            "Optional subject label for header/footer branding and "
+            "subject-specific template variants. Additive — omit for default."
+        ),
+    )
+    sub_subject: str | None = Field(
+        default=None,
+        max_length=200,
+        description=(
+            "Optional sub-subject label (e.g. 'Pecahan'). Additive — omit "
+            "for default."
+        ),
     )
 
 

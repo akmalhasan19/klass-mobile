@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from uuid import uuid4
@@ -267,7 +268,15 @@ async def generate_artifact(
 
     render_document = build_render_document(payload.generation_spec)
     generator = registry.get(payload.generation_spec.export_format)
-    artifact_metadata = generator.generate(payload, render_document, settings)
+    # ``generator.generate`` is a blocking, synchronous call (it drives the
+    # async sidecar via ``asyncio.run`` and writes files).  Run it in a
+    # thread-pool so the request event loop stays free — blocking it here would
+    # deadlock the sidecar, whose I/O is bound to that loop.
+    loop = asyncio.get_running_loop()
+    artifact_metadata = await loop.run_in_executor(
+        None,
+        lambda: generator.generate(payload, render_document, settings),
+    )
     response_artifact_locator = build_signed_artifact_locator(
         request,
         generation_id=payload.generation_id,

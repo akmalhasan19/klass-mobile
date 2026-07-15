@@ -44,6 +44,20 @@ def localized_label(language: str, key: str) -> str:
     return LABELS.get(language_key, LABELS["en"]).get(key, LABELS["en"].get(key, key.replace("_", " ").title()))
 
 
+def _extract_label(context: dict[str, object] | None, key: str) -> str | None:
+    """Best-effort extraction of a human-readable label from a context dict.
+
+    ``content_context.subject_context`` / ``sub_subject_context`` are free-form
+    ``dict[str, Any]`` payloads.  We read a known label key (``subject_name`` /
+    ``sub_subject_name``); if absent or not a string we return ``None`` so the
+    downstream blueprint stays additive and never raises on legacy specs.
+    """
+    if not isinstance(context, dict):
+        return None
+    value = context.get(key)
+    return value if isinstance(value, str) and value.strip() else None
+
+
 @dataclass(frozen=True)
 class RenderBlock:
     kind: str
@@ -88,6 +102,8 @@ class RenderDocument:
     activity_blocks: list[RenderActivity]
     teacher_delivery_summary: str
     template_id: str | None = None
+    subject: str | None = None
+    sub_subject: str | None = None
 
 
 def _map_sections(sections: list[Section]) -> list[RenderSection]:
@@ -142,4 +158,12 @@ def build_render_document(spec: GenerationSpec) -> RenderDocument:
         teacher_delivery_summary=spec.teacher_delivery_summary,
         # Optional fields (additive, backward-compatible)
         template_id=spec.template_id,
+        subject=_extract_label(
+            spec.content_context.subject_context if spec.content_context else None,
+            "subject_name",
+        ),
+        sub_subject=_extract_label(
+            spec.content_context.sub_subject_context if spec.content_context else None,
+            "sub_subject_name",
+        ),
     )

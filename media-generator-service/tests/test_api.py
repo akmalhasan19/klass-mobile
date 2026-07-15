@@ -3,7 +3,10 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from io import BytesIO
 from urllib.parse import parse_qs, urlencode, urlparse
+
+from docx import Document  # type: ignore[import-untyped]
 
 from tests.helpers import artifact_path_from_metadata, cleanup_artifact, signed_request_content
 
@@ -21,10 +24,10 @@ def test_health_endpoint_reports_supported_formats(client) -> None:
     assert response.json()["auth"]["accepted_secret_count"] == 1
 
 
-def test_generate_pdf_returns_artifact_metadata_with_page_count(client) -> None:
+def test_generate_pdf_returns_artifact_metadata_with_page_count(running_client) -> None:
     body, headers, _ = signed_request_content("pdf")
 
-    response = client.post("/v1/generate", content=body, headers=headers)
+    response = running_client.post("/v1/generate", content=body, headers=headers)
 
     assert response.status_code == 200
     payload = response.json()
@@ -45,7 +48,7 @@ def test_generate_pdf_returns_artifact_metadata_with_page_count(client) -> None:
     assert parsed_url.path == "/v1/artifacts/download"
     assert parse_qs(parsed_url.query)["generation_id"][0] == payload["data"]["generation_id"]
 
-    download_response = client.get(f"{parsed_url.path}?{parsed_url.query}")
+    download_response = running_client.get(f"{parsed_url.path}?{parsed_url.query}")
     assert download_response.status_code == 200
     assert download_response.content.startswith(b"%PDF")
 
@@ -69,6 +72,14 @@ def test_generate_docx_returns_artifact_metadata_without_requiring_page_count(cl
     download_response = client.get(f"{parsed_url.path}?{parsed_url.query}")
     assert download_response.status_code == 200
     assert download_response.content.startswith(b"PK")
+
+    # ── Verify the downloaded artifact is a valid, openable DOCX ──────
+    doc = Document(BytesIO(download_response.content))
+    paragraph_text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+    assert "Handout Pecahan Kelas 5" in paragraph_text
+    assert "Tujuan Belajar" in paragraph_text
+    assert "Contoh dan Latihan" in paragraph_text
+    assert "Latihan Mandiri" in paragraph_text
 
     cleanup_artifact(payload["data"]["artifact_metadata"])
 
@@ -94,10 +105,10 @@ def test_generate_pptx_returns_artifact_metadata_with_slide_count(client) -> Non
     cleanup_artifact(payload["data"]["artifact_metadata"])
 
 
-def test_download_artifact_rejects_invalid_signature(client) -> None:
+def test_download_artifact_rejects_invalid_signature(running_client) -> None:
     body, headers, _ = signed_request_content("pdf")
 
-    generate_response = client.post("/v1/generate", content=body, headers=headers)
+    generate_response = running_client.post("/v1/generate", content=body, headers=headers)
 
     assert generate_response.status_code == 200
     payload = generate_response.json()
@@ -106,7 +117,7 @@ def test_download_artifact_rejects_invalid_signature(client) -> None:
     query = parse_qs(parsed_url.query)
     query["signature"] = ["0" * 64]
 
-    response = client.get(f"{parsed_url.path}?{urlencode(query, doseq=True)}")
+    response = running_client.get(f"{parsed_url.path}?{urlencode(query, doseq=True)}")
 
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "artifact_url_signature_invalid"
@@ -148,7 +159,7 @@ def test_generate_rejects_generation_id_mismatch_with_structured_error_contract(
     assert response.json()["error"]["laravel_error_code_hint"] == "artifact_invalid"
 
 
-def test_generate_accepts_previous_rotated_secret(client, monkeypatch) -> None:
+def test_generate_accepts_previous_rotated_secret(running_client, monkeypatch) -> None:
     monkeypatch.setenv("MEDIA_GENERATION_PYTHON_SHARED_SECRET", "next-shared-secret")
     monkeypatch.setenv(
         "MEDIA_GENERATION_PYTHON_SHARED_SECRET_PREVIOUS",
@@ -161,7 +172,7 @@ def test_generate_accepts_previous_rotated_secret(client, monkeypatch) -> None:
 
     body, headers, _ = signed_request_content("pdf", secret="test-shared-secret")
 
-    response = client.post("/v1/generate", content=body, headers=headers)
+    response = running_client.post("/v1/generate", content=body, headers=headers)
 
     assert response.status_code == 200
     assert response.json()["status"] == "completed"

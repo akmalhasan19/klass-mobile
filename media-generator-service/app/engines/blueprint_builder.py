@@ -55,6 +55,9 @@ def build_slide_blueprint(render_document: RenderDocument) -> SlideBlueprint:
         audience_level=render_document.audience_level,
         tone=render_document.tone,
         learning_objectives=list(render_document.learning_objectives),
+        # Additive branding fields — None when the source spec omits them.
+        subject=render_document.subject,
+        sub_subject=render_document.sub_subject,
     )
 
     slides: list[Slide] = []

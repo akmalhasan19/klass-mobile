@@ -108,10 +108,15 @@ class PdfGenerator(BaseGenerator):
 
         ``MarpRenderer`` is async and the sidecar is bound to the uvicorn event
         loop (futures/subprocess created on the running loop). ``render`` itself
-        is called synchronously from ``BaseGenerator.generate``, so we schedule
-        the coroutine on the already-running loop via
-        ``run_coroutine_threadsafe`` and block on the resulting future. Outside
-        an event loop (e.g. a plain unit test) we fall back to ``asyncio.run``.
+        is called synchronously from ``BaseGenerator.generate``.
+
+        The caller (``app.main.generate_artifact``) runs this generator from a
+        thread-pool executor, so there is **no running loop** on the calling
+        thread — we therefore use ``asyncio.run``.  (Running the coroutine on a
+        fresh loop is safe because the sidecar communicates over its stdin/stdout
+        pipes, not loop-bound futures.)  If a loop were somehow running on the
+        calling thread we would fall back to ``run_coroutine_threadsafe`` and
+        block on the future.
         """
         try:
             loop = asyncio.get_running_loop()

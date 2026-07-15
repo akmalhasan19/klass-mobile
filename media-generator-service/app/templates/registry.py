@@ -1,16 +1,25 @@
-"""Template registry for PPTX master templates.
+"""Template registry for all master templates.
 
-Loads master ``.pptx`` templates and their corresponding manifest files
-at startup, validates shape names against the manifest, and provides
-a lookup API for the Template Injector pipeline.
+Loads master templates at startup and provides a unified lookup API keyed by
+``template_id`` (which equals ``SlideBlueprint.theme_id``):
+
+- **PPTX** — master ``.pptx`` + manifest JSON (Template Injector pipeline).
+- **HTML** — self-contained Jinja2 master ``.html`` (PDF + WebView preview
+  pipeline, Fase 2).
+- **DOCX** — master ``.docx`` with ``docxtpl`` placeholders (DOCX pipeline,
+  Fase 1).
+
+All three masters share the same ``template_id`` so a single registry entry
+describes every format for a given visual design.  This keeps one source of
+truth instead of a parallel registry per format.
 
 Design decisions:
 - Manifests are immutable JSON cached in memory (share across requests).
-- Master ``.pptx`` files are opened per request (``python-pptx`` is not
-  thread-safe), so we only store the file path, not the ``Presentation`` object.
-- Shape name validation happens at startup — fail fast with
-  ``ServiceMisconfiguredError`` if a manifest references a shape that
-  doesn't exist in the master template.
+- Master files are opened per request (``python-pptx`` / ``docxtpl`` are not
+  thread-safe), so we only store the file paths, not the loaded documents.
+- Validation happens at startup — fail fast with
+  ``ServiceMisconfiguredError`` if a required master is missing or (for PPTX)
+  a manifest references a shape that doesn't exist in the master template.
 
 Master contract (read this before writing the injector)
 -------------------------------------------------------
@@ -44,22 +53,28 @@ logger = logging.getLogger("klass-media-generator")
 
 @dataclass(frozen=True)
 class TemplateEntry:
-    """A loaded template: manifest + path to the master .pptx file.
+    """A loaded template: manifest + paths to all format masters.
 
-    This is the registry's public payload.  It is equivalent to the plan's
-    ``(master_path, manifest)`` tuple but typed for ergonomic access:
+    This is the registry's public payload.  Every format master for a given
+    ``template_id`` is referenced here:
 
     >>> entry = registry.get("klass-educational-v1")
-    >>> entry.master_path   # Path to the .pptx (open per request)
-    >>> entry.manifest      # Cached, immutable TemplateManifest
+    >>> entry.master_path      # Path to the .pptx (open per request)
+    >>> entry.manifest         # Cached, immutable TemplateManifest
+    >>> entry.html_master_path # Path to the Jinja2 .html master
+    >>> entry.docx_master_path # Path to the .docx master (docxtpl)
 
     Attributes:
         manifest: Parsed and validated manifest (cached, shared across requests).
         master_path: Absolute path to the master ``.pptx`` file.
+        html_master_path: Absolute path to the Jinja2 HTML master (PDF/preview).
+        docx_master_path: Absolute path to the ``.docx`` master (DOCX pipeline).
     """
 
     manifest: TemplateManifest
     master_path: Path
+    html_master_path: Path | None = None
+    docx_master_path: Path | None = None
 
 
 @dataclass
@@ -150,9 +165,34 @@ class TemplateRegistry:
             # Validate shape names against master
             self._validate_shape_names(template_id, master_file, manifest)
 
+            # Discover the HTML (PDF/preview) and DOCX masters for the same
+            # template_id.  They are required for the migration's gate
+            # ("all master templates ready"), so missing files fail fast.
+            html_master = masters_dir / f"{template_id}.html"
+            docx_master = masters_dir / f"{template_id}.docx"
+
+            if not html_master.is_file():
+                raise ServiceMisconfiguredError(
+                    f"HTML master template not found for template '{template_id}'.",
+                    {
+                        "template_id": template_id,
+                        "expected_master": str(html_master),
+                    },
+                )
+            if not docx_master.is_file():
+                raise ServiceMisconfiguredError(
+                    f"DOCX master template not found for template '{template_id}'.",
+                    {
+                        "template_id": template_id,
+                        "expected_master": str(docx_master),
+                    },
+                )
+
             self._templates[template_id] = TemplateEntry(
                 manifest=manifest,
                 master_path=master_file,
+                html_master_path=html_master,
+                docx_master_path=docx_master,
             )
             logger.info(
                 "Loaded template '%s' (v%s) from %s",
@@ -187,6 +227,38 @@ class TemplateRegistry:
     def template_ids(self) -> list[str]:
         """Return all registered template IDs."""
         return list(self._templates.keys())
+
+    def get_html_master(self, template_id: str) -> Path:
+        """Return the absolute path to the Jinja2 HTML master for *template_id*.
+
+        Raises:
+            KeyError: If no template with the given ID is registered.
+            ServiceMisconfiguredError: If the HTML master is missing (should not
+                happen — ``load_templates`` validates presence at startup).
+        """
+        entry = self.get(template_id)
+        if entry.html_master_path is None or not entry.html_master_path.is_file():
+            raise ServiceMisconfiguredError(
+                f"HTML master template missing for template '{template_id}'.",
+                {"template_id": template_id},
+            )
+        return entry.html_master_path
+
+    def get_docx_master(self, template_id: str) -> Path:
+        """Return the absolute path to the ``.docx`` master for *template_id*.
+
+        Raises:
+            KeyError: If no template with the given ID is registered.
+            ServiceMisconfiguredError: If the DOCX master is missing (should not
+                happen — ``load_templates`` validates presence at startup).
+        """
+        entry = self.get(template_id)
+        if entry.docx_master_path is None or not entry.docx_master_path.is_file():
+            raise ServiceMisconfiguredError(
+                f"DOCX master template missing for template '{template_id}'.",
+                {"template_id": template_id},
+            )
+        return entry.docx_master_path
 
     def _validate_shape_names(
         self,
