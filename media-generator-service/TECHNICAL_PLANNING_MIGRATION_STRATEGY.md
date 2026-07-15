@@ -139,12 +139,12 @@
 > **Estimasi**: 0.5 minggu
 > **Gate**: Marp sepenuhnya dihapus, test suite hijau, Docker image build sukses
 
-- [ ] **FASE 4: Retire Marp & Cleanup**
+- [x] **FASE 4: Retire Marp & Cleanup**
   - [x] **4A [SEKUENSIAL] Menunggu Fase 3C selesai** — Hapus file Marp: `marp_markdown_builder.py`, `marp_renderer.py`, `themes/klass-default.css`. Rename `app/engines/marp/` → `app/engines/chromium_sidecar/`.
     - Output: File deletion + directory restructure
-  - [ ] **4B [SEKUENSIAL] Menunggu Fase 4A selesai** — Update `sidecar/package.json`: hapus `@marp-team/marp-core`, keep `playwright`. Rename `marp_sidecar.js` → `chromium_sidecar.js`.
+  - [x] **4B [SEKUENSIAL] Menunggu Fase 4A selesai** — Update `sidecar/package.json`: hapus `@marp-team/marp-core`, keep `playwright`. Rename `marp_sidecar.js` → `chromium_sidecar.js`.
     - Output: Update `package.json`, rename sidecar script
-  - [ ] **4C [SEKUENSIAL] Menunggu Fase 4B selesai** — Cleanup Marp tests: hapus/rewrite `test_marp_renderer.py`, `test_marp_markdown_builder.py`. Update `test_sidecar_manager.py` RPC method baru. Update `Dockerfile` (hapus Marp-specific deps). Full test suite green.
+  - [x] **4C [SEKUENSIAL] Menunggu Fase 4B selesai** — Cleanup Marp tests: hapus/rewrite `test_marp_renderer.py`, `test_marp_markdown_builder.py`. Update `test_sidecar_manager.py` RPC method baru. Update `Dockerfile` (hapus Marp-specific deps). Full test suite green.
     - Output: Update tests, `Dockerfile`
 
 ---

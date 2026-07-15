@@ -21,7 +21,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 WORKDIR /app
 
 # ── Sidecar deps + Chromium ────────────────────────────────────────────
-COPY app/engines/marp/sidecar/package.json ./sidecar/
+COPY app/engines/chromium_sidecar/sidecar/package.json ./sidecar/
 RUN cd sidecar && npm install --omit=dev && npx playwright install chromium
 
 # ── Python deps ────────────────────────────────────────────────────────

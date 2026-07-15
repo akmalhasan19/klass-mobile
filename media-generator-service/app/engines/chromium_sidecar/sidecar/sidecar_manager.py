@@ -1,9 +1,9 @@
 """Long-running Node sidecar manager for Chromium PDF rendering.
 
-This module owns the lifecycle of the Node sidecar process (``marp_sidecar.js``,
-to be renamed to ``chromium_sidecar.js`` in Fase 4), spawned once at startup,
-kept warm for the process lifetime, and bridges it to the asyncio world via a
-line-delimited JSON-RPC protocol over the child's stdio.
+This module owns the lifecycle of the Node sidecar process (``chromium_sidecar.js``),
+spawned once at startup, kept warm for the process lifetime, and bridges it
+to the asyncio world via a line-delimited JSON-RPC protocol over the child's
+stdio.
 
 After the Marp-to-Jinja2 migration (Fase 2) the sidecar's only rendering method
 is ``html_to_pdf`` — it receives a self-contained HTML string (produced by the
@@ -61,7 +61,7 @@ class SidecarConfig:
 
     node_executable: str = "node"
     script_path: Path = field(
-        default_factory=lambda: Path(__file__).resolve().parent / "marp_sidecar.js"
+        default_factory=lambda: Path(__file__).resolve().parent / "chromium_sidecar.js"
     )
     ready_timeout_seconds: int = 30
     render_timeout_seconds: int = 30

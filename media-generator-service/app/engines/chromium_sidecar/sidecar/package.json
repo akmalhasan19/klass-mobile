@@ -4,9 +4,9 @@
   "private": true,
   "description": "Long-running Node sidecar for Chromium PDF rendering over stdio JSON-RPC.",
   "type": "module",
-  "main": "marp_sidecar.js",
+  "main": "chromium_sidecar.js",
   "scripts": {
-    "start": "node marp_sidecar.js"
+    "start": "node chromium_sidecar.js"
   },
   "dependencies": {
     "playwright": "^1.45.0"

@@ -95,7 +95,7 @@ def _make_config(**overrides: object) -> SidecarConfig:
     """Build a :class:`SidecarConfig` with tight timeouts suitable for tests."""
     kwargs: dict[str, object] = {
         "node_executable": "node",
-        "script_path": Path("/fake/marp_sidecar.js"),
+        "script_path": Path("/fake/chromium_sidecar.js"),
         "ready_timeout_seconds": 1,
         "render_timeout_seconds": 2,
         "max_concurrent_renders": 2,
@@ -323,11 +323,11 @@ def test_properties_before_start() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 4. RPC — render_html, render_pdf, health
+# 4. RPC — html_to_pdf, health
 # ---------------------------------------------------------------------------
 
-def test_render_html_returns_html_from_sidecar() -> None:
-    """``render_html()`` sends an RPC request and returns the HTML result."""
+def test_html_to_pdf_returns_pdf_bytes_from_sidecar() -> None:
+    """``html_to_pdf()`` sends an RPC request, decodes base64 PDF, and returns bytes."""
 
     async def _test() -> None:
         stdout = _FakeStream()
@@ -336,15 +336,13 @@ def test_render_html_returns_html_from_sidecar() -> None:
         with patch(_PATCH_PATH, new_callable=AsyncMock, return_value=process):
             manager = SidecarManager(_make_config())
 
-            # Start.
             start_task = asyncio.create_task(manager.start())
             await asyncio.sleep(0)
             stdout.feed(b'{"ready":true}')
             await start_task
 
-            # Request render_html — this writes to stdin, we need to feed a response.
-            render_task = asyncio.create_task(
-                manager.render_html("---\nmarp: true\n---\n\n# Hi", theme_css="body{}")
+            pdf_task = asyncio.create_task(
+                manager.html_to_pdf("<html><body>Hello</body></html>")
             )
             await asyncio.sleep(0)
 
@@ -352,25 +350,33 @@ def test_render_html_returns_html_from_sidecar() -> None:
             write_args = process.stdin.write.call_args
             assert write_args is not None
             written = json.loads(write_args[0][0].decode("utf-8").strip())
-            assert written["method"] == "render_html"
+            assert written["method"] == "html_to_pdf"
+            assert written["params"]["html"] == "<html><body>Hello</body></html>"
             req_id = written["id"]
 
+            # Feed back a base64-encoded PDF result.
+            import base64
+            pdf_bytes = b"%PDF-1.4-mock-content"
+            pdf_b64 = base64.b64encode(pdf_bytes).decode()
             stdout.feed(
-                json.dumps({"id": req_id, "result": {"html": "<html>hello</html>"}}).encode()
+                json.dumps({"id": req_id, "result": {"pdf": pdf_b64}}).encode()
             )
 
-            result = await asyncio.wait_for(render_task, timeout=2)
-            assert result == "<html>hello</html>"
+            result = await asyncio.wait_for(pdf_task, timeout=2)
+            assert result == pdf_bytes
+            assert result.startswith(b"%PDF")
 
             await manager.stop()
 
     asyncio.run(_test())
 
 
-def test_render_pdf_returns_pdf_bytes_from_sidecar() -> None:
-    """``render_pdf()`` sends an RPC and decodes the base64 PDF result."""
+def test_html_to_pdf_handles_empty_html() -> None:
+    """``html_to_pdf()`` works with an empty HTML string."""
 
     async def _test() -> None:
+        import base64
+
         stdout = _FakeStream()
         process = _make_fake_process(stdout=stdout)
 
@@ -382,22 +388,20 @@ def test_render_pdf_returns_pdf_bytes_from_sidecar() -> None:
             stdout.feed(b'{"ready":true}')
             await start_task
 
-            render_task = asyncio.create_task(manager.render_pdf("<html></html>"))
+            pdf_task = asyncio.create_task(manager.html_to_pdf(""))
             await asyncio.sleep(0)
 
             write_args = process.stdin.write.call_args
             written = json.loads(write_args[0][0].decode("utf-8").strip())
-            assert written["method"] == "render_pdf"
             req_id = written["id"]
 
-            import base64
-            pdf_b64 = base64.b64encode(b"%PDF-mock-payload").decode()
+            pdf_b64 = base64.b64encode(b"%PDF-empty").decode()
             stdout.feed(
                 json.dumps({"id": req_id, "result": {"pdf": pdf_b64}}).encode()
             )
 
-            result = await asyncio.wait_for(render_task, timeout=2)
-            assert result == b"%PDF-mock-payload"
+            result = await asyncio.wait_for(pdf_task, timeout=2)
+            assert result == b"%PDF-empty"
 
             await manager.stop()
 
@@ -541,9 +545,9 @@ def test_request_timeout_raises_sidecar_error() -> None:
             stdout.feed(b'{"ready":true}')
             await start_task
 
-            # render_html with a 0.1s timeout — we never feed a response.
+            # html_to_pdf with a 0.1s timeout — we never feed a response.
             with pytest.raises(SidecarError, match="timed out"):
-                await manager.render_html("# md")
+                await manager.html_to_pdf("<html></html>")
 
             await manager.stop()
 
@@ -557,8 +561,8 @@ def test_sidecar_error_preserves_code() -> None:
     assert str(exc) == "something went wrong"
 
 
-def test_render_html_missing_html_field_raises() -> None:
-    """If the result dict lacks an ``html`` key, ``SidecarError`` is raised."""
+def test_html_to_pdf_missing_pdf_field_raises() -> None:
+    """If the result dict lacks a ``pdf`` key, ``SidecarError`` is raised."""
 
     async def _test() -> None:
         stdout = _FakeStream()
@@ -572,7 +576,7 @@ def test_render_html_missing_html_field_raises() -> None:
             stdout.feed(b'{"ready":true}')
             await start_task
 
-            render_task = asyncio.create_task(manager.render_html("# md"))
+            pdf_task = asyncio.create_task(manager.html_to_pdf("<html></html>"))
             await asyncio.sleep(0)
 
             write_args = process.stdin.write.call_args
@@ -581,8 +585,8 @@ def test_render_html_missing_html_field_raises() -> None:
 
             stdout.feed(json.dumps({"id": req_id, "result": {}}).encode())
 
-            with pytest.raises(SidecarError, match="no html field"):
-                await asyncio.wait_for(render_task, timeout=2)
+            with pytest.raises(SidecarError, match="no pdf field"):
+                await asyncio.wait_for(pdf_task, timeout=2)
 
             await manager.stop()
 
@@ -611,23 +615,25 @@ def test_semaphore_limits_concurrent_renders() -> None:
             await start_task
 
             # Launch first two renders — both should acquire semaphore immediately.
-            t1 = asyncio.create_task(manager.render_html("# a"))
-            t2 = asyncio.create_task(manager.render_html("# b"))
+            t1 = asyncio.create_task(manager.html_to_pdf("<html>a</html>"))
+            t2 = asyncio.create_task(manager.html_to_pdf("<html>b</html>"))
             await asyncio.sleep(0)
             await asyncio.sleep(0)
             # Two writes on stdin (one per acquired semaphore slot).
             assert len(process.stdin.write.call_args_list) == 2
 
             # Launch third — should be queued (semaphore exhausted).
-            t3 = asyncio.create_task(manager.render_html("# c"))
+            t3 = asyncio.create_task(manager.html_to_pdf("<html>c</html>"))
             await asyncio.sleep(0)
             await asyncio.sleep(0)
             # Still only two — third is still waiting for semaphore.
             assert len(process.stdin.write.call_args_list) == 2
 
-            # Resolve t1.
+            # Resolve t1 — feed back a base64 PDF result.
+            import base64
             msg1 = json.loads(process.stdin.write.call_args_list[0][0][0].decode("utf-8").strip())
-            stdout.feed(json.dumps({"id": msg1["id"], "result": {"html": "<html>"}}).encode())
+            pdf1 = base64.b64encode(b"%PDF-1")
+            stdout.feed(json.dumps({"id": msg1["id"], "result": {"pdf": pdf1.decode()}}).encode())
             await t1
 
             # Now t3 should have acquired the semaphore — write count becomes 3.
@@ -637,12 +643,14 @@ def test_semaphore_limits_concurrent_renders() -> None:
 
             # Resolve t2.
             msg2 = json.loads(process.stdin.write.call_args_list[1][0][0].decode("utf-8").strip())
-            stdout.feed(json.dumps({"id": msg2["id"], "result": {"html": "<html>"}}).encode())
+            pdf2 = base64.b64encode(b"%PDF-2")
+            stdout.feed(json.dumps({"id": msg2["id"], "result": {"pdf": pdf2.decode()}}).encode())
             await t2
 
             # Resolve t3.
             msg3 = json.loads(process.stdin.write.call_args_list[2][0][0].decode("utf-8").strip())
-            stdout.feed(json.dumps({"id": msg3["id"], "result": {"html": "<html>"}}).encode())
+            pdf3 = base64.b64encode(b"%PDF-3")
+            stdout.feed(json.dumps({"id": msg3["id"], "result": {"pdf": pdf3.decode()}}).encode())
             await t3
 
             assert t1.done() and t2.done() and t3.done()

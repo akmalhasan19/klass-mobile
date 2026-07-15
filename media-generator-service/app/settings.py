@@ -95,7 +95,7 @@ def get_settings() -> Settings:
         ),
         marp_sidecar_script_path=_clean_str(
             os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_SCRIPT_PATH"),
-            str(Path(__file__).resolve().parent / "engines" / "chromium_sidecar" / "sidecar" / "marp_sidecar.js"),
+            str(Path(__file__).resolve().parent / "engines" / "chromium_sidecar" / "sidecar" / "chromium_sidecar.js"),
         ),
         marp_sidecar_ready_timeout_seconds=_clean_int(
             os.getenv("MEDIA_GENERATION_PYTHON_MARP_SIDECAR_READY_TIMEOUT_SECONDS"),
