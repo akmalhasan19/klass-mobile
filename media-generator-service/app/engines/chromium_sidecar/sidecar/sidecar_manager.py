@@ -265,6 +265,7 @@ class SidecarManager:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                limit=1024 * 1024,  # 1MB buffer for Windows compatibility
             )
         except (FileNotFoundError, OSError) as exc:
             raise SidecarError(

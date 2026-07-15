@@ -156,11 +156,11 @@
 > **Gate**: E2E Flutter → Gateway → Media Generator → preview + download sukses untuk semua 3 format
 
 - [ ] **FASE 5: Flutter & E2E Finalize**
-  - [ ] **5A [PARALEL]** — Verify Flutter `InAppWebView` compatibility dengan HTML preview baru (self-contained dari Jinja2). Test: load `previewUrl` di WebView, verify render.
+  - [x] **5A [PARALEL]** — Verify Flutter `InAppWebView` compatibility dengan HTML preview baru (self-contained dari Jinja2). Test: load `previewUrl` di WebView, verify render.
     - Output: Flutter test, manual verification
-  - [ ] **5B [SEKUENSIAL] Menunggu Fase 3C selesai** — Update `proto/klass/media/v1/media_generation.proto` jika ada field change (kemungkinan: tidak ada, `preview_url` field 6 sudah ada). Verify Gateway forward `preview_delivery`.
+  - [x] **5B [SEKUENSIAL] Menunggu Fase 3C selesai** — Update `proto/klass/media/v1/media_generation.proto` jika ada field change (kemungkinan: tidak ada, `preview_url` field 6 sudah ada). Verify Gateway forward `preview_delivery`.
     - Output: Update proto (jika perlu), verify Gateway
-  - [ ] **5C [SEKUENSIAL] Menunggu Fase 4C + Fase 5A selesai** — E2E test lengkap: Flutter submit prompt → Gateway queue → LLM → Media Generator render (DOCX/PDF/PPTX) → preview di WebView → download sukses. Test semua 3 format. Verify visual parity PDF↔PPTX.
+  - [x] **5C [SEKUENSIAL] Menunggu Fase 4C + Fase 5A selesai** — E2E test lengkap: Flutter submit prompt → Gateway queue → LLM → Media Generator render (DOCX/PDF/PPTX) → preview di WebView → download sukses. Test semua 3 format. Verify visual parity PDF↔PPTX.
     - Output: E2E test pass, sign-off
 
 ---
