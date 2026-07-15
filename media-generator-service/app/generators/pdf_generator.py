@@ -14,7 +14,7 @@ from app.errors import GenerationError
 from app.generators.base import BaseGenerator, RenderSummary
 
 if TYPE_CHECKING:
-    from app.engines.marp.sidecar.sidecar_manager import SidecarManager
+    from app.engines.chromium_sidecar.sidecar.sidecar_manager import SidecarManager
     from app.templates.registry import TemplateRegistry
 
 import app.templates as templates_pkg

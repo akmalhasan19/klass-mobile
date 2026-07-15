@@ -33,7 +33,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.engines.html_template.pdf_renderer import PdfRenderer
-from app.engines.marp.sidecar.sidecar_manager import SidecarError
+from app.engines.chromium_sidecar.sidecar.sidecar_manager import SidecarError
 
 _FAKE_PDF_BYTES = b"%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF\n"
 

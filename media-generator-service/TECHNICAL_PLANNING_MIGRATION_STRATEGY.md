@@ -140,7 +140,7 @@
 > **Gate**: Marp sepenuhnya dihapus, test suite hijau, Docker image build sukses
 
 - [ ] **FASE 4: Retire Marp & Cleanup**
-  - [ ] **4A [SEKUENSIAL] Menunggu Fase 3C selesai** — Hapus file Marp: `marp_markdown_builder.py`, `marp_renderer.py`, `themes/klass-default.css`. Rename `app/engines/marp/` → `app/engines/chromium_sidecar/`.
+  - [x] **4A [SEKUENSIAL] Menunggu Fase 3C selesai** — Hapus file Marp: `marp_markdown_builder.py`, `marp_renderer.py`, `themes/klass-default.css`. Rename `app/engines/marp/` → `app/engines/chromium_sidecar/`.
     - Output: File deletion + directory restructure
   - [ ] **4B [SEKUENSIAL] Menunggu Fase 4A selesai** — Update `sidecar/package.json`: hapus `@marp-team/marp-core`, keep `playwright`. Rename `marp_sidecar.js` → `chromium_sidecar.js`.
     - Output: Update `package.json`, rename sidecar script

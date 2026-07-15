@@ -4,7 +4,7 @@ This module is the **PDF step** of the new template-driven pipeline (Fase 2C).
 It takes a self-contained HTML string (produced by
 :class:`app.engines.html_template.engine.HtmlTemplateEngine`) and delegates
 the HTML-to-PDF conversion to the long-running Chromium sidecar managed by
-:class:`app.engines.marp.sidecar.sidecar_manager.SidecarManager`.
+:class:`app.engines.chromium_sidecar.sidecar.sidecar_manager.SidecarManager`.
 
 Flow
 ----
@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from app.engines.marp.sidecar.sidecar_manager import SidecarError, SidecarManager
+from app.engines.chromium_sidecar.sidecar.sidecar_manager import SidecarError, SidecarManager
 from app.errors import GenerationError
 
 logger = logging.getLogger("klass-media-generator")

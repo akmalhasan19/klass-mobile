@@ -1,4 +1,4 @@
-"""Unit tests for ``app.engines.marp.sidecar.sidecar_manager``.
+"""Unit tests for ``app.engines.chromium_sidecar.sidecar.sidecar_manager``.
 
 Tests cover the full lifecycle of :class:`SidecarManager` using a mocked
 subprocess.  Node.js is **not** required — ``asyncio.create_subprocess_exec``
@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.engines.marp.sidecar.sidecar_manager import (
+from app.engines.chromium_sidecar.sidecar.sidecar_manager import (
     SidecarConfig,
     SidecarError,
     SidecarManager,
@@ -107,7 +107,7 @@ def _make_config(**overrides: object) -> SidecarConfig:
     return SidecarConfig(**{k: v for k, v in kwargs.items() if k in SidecarConfig.__dataclass_fields__})
 
 
-_PATCH_PATH = "app.engines.marp.sidecar.sidecar_manager.asyncio.create_subprocess_exec"
+_PATCH_PATH = "app.engines.chromium_sidecar.sidecar.sidecar_manager.asyncio.create_subprocess_exec"
 
 
 # ---------------------------------------------------------------------------

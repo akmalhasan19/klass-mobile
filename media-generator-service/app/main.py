@@ -28,7 +28,7 @@ from app.contracts import (
 from app.document_model import build_render_document
 from app.engines.blueprint_builder import build_slide_blueprint
 from app.engines.html_template import HtmlTemplateEngine
-from app.engines.marp.sidecar.sidecar_manager import SidecarManager, build_sidecar_manager
+from app.engines.chromium_sidecar.sidecar.sidecar_manager import SidecarManager, build_sidecar_manager
 from app.errors import ContractValidationError, MediaGeneratorError, ServiceMisconfiguredError
 from app.generators.registry import GeneratorRegistry
 from app.models import GenerateErrorResponse, GenerateRequest, GenerateSuccessResponse

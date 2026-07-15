@@ -10,7 +10,7 @@ from app.generators.pptx_generator import PptxGenerator
 
 if TYPE_CHECKING:
     from app.templates.registry import TemplateRegistry
-    from app.engines.marp.sidecar.sidecar_manager import SidecarManager
+    from app.engines.chromium_sidecar.sidecar.sidecar_manager import SidecarManager
 
 
 class GeneratorRegistry:
