@@ -106,10 +106,12 @@ class GenerationSpec(StrictModel):
         default=None,
         min_length=1,
         max_length=50,
-        description="Requested preview rendering engine. Currently only 'marp_html' is supported. "
+        description="Requested preview rendering engine. "
+        "'marp_html' (legacy) and 'html_template' (Fase 2, Jinja2-based) "
+        "are both accepted. "
         "The service generates previews for slide-based formats by default "
-        "when the sidecar is available; this field confirms the client's "
-        "preferred engine format.",
+        "when the sidecar is available; this field lets the client select "
+        "the preferred engine.",
     )
 
     @field_validator("preview_format")

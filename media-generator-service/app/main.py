@@ -44,7 +44,9 @@ registry = GeneratorRegistry()
 sidecar_manager: SidecarManager | None = None
 
 # Module-level template registry — loaded during lifespan, provides
-# master .pptx templates and manifests for PPTX generation.
+# master templates for all formats (PPTX .pptx+manifest, DOCX .docx,
+# HTML .html for PDF + preview).  Single source of truth for every
+# template_id across the three engine pillars.
 template_registry: TemplateRegistry | None = None
 
 
@@ -80,8 +82,8 @@ async def lifespan(_: FastAPI):
     settings = get_settings()
     global sidecar_manager, template_registry, registry
 
-    # ── Bootstrap template registry ────────────────────────────────────
-    logger.info("Loading PPTX master templates…")
+    # ── Bootstrap template registry (PPTX, DOCX, HTML masters) ────────
+    logger.info("Loading master templates (PPTX, DOCX, HTML)…")
     try:
         from pathlib import Path
 
@@ -94,11 +96,11 @@ async def lifespan(_: FastAPI):
             template_registry.template_ids,
         )
     except Exception as exc:
-        logger.critical("Failed to load PPTX templates: %s", exc)
+        logger.critical("Failed to load master templates: %s", exc)
         template_registry = None
         raise ServiceMisconfiguredError(
-            "PPTX master templates failed to load. "
-            "PPTX generation will be unavailable.",
+            "Master templates failed to load. "
+            "PPTX, DOCX, PDF, and HTML previews will be unavailable.",
             {"startup_error": str(exc)},
         ) from exc
 
@@ -292,6 +294,10 @@ async def generate_artifact(
     }
 
     # ── Preview HTML rendering (best-effort, pptx/pdf only) ──────────
+    # The preview HTML is rendered via ``HtmlTemplateEngine`` (Jinja2, Fase 2)
+    # from the same ``SlideBlueprint`` used by the artifact generator.  It is
+    # self-contained (all CSS inline) and safe to load in Flutter's
+    # ``InAppWebView`` without external resource references.
     preview_delivery: dict[str, object] | None = None
     if payload.generation_spec.export_format in ("pptx", "pdf") and sidecar_manager is not None and template_registry is not None:
         try:

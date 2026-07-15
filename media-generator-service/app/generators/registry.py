@@ -33,6 +33,7 @@ class GeneratorRegistry:
             ),
             "pdf": PdfGenerator(
                 sidecar_manager=sidecar_manager,
+                template_registry=template_registry,
             ),
             "pptx": PptxGenerator(
                 template_registry=template_registry,

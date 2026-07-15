@@ -123,12 +123,12 @@
 > **Estimasi**: 1 minggu
 > **Gate**: Semua 3 format (DOCX, PDF, PPTX) generate via Template-Driven, backward-compat terverifikasi
 
-- [ ] **FASE 3: Wiring & Registry Update**
-  - [ ] **3A [SEKUENSIAL] Menunggu Fase 1C + Fase 2E selesai** — Update `app/generators/registry.py`: `DocxGenerator` → `DocxTemplateEngine`, `PdfGenerator` → `HtmlTemplateEngine` + sidecar `html_to_pdf`. Update lifespan: start Jinja2 template registry + sidecar (config berubah, tidak lagi Marp).
+- [x] **FASE 3: Wiring & Registry Update**
+  - [x] **3A [SEKUENSIAL] Menunggu Fase 1C + Fase 2E selesai** — Update `app/generators/registry.py`: `DocxGenerator` → `DocxTemplateEngine`, `PdfGenerator` → `HtmlTemplateEngine` + sidecar `html_to_pdf`. Update lifespan: start Jinja2 template registry + sidecar (config berubah, tidak lagi Marp).
     - Output: Update `app/generators/registry.py`, `app/main.py` lifespan
-  - [ ] **3B [SEKUENSIAL] Menunggu Fase 3A selesai** — Update `app/main.py` `generate_artifact` response: verify `preview_delivery` (HTML dari Jinja2), `artifact_metadata.preview_url`, `layout_sources`. Backward-compat `media_generation_spec.v1` (additive fields).
+  - [x] **3B [SEKUENSIAL] Menunggu Fase 3A selesai** — Update `app/main.py` `generate_artifact` response: verify `preview_delivery` (HTML dari Jinja2), `artifact_metadata.preview_url`, `layout_sources`. Backward-compat `media_generation_spec.v1` (additive fields).
     - Output: Update `app/main.py`, `app/models.py`, `app/contracts.py`
-  - [ ] **3C [SEKUENSIAL] Menunggu Fase 3B selesai** — Contract backward-compat test: `GenerateSuccessResponse.model_validate`, HMAC unchanged, signed URL preview 200 + mime `text/html`, `slide_count` konsisten, timeout/retry (render 30s, Gateway→MediaGen 60s). Run full pytest.
+  - [x] **3C [SEKUENSIAL] Menunggu Fase 3B selesai** — Contract backward-compat test: `GenerateSuccessResponse.model_validate`, HMAC unchanged, signed URL preview 200 + mime `text/html`, `slide_count` konsisten, timeout/retry (render 30s, Gateway→MediaGen 60s). Run full pytest.
     - Output: Update `tests/test_contract_e2e.py`, full test run
 
 ---

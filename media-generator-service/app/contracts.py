@@ -25,7 +25,11 @@ MIME_TYPES = {
 LARAVEL_ERROR_ARTIFACT_INVALID = "artifact_invalid"
 LARAVEL_ERROR_PYTHON_SERVICE_UNAVAILABLE = "python_service_unavailable"
 
-# Identifiers for available PPTX master templates — matches template_id in manifest.
+# Identifiers for available master templates (PPTX .pptx+manifest, DOCX .docx,
+# HTML .html for PDF + preview) — matches template_id in manifest / registry.
 SUPPORTED_TEMPLATE_IDS = ("klass-educational-v1",)
 # Supported preview formats for slide-based artifacts (pptx/pdf).
-SUPPORTED_PREVIEW_FORMATS = ("marp_html",)
+# ``marp_html`` is kept for backward compat with older clients; the service
+# now renders previews via ``HtmlTemplateEngine`` (Fase 2) which uses Jinja2
+# instead of Marp.  New clients should prefer ``html_template``.
+SUPPORTED_PREVIEW_FORMATS = ("marp_html", "html_template")

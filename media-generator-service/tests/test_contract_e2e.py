@@ -153,6 +153,84 @@ def test_docx_response_passes_validation(client, monkeypatch) -> None:
     cleanup_artifact(payload["data"]["artifact_metadata"])
 
 
+def test_pdf_response_passes_generate_success_response_validation(
+    client, monkeypatch,
+) -> None:
+    """PDF response round-trips through ``GenerateSuccessResponse``."""
+    _patch_deps(monkeypatch)
+
+    body, headers, _ = signed_request_content("pdf")
+    response = client.post("/v1/generate", content=body, headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+
+    validated = GenerateSuccessResponse.model_validate(payload)
+    assert validated.status == "completed"
+    assert validated.data.generation_id == "generation-pdf-001"
+    # PDF with sidecar available should have a preview.
+    assert validated.data.preview_delivery is not None
+
+    pd = validated.data.preview_delivery
+    assert pd.schema_version == "media_generator_preview.v1"
+    assert pd.mime_type == "text/html"
+    assert pd.locator.kind == "signed_url"
+
+    cleanup_artifact(payload["data"]["artifact_metadata"])
+
+
+def test_pdf_artifact_metadata_excludes_slide_count(
+    client, monkeypatch,
+) -> None:
+    """PDF metadata has ``slide_count=None`` (reserved for pptx only).
+
+    ``ArtifactMetadata.model_validate`` enforces that ``slide_count`` is only
+    allowed for ``export_format=pptx``.  For PDF the field must be ``None``.
+    """
+    _patch_deps(monkeypatch)
+
+    body, headers, _ = signed_request_content("pdf")
+    response = client.post("/v1/generate", content=body, headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    metadata = payload["data"]["artifact_metadata"]
+
+    assert metadata["slide_count"] is None, (
+        f"PDF slide_count should be None, got {metadata['slide_count']}"
+    )
+    # PDF has page_count instead (computed from slide count).
+    page_count = metadata.get("page_count")
+    assert page_count is not None and page_count >= 1, (
+        f"Expected page_count >= 1 for PDF, got {page_count}"
+    )
+
+    cleanup_artifact(metadata)
+
+
+def test_all_export_formats_pass_response_validation(
+    client, monkeypatch,
+) -> None:
+    """All 3 supported export formats produce valid ``GenerateSuccessResponse``."""
+    _patch_deps(monkeypatch)
+
+    for fmt in ("docx", "pdf", "pptx"):
+        body, headers, _ = signed_request_content(fmt)
+        response = client.post("/v1/generate", content=body, headers=headers)
+
+        assert response.status_code == 200, (
+            f"Expected 200 for {fmt}, got {response.status_code}"
+        )
+        payload = response.json()
+
+        # model_validate raises on any schema violation.
+        validated = GenerateSuccessResponse.model_validate(payload)
+        assert validated.status == "completed"
+        assert validated.data.artifact_metadata.export_format == fmt
+
+        cleanup_artifact(payload["data"]["artifact_metadata"])
+
+
 # ---------------------------------------------------------------------------
 # 2. slide_count consistency
 # ---------------------------------------------------------------------------
@@ -301,6 +379,55 @@ def test_sidecar_config_defaults_are_safe() -> None:
     assert settings.marp_sidecar_health_interval_seconds <= 60
     # Render timeout sanity check.
     assert 10 <= settings.marp_sidecar_render_timeout_seconds <= 60
+
+
+# ---------------------------------------------------------------------------
+# 4. Signed preview URL delivery
+# ---------------------------------------------------------------------------
+
+
+def test_signed_preview_url_returns_html_content_type(
+    client, monkeypatch,
+) -> None:
+    """Download the preview signed URL returns ``200`` with ``Content-Type: text/html``.
+
+    This verifies the full signed-URL round-trip for preview delivery:
+    1. The generation endpoint returns a ``preview_delivery`` with a signed URL.
+    2. The download endpoint resolves the URL, serves the HTML file, and sets
+       the correct ``Content-Type`` header.
+    """
+    _patch_deps(monkeypatch)
+
+    body, headers, _ = signed_request_content("pptx")
+    response = client.post("/v1/generate", content=body, headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+
+    preview_locator = payload["data"]["preview_delivery"]["locator"]
+    assert preview_locator["kind"] == "signed_url"
+
+    # Download the preview via its signed URL.
+    preview_url = preview_locator["value"]
+    parsed = urlparse(preview_url)
+    download_path = f"{parsed.path}?{parsed.query}"
+    dl = client.get(download_path)
+
+    assert dl.status_code == 200, (
+        f"Preview download returned {dl.status_code}, expected 200"
+    )
+    assert dl.headers.get("content-type", "").startswith("text/html"), (
+        f"Expected Content-Type: text/html, got {dl.headers.get('content-type')}"
+    )
+    assert len(dl.content) > 0, "Preview body should not be empty"
+
+    # Verify it looks like self-contained HTML (starts with DOCTYPE or <html>).
+    body_start = dl.content[:200].decode("utf-8", errors="replace").strip().lower()
+    assert any(
+        marker in body_start for marker in ("<!doctype html", "<html", "<!DOCTYPE html>")
+    ), f"Preview body does not look like HTML: {body_start[:100]}"
+
+    cleanup_artifact(payload["data"]["artifact_metadata"])
 
 
 # ---------------------------------------------------------------------------
