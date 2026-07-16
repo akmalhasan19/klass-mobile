@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from app.contracts import IMPLEMENTED_EXPORT_FORMATS
@@ -26,6 +27,7 @@ class GeneratorRegistry:
         self,
         template_registry: TemplateRegistry | None = None,
         sidecar_manager: SidecarManager | None = None,
+        event_loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         self._generators = {
             "docx": DocxGenerator(
@@ -34,11 +36,13 @@ class GeneratorRegistry:
             "pdf": PdfGenerator(
                 sidecar_manager=sidecar_manager,
                 template_registry=template_registry,
+                event_loop=event_loop,
             ),
             "pptx": PptxGenerator(
                 template_registry=template_registry,
             ),
         }
+
 
     def get(self, export_format: str):
         generator = self._generators.get(export_format)

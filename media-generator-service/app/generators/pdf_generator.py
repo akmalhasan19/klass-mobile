@@ -51,6 +51,7 @@ class PdfGenerator(BaseGenerator):
         sidecar_manager: SidecarManager | None = None,
         template_registry: TemplateRegistry | None = None,
         template_id: str = DEFAULT_TEMPLATE_ID,
+        event_loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         """
         Args:
@@ -60,10 +61,16 @@ class PdfGenerator(BaseGenerator):
                 lazy fallback builds a registry from the bundled templates.
             template_id: Selects the HTML master template (defaults to
                 ``klass-educational-v1``).
+            event_loop: The event loop that owns the sidecar subprocess
+                streams (normally the uvicorn main loop).  When the
+                generator runs inside a thread-pool worker, the sidecar
+                RPC is scheduled back onto *this* loop via
+                ``run_coroutine_threadsafe``.
         """
         self._sidecar_manager = sidecar_manager
         self._template_registry = template_registry
         self._template_id = template_id
+        self._event_loop = event_loop
 
     def render(self, render_document: RenderDocument, output_path: Path) -> RenderSummary:
         sidecar_manager = self._require_sidecar()
@@ -79,7 +86,7 @@ class PdfGenerator(BaseGenerator):
 
         # Step 2: Render PDF via the warm Chromium sidecar.
         pdf_renderer = PdfRenderer(sidecar_manager=sidecar_manager)
-        self._run_async(pdf_renderer.render(html, output_path))
+        self._run_async(pdf_renderer.render(html, output_path), self._event_loop)
 
         # Each <section> in the HTML master maps to one PDF page (Chromium's
         # @page + page-break-after).  The slide count is therefore an accurate
@@ -119,25 +126,38 @@ class PdfGenerator(BaseGenerator):
         return registry
 
     @staticmethod
-    def _run_async(coro):
-        """Bridge a coroutine into the running event loop (or a fresh one).
+    def _run_async(
+        coro,
+        loop: asyncio.AbstractEventLoop | None = None,
+    ):
+        """Bridge an async coroutine to the sidecar's event loop.
 
-        ``PdfRenderer.render`` is async and the sidecar is bound to the uvicorn
-        event loop (futures/subprocess created on the running loop). ``render``
-        itself is called synchronously from ``BaseGenerator.generate``.
+        The sidecar's subprocess streams (``stdin``/``stdout``) and the
+        ``_reader_loop`` task are bound to the uvicorn event loop.  When
+        this method is called from a thread-pool worker (via
+        ``loop.run_in_executor`` in the endpoint), there is **no running
+        loop** on the worker thread.  Using ``asyncio.run()`` here would
+        create a *second* event loop and attempt to drive the sidecar's
+        transport from the wrong loop — causing ``RuntimeError`` or
+        silent hangs.
 
-        The caller (``app.main.generate_artifact``) runs this generator from a
-        thread-pool executor, so there is **no running loop** on the calling
-        thread — we therefore use ``asyncio.run``.  (Running the coroutine on a
-        fresh loop is safe because the sidecar communicates over its stdin/stdout
-        pipes, not loop-bound futures.)  If a loop were somehow running on the
-        calling thread we would fall back to ``run_coroutine_threadsafe`` and
-        block on the future.
+        The correct approach is ``run_coroutine_threadsafe``: schedule the
+        coroutine on the *original* (uvicorn) loop and block the worker
+        thread until the future completes.
+
+        The ``asyncio.run()`` fallback is preserved **only** for unit tests
+        where the sidecar is mocked (no real subprocess streams, so no
+        cross-loop issue) and no loop reference was injected.
         """
+        if loop is not None:
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            return future.result(timeout=_SIDECAR_TIMEOUT_SECONDS)
+
+        # Fallback for tests / in-process scenarios without injected loop.
         try:
-            loop = asyncio.get_running_loop()
+            running = asyncio.get_running_loop()
         except RuntimeError:
             return asyncio.run(coro)
 
-        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        future = asyncio.run_coroutine_threadsafe(coro, running)
         return future.result(timeout=_SIDECAR_TIMEOUT_SECONDS)

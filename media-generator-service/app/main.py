@@ -134,6 +134,7 @@ async def lifespan(_: FastAPI):
     registry = GeneratorRegistry(
         template_registry=template_registry,
         sidecar_manager=sidecar_manager,
+        event_loop=asyncio.get_running_loop(),
     )
 
     try:

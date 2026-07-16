@@ -364,7 +364,7 @@ fn build_provider_client() -> Client {
 ### Circuit Breaker (tower)
 
 ```rust
-// Planned for Rust implementation — not present in current Python adapter
+// Implemented in Rust Gateway
 // 5 consecutive failures → circuit open for 30s → fast-fail
 
 use tower::limit::ConcurrencyLimit;
