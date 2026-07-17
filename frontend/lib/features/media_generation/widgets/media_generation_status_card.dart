@@ -13,6 +13,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
     this.onHireFreelancer,
     this.onViewHistory,
     this.onPreview,
+    this.onCancel,
   });
 
   final MediaGenerationService service;
@@ -22,6 +23,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
   final Future<void> Function()? onHireFreelancer;
   final VoidCallback? onViewHistory;
   final VoidCallback? onPreview;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -55,11 +57,10 @@ class MediaGenerationStatusCard extends StatelessWidget {
       service: service,
     );
     final generationId = service.generationId;
-    final retryable = _boolAt(resource, ['error', 'retryable']) ?? false;
     final recommendedNextSteps = _stringListAt(deliveryPayload, ['recommended_next_steps']);
     final teacherMessage = _stringAt(deliveryPayload, ['teacher_message']);
     final fallbackTriggered = _boolAt(deliveryPayload, ['fallback', 'triggered']) ?? false;
-    final artifactUrl = _stringAt(deliveryPayload, ['artifact', 'file_url']) ?? _stringAt(artifact, ['file_url']);
+    final artifactUrl = service.presignedDownloadUrl ?? _stringAt(deliveryPayload, ['artifact', 'file_url']) ?? _stringAt(artifact, ['file_url']);
     final actionSummary = _stringAt(deliveryPayload, ['preview_summary']) ?? teacherMessage;
 
     return AnimatedContainer(
@@ -124,7 +125,56 @@ class MediaGenerationStatusCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
+            if (service.isInProgress && service.isPollingActive)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        backgroundColor: AppColors.borderLight,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary.withValues(alpha: 0.6)),
+                        minHeight: 3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isIndonesian
+                          ? 'Memperbarui status secara otomatis...'
+                          : 'Auto-refreshing status...',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
             _ProgressStepper(isIndonesian: isIndonesian, currentStatus: status),
+            if (service.isInProgress && onCancel != null) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onCancel,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.red,
+                    side: BorderSide(color: AppColors.red.withValues(alpha: 0.3), width: 1.6),
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  icon: const Icon(Icons.cancel_outlined, size: 20),
+                  label: Text(
+                    isIndonesian ? 'Batalkan Generasi' : 'Cancel Generation',
+                    style: const TextStyle(fontFamily: 'Inter', fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
           ] else ...[
             const SizedBox(height: 10),
             Text(
@@ -218,16 +268,33 @@ class MediaGenerationStatusCard extends StatelessWidget {
               iconBackground: const Color(0xFFFEE2E2),
               eyebrow: isIndonesian ? 'PERLU TINJAUAN' : 'NEEDS REVIEW',
               title: isIndonesian ? 'Generation belum selesai' : 'Generation did not finish successfully',
-              subtitle: isIndonesian
-                  ? 'Status gagal ditampilkan dengan payload aman dari backend agar guru tahu apa yang perlu dilakukan selanjutnya.'
-                  : 'The failed state is rendered from the backend-safe payload so teachers know what to do next.',
+              subtitle: _resolveErrorSubtitle(
+                isIndonesian: isIndonesian,
+                errorCode: service.errorCode,
+              ),
             ),
             const SizedBox(height: 12),
             _NoticeBanner(
               color: AppColors.red,
-              message: service.errorMessage ?? (isIndonesian ? 'Terjadi kegagalan pada media generation.' : 'Media generation failed.'),
+              message: _resolveUserFriendlyError(
+                isIndonesian: isIndonesian,
+                errorCode: service.errorCode,
+                rawMessage: service.errorMessage,
+              ),
             ),
-            if (retryable) ...[
+            if (service.errorCode != null && service.errorCode!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Error code: ${service.errorCode}',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+            if (service.isRetryable) ...[
               const SizedBox(height: 12),
               Text(
                 isIndonesian
@@ -265,6 +332,67 @@ class MediaGenerationStatusCard extends StatelessWidget {
     return _stringAt(resource, ['status']) == 'failed' && ((_boolAt(resource, ['status_meta', 'is_terminal']) ?? false));
   }
 
+  String _resolveErrorSubtitle({
+    required bool isIndonesian,
+    String? errorCode,
+  }) {
+    if (errorCode == null) {
+      return isIndonesian
+          ? 'Terjadi kesalahan yang menghentikan proses generasi.'
+          : 'An error occurred that stopped the generation process.';
+    }
+
+    return switch (errorCode) {
+      'generation_failed' => isIndonesian
+          ? 'Proses generasi file gagal. Silakan coba lagi dengan prompt yang berbeda.'
+          : 'File generation process failed. Please try again with a different prompt.',
+      'spec_missing' || 'spec_invalid' => isIndonesian
+          ? 'Spesifikasi generasi tidak valid atau tidak lengkap.'
+          : 'The generation specification is invalid or incomplete.',
+      'WEBHOOK_DELIVERY_FAILED' => isIndonesian
+          ? 'Gagal mengirim notifikasi ke server. Status mungkin belum diperbarui.'
+          : 'Failed to send notification to server. Status may not be updated.',
+      'python_service_unavailable' => isIndonesian
+          ? 'Layanan generasi sedang tidak tersedia. Silakan coba lagi nanti.'
+          : 'The generation service is currently unavailable. Please try again later.',
+      'artifact_invalid' => isIndonesian
+          ? 'Artifact yang dihasilkan tidak valid.'
+          : 'The generated artifact is invalid.',
+      _ => isIndonesian
+          ? 'Terjadi kesalahan yang menghentikan proses generasi.'
+          : 'An error occurred that stopped the generation process.',
+    };
+  }
+
+  String _resolveUserFriendlyError({
+    required bool isIndonesian,
+    String? errorCode,
+    String? rawMessage,
+  }) {
+    final friendlyMessage = switch (errorCode) {
+      'generation_failed' => isIndonesian
+          ? 'Generasi gagal. Cobalah prompt yang lebih spesifik atau format output yang berbeda.'
+          : 'Generation failed. Try a more specific prompt or a different output format.',
+      'spec_missing' || 'spec_invalid' => isIndonesian
+          ? 'Detail spesifikasi tidak lengkap. Silakan submit ulang permintaan Anda.'
+          : 'Specification details are incomplete. Please resubmit your request.',
+      'WEBHOOK_DELIVERY_FAILED' => isIndonesian
+          ? 'Notifikasi webhook gagal dikirim. Server akan mencoba lagi secara otomatis.'
+          : 'Webhook notification failed to send. The server will retry automatically.',
+      'python_service_unavailable' => isIndonesian
+          ? 'Layanan AI sedang sibuk atau tidak tersedia. Coba lagi dalam beberapa menit.'
+          : 'The AI service is busy or unavailable. Try again in a few minutes.',
+      'artifact_invalid' => isIndonesian
+          ? 'File yang dihasilkan tidak dapat dibuka atau rusak. Silakan generate ulang.'
+          : 'The generated file cannot be opened or is corrupted. Please regenerate.',
+      _ => rawMessage ?? (isIndonesian
+          ? 'Terjadi kegagalan pada media generation.'
+          : 'Media generation failed.'),
+    };
+
+    return friendlyMessage;
+  }
+
   String _resolveTitle({
     required bool isIndonesian,
     required MediaGenerationViewState state,
@@ -278,7 +406,7 @@ class MediaGenerationStatusCard extends StatelessWidget {
           ?? _stringAt(deliveryPayload, ['artifact', 'title'])
           ?? _stringAt(publication, ['recommended_project', 'title'])
           ?? _stringAt(publication, ['topic', 'title'])
-          ?? _fileNameFromUrl(_stringAt(artifact, ['file_url']))
+          ?? _fileNameFromUrl(service.presignedDownloadUrl ?? _stringAt(artifact, ['file_url']))
           ?? (isIndonesian ? 'Media pembelajaran siap digunakan' : 'Learning material is ready');
     }
 
@@ -341,10 +469,12 @@ class MediaGenerationStatusCard extends StatelessWidget {
 
   String _statusLabel({required bool isIndonesian, required String status}) {
     return switch (status) {
+      'pending' => isIndonesian ? 'Menunggu' : 'Pending',
       'queued' => isIndonesian ? 'Dalam antrean' : 'Queued',
       'interpreting' => isIndonesian ? 'Memahami prompt' : 'Understanding prompt',
       'classified' => isIndonesian ? 'Menentukan format' : 'Deciding format',
       'generating' => isIndonesian ? 'Menghasilkan file' : 'Generating file',
+      'processing' => isIndonesian ? 'Sedang diproses' : 'Processing',
       'uploading' => isIndonesian ? 'Mengunggah artifact' : 'Uploading artifact',
       'publishing' => isIndonesian ? 'Mempublikasikan hasil' : 'Publishing result',
       'completed' => isIndonesian ? 'Selesai' : 'Completed',
@@ -355,14 +485,18 @@ class MediaGenerationStatusCard extends StatelessWidget {
 
   String _progressHeadline({required bool isIndonesian, required String status}) {
     switch (status) {
+      case 'pending':
+        return isIndonesian ? 'Menunggu diproses' : 'Waiting to be processed';
       case 'queued':
       case 'interpreting':
         return isIndonesian ? 'Prompt sedang dipahami' : 'Understanding your prompt';
       case 'classified':
         return isIndonesian ? 'Menentukan format' : 'Deciding format';
       case 'generating':
-      case 'uploading':
+      case 'processing':
         return isIndonesian ? 'Artifact sedang dibuat' : 'Generating file';
+      case 'uploading':
+        return isIndonesian ? 'Artifact sedang diunggah' : 'Uploading artifact';
       case 'publishing':
         return isIndonesian ? 'Hasil sedang dipublikasikan' : 'Publishing result';
       default:
@@ -372,10 +506,12 @@ class MediaGenerationStatusCard extends StatelessWidget {
 
   String _progressSubtitle({required bool isIndonesian, required String status}) {
     return switch (status) {
+      'pending' => isIndonesian ? 'Permintaan dalam antrean.' : 'Request is queued.',
       'queued' => isIndonesian ? 'Permintaan sudah diterima.' : 'The request was accepted.',
       'interpreting' => isIndonesian ? 'LLM sedang menyusun interpretasi.' : 'The LLM is interpreting the prompt.',
       'classified' => isIndonesian ? 'Backend sedang memutuskan output type.' : 'The backend is deciding output type.',
       'generating' => isIndonesian ? 'Service generator sedang merender file.' : 'The generator service is rendering.',
+      'processing' => isIndonesian ? 'File sedang diproses oleh worker.' : 'The file is being processed by the worker.',
       'uploading' => isIndonesian ? 'Artifact sedang divalidasi.' : 'The artifact is being validated.',
       'publishing' => isIndonesian ? 'Hasil sedang dipublikasikan.' : 'Result is being published.',
       _ => isIndonesian ? 'Status terbaru akan tampil otomatis.' : 'The latest status will appear automatically.',
@@ -631,19 +767,30 @@ class _ProgressStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final steps = [
+      {'id': 'pending', 'label': isIndonesian ? 'Menunggu' : 'Pending'},
       {'id': 'interpreting', 'label': isIndonesian ? 'Memahami prompt' : 'Understanding prompt'},
       {'id': 'classified', 'label': isIndonesian ? 'Menentukan format' : 'Deciding format'},
       {'id': 'generating', 'label': isIndonesian ? 'Menghasilkan file' : 'Generating file'},
+      {'id': 'processing', 'label': isIndonesian ? 'Sedang diproses' : 'Processing'},
       {'id': 'publishing', 'label': isIndonesian ? 'Mempublikasikan hasil' : 'Publishing result'},
     ];
     return Column(
       children: steps.map((step) {
         final isActive = currentStatus == step['id'];
+        final isPast = _isPastStatus(currentStatus, step['id']!);
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             children: [
-              Icon(isActive ? Icons.check_circle_outline_rounded : Icons.radio_button_unchecked_rounded, size: 16, color: isActive ? AppColors.primary : AppColors.textMuted),
+              Icon(
+                isActive
+                    ? Icons.check_circle_outline_rounded
+                    : isPast
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked_rounded,
+                size: 16,
+                color: isActive || isPast ? AppColors.primary : AppColors.textMuted,
+              ),
               const SizedBox(width: 8),
               Text(step['label']!, style: TextStyle(fontFamily: 'Inter', fontSize: 12, fontWeight: isActive ? FontWeight.w700 : FontWeight.w500, color: isActive ? AppColors.textPrimary : AppColors.textMuted)),
             ],
@@ -651,6 +798,13 @@ class _ProgressStepper extends StatelessWidget {
         );
       }).toList(),
     );
+  }
+
+  bool _isPastStatus(String currentStatus, String stepId) {
+    const order = ['pending', 'queued', 'interpreting', 'classified', 'generating', 'processing', 'uploading', 'publishing', 'completed'];
+    final currentIdx = order.indexOf(currentStatus);
+    final stepIdx = order.indexOf(stepId);
+    return currentIdx > stepIdx && stepIdx >= 0;
   }
 }
 

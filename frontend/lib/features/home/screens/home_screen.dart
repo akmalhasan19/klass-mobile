@@ -57,7 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
 
   late final HomeService _homeService;
   late final MediaGenerationService _mediaGenerationService;
-  final MediaGenerationActionService _mediaGenerationActionService = MediaGenerationActionService();
+  late final MediaGenerationActionService _mediaGenerationActionService;
   late final ProjectService _projectService;
   List<Map<String, dynamic>> projects = [];
   List<Map<String, dynamic>> freelancers = [];
@@ -76,6 +76,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
     final dio = ref.read(dioProvider);
     _homeService = HomeService(dio);
     _mediaGenerationService = MediaGenerationService(dio);
+    _mediaGenerationActionService = MediaGenerationActionService(dio: dio);
     _projectService = ProjectService(dio);
     _mediaGenerationService.addListener(_onMediaGenerationChanged);
 
@@ -304,6 +305,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
     );
   }
 
+  Future<void> _handleCancelGeneration() async {
+    final isIndonesian = Localizations.localeOf(context).languageCode == 'id';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isIndonesian ? 'Batalkan Generasi?' : 'Cancel Generation?'),
+        content: Text(
+          isIndonesian
+              ? 'Proses generasi akan dihentikan. Anda dapat memulai generasi baru kapan saja.'
+              : 'The generation process will be stopped. You can start a new generation anytime.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(isIndonesian ? 'Tidak' : 'No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            child: Text(isIndonesian ? 'Ya, Batalkan' : 'Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _mediaGenerationService.cancelGeneration(cancelToken: cancelToken);
+    }
+  }
+
   void _showRegenerateSheet() {
     if (_mediaGenerationService.generationId == null) return;
     RegenerateBottomSheet.show(
@@ -365,8 +396,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
     final deliveryPayload = _mediaGenerationService.deliveryPayload;
     final artifact = _mediaGenerationService.artifact;
 
-    return _stringAt(deliveryPayload, ['artifact', 'file_url'])
-        ?? _stringAt(artifact, ['file_url']);
+    return _mediaGenerationService.presignedDownloadUrl ??
+           _stringAt(deliveryPayload, ['artifact', 'file_url']) ??
+           _stringAt(artifact, ['file_url']);
   }
 
   void _showGenerationMessage(String message) {
@@ -567,6 +599,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    final isIndonesian = Localizations.localeOf(context).languageCode == 'id';
 
     // Kita gunakan topPadding agar hijau Layer 1 meliputi area status bar,
     // plus tambahan sedikit agar garis luarnya terlihat jelas
@@ -844,6 +877,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                                 isSubmitting: _mediaGenerationService.isLoading,
                                 onSubmit: _submitPrompt,
                               ),
+                              if (_mediaGenerationService.isOffline && _mediaGenerationService.hasQueuedRequest) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.amber.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.wifi_off_rounded, size: 18, color: AppColors.amber),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          isIndonesian
+                                              ? 'Tidak ada koneksi. Permintaan akan dikirim saat online.'
+                                              : 'No connection. Request will be sent when online.',
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                               if (_mediaGenerationService.hasVisibleState) ...[
                                 const SizedBox(height: 18),
                                 MediaGenerationStatusCard(
@@ -876,6 +940,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                                             ),
                                           );
                                         }
+                                      : null,
+                                  onCancel: _mediaGenerationService.isInProgress
+                                      ? _handleCancelGeneration
                                       : null,
                                   ),                              ],
                             ],

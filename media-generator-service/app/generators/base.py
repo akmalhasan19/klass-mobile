@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import re
-import tempfile
 import unicodedata
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -34,9 +32,8 @@ class BaseGenerator(ABC):
         request_payload: GenerateRequest,
         render_document: RenderDocument,
         settings: Settings,
+        output_path: Path,
     ) -> dict[str, Any]:
-        output_path = self._allocate_output_path(request_payload.generation_id, render_document.title)
-
         try:
             summary = self.render(render_document, output_path)
             self._assert_artifact(output_path)
@@ -54,7 +51,7 @@ class BaseGenerator(ABC):
                     "page_count": summary.page_count,
                     "slide_count": summary.slide_count,
                     "artifact_locator": {
-                        "kind": "temporary_path",
+                        "kind": "storage_object",
                         "value": str(output_path),
                     },
                     "generator": {
@@ -68,8 +65,6 @@ class BaseGenerator(ABC):
 
             return metadata.model_dump(mode="python")
         except Exception as exc:
-            if output_path.exists():
-                output_path.unlink(missing_ok=True)
 
             if isinstance(exc, GenerationError):
                 raise
@@ -98,13 +93,6 @@ class BaseGenerator(ABC):
                 "Generator produced an empty artifact file.",
                 {"path": str(output_path)},
             )
-
-    def _allocate_output_path(self, generation_id: str, title: str) -> Path:
-        safe_title = self._slugify(title)[:48] or "generated-media"
-        prefix = f"klass_media_{self.export_format}_{generation_id}_{safe_title}_"
-        file_descriptor, path = tempfile.mkstemp(prefix=prefix, suffix=f".{self.export_format}")
-        os.close(file_descriptor)
-        return Path(path)
 
     def _filename(self, title: str) -> str:
         return f"{self._slugify(title) or 'generated-media'}.{self.export_format}"

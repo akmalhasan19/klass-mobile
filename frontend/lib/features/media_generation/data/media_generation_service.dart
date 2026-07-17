@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
+import 'package:klass_app/core/network/connectivity_service.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/network/api_data_normalizer.dart';
 
@@ -17,32 +18,44 @@ enum MediaGenerationViewState {
 }
 
 class MediaGenerationService extends ChangeNotifier {
-  static const Duration pollingInterval = Duration(seconds: 4);
+  static const Duration _baseBackoffInterval = Duration(seconds: 2);
+  static const Duration _maxBackoffInterval = Duration(seconds: 30);
 
   static final MediaGenerationService _instance = MediaGenerationService._internal();
 
   factory MediaGenerationService(Dio dio) {
     _instance._dio = dio;
+    _instance._connectivityService = ConnectivityService();
+    _instance._connectivityService.initialize();
+    _instance._setupConnectivityListener();
     return _instance;
   }
 
   MediaGenerationService._internal();
 
   late Dio _dio;
+  late ConnectivityService _connectivityService;
 
   Timer? _pollingTimer;
+  Duration _currentBackoffInterval = _baseBackoffInterval;
   bool _isPollingRequestInFlight = false;
   MediaGenerationViewState _state = MediaGenerationViewState.idle;
   Map<String, dynamic>? _resource;
   String? _generationId;
   String? _submittedPrompt;
   String? _errorMessage;
+  String? _presignedDownloadUrl;
+
+  _PendingPromptRequest? _pendingRequest;
+  StreamSubscription<bool>? _connectivitySubscription;
 
   MediaGenerationViewState get state => _state;
   Map<String, dynamic>? get resource => _resource == null ? null : Map<String, dynamic>.unmodifiable(_resource!);
   String? get generationId => _generationId;
   String? get submittedPrompt => _submittedPrompt;
   String? get errorMessage => _errorMessage;
+  String? get errorCode => _stringAt(_resource, ['error_code']);
+  String? get presignedDownloadUrl => _presignedDownloadUrl;
   String? get currentStatus => _stringAt(_resource, ['status']);
   bool get isLoading => _state == MediaGenerationViewState.loading;
   bool get isInProgress => _state == MediaGenerationViewState.inProgress;
@@ -52,6 +65,10 @@ class MediaGenerationService extends ChangeNotifier {
   bool get isPollingActive => _pollingTimer?.isActive ?? false;
   bool get isTerminal => _boolAt(_resource, ['status_meta', 'is_terminal']) ?? _isTerminalStatus(currentStatus);
   bool get canRefreshStatus => _generationId != null;
+  bool get isOffline => !_connectivityService.isConnected;
+  bool get hasQueuedRequest => _pendingRequest != null;
+  bool get isRetryable => _boolAt(_resource, ['error', 'retryable']) ?? false;
+  Duration get currentPollingInterval => _currentBackoffInterval;
   Map<String, dynamic>? get deliveryPayload => _mapAt(_resource, ['delivery_payload']);
   Map<String, dynamic>? get artifact => _mapAt(_resource, ['artifact']);
   Map<String, dynamic>? get publication => _mapAt(_resource, ['publication']);
@@ -87,6 +104,20 @@ class MediaGenerationService extends ChangeNotifier {
     if (!FeatureFlags.useApiData || !FeatureFlags.enableAIFeatures) {
       _setError('AI generation is currently unavailable.');
       return false;
+    }
+
+    if (isOffline) {
+      _pendingRequest = _PendingPromptRequest(
+        prompt: normalizedPrompt,
+        preferredOutputType: preferredOutputType,
+        subjectId: subjectId,
+        subSubjectId: subSubjectId,
+        cancelToken: cancelToken,
+      );
+      _state = MediaGenerationViewState.loading;
+      _errorMessage = null;
+      notifyListeners();
+      return true;
     }
 
     stopPolling();
@@ -127,6 +158,7 @@ class MediaGenerationService extends ChangeNotifier {
       _applyResource(resource);
 
       if (_state == MediaGenerationViewState.inProgress) {
+        _resetBackoff();
         _startPolling(immediate: false);
       }
 
@@ -155,7 +187,7 @@ class MediaGenerationService extends ChangeNotifier {
 
     try {
       final response = await _dio.get(
-        ApiConfig.v('/media-generations/$_generationId'),
+        ApiConfig.v('/media-generations/$_generationId/job-status'),
         cancelToken: cancelToken,
         options: Options(extra: {'forceRefresh': true}),
       );
@@ -166,26 +198,22 @@ class MediaGenerationService extends ChangeNotifier {
           ApiDataNormalizer.buildDebugInfo(
             'Invalid response format. Expected data as Object.',
             operation: ApiDebugOperation.networkRequestFailed,
-            endpoint: ApiConfig.v('/media-generations/$_generationId'),
+            endpoint: ApiConfig.v('/media-generations/$_generationId/job-status'),
           ),
         );
       }
 
       _applyResource(resource);
-
-      if (_state == MediaGenerationViewState.inProgress && !isPollingActive) {
-        _startPolling(immediate: false);
-      }
     } on DioException catch (error) {
       _setError(
-        _resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations/$_generationId')),
+        _resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations/$_generationId/job-status')),
       );
     } catch (error) {
       _setError(
         ApiDataNormalizer.buildDebugInfo(
           error,
           operation: ApiDebugOperation.networkRequestFailed,
-          endpoint: '/media-generations/$_generationId',
+          endpoint: '/media-generations/$_generationId/job-status',
         ),
       );
     } finally {
@@ -198,6 +226,7 @@ class MediaGenerationService extends ChangeNotifier {
       return;
     }
 
+    _resetBackoff();
     _startPolling(immediate: true);
   }
 
@@ -206,14 +235,43 @@ class MediaGenerationService extends ChangeNotifier {
     _pollingTimer = null;
   }
 
+  Future<void> cancelGeneration({CancelToken? cancelToken}) async {
+    if (_generationId == null) return;
+
+    stopPolling();
+
+    try {
+      await _dio.delete(
+        ApiConfig.v('/media-generations/$_generationId'),
+        cancelToken: cancelToken,
+      );
+    } catch (_) {
+      // Backend may not support DELETE — proceed with client-side cancel
+    }
+
+    _errorMessage = null;
+    _state = MediaGenerationViewState.error;
+    _resource = {
+      ...?_resource,
+      'status': 'cancelled',
+      'status_meta': {'is_terminal': true},
+    };
+    notifyListeners();
+  }
+
   void reset({bool notify = true}) {
     stopPolling();
     _isPollingRequestInFlight = false;
+    _currentBackoffInterval = _baseBackoffInterval;
     _state = MediaGenerationViewState.idle;
     _resource = null;
     _generationId = null;
     _submittedPrompt = null;
     _errorMessage = null;
+    _presignedDownloadUrl = null;
+    _pendingRequest = null;
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
 
     if (notify) {
       notifyListeners();
@@ -242,6 +300,7 @@ class MediaGenerationService extends ChangeNotifier {
       if (resource != null) {
         _applyResource(resource);
         if (_state == MediaGenerationViewState.inProgress) {
+          _resetBackoff();
           _startPolling(immediate: false);
         }
         return true;
@@ -309,21 +368,81 @@ class MediaGenerationService extends ChangeNotifier {
     stopPolling();
 
     if (immediate) {
-      unawaited(pollNow());
+      _currentBackoffInterval = _baseBackoffInterval;
+      unawaited(_pollAndReschedule());
+    } else {
+      _scheduleNextPoll();
     }
+  }
 
-    _pollingTimer = Timer.periodic(pollingInterval, (_) {
-      unawaited(pollNow());
+  void _scheduleNextPoll() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer(_currentBackoffInterval, () {
+      unawaited(_pollAndReschedule());
     });
   }
 
-  void _applyResource(Map<String, dynamic> resource) {
-    _resource = resource;
-    _generationId = _stringAt(resource, ['id']) ?? _generationId;
+  Future<void> _pollAndReschedule() async {
+    await pollNow();
 
-    final status = _stringAt(resource, ['status']);
-    final terminal = _boolAt(resource, ['status_meta', 'is_terminal']) ?? _isTerminalStatus(status);
-    final resourceError = _mapAt(resource, ['error']);
+    if (_state == MediaGenerationViewState.inProgress && !_isPollingRequestInFlight) {
+      _advanceBackoff();
+      _scheduleNextPoll();
+    }
+  }
+
+  void _advanceBackoff() {
+    final nextMs = (_currentBackoffInterval.inMilliseconds * 2)
+        .clamp(0, _maxBackoffInterval.inMilliseconds);
+    _currentBackoffInterval = Duration(milliseconds: nextMs);
+  }
+
+  void _resetBackoff() {
+    _currentBackoffInterval = _baseBackoffInterval;
+  }
+
+  void _setupConnectivityListener() {
+    _connectivitySubscription = _connectivityService.onConnectionChange.listen(
+      (isConnected) {
+        if (isConnected && _pendingRequest != null) {
+          _retryPendingRequest();
+        }
+      },
+    );
+  }
+
+  Future<void> _retryPendingRequest() async {
+    final pending = _pendingRequest;
+    if (pending == null) return;
+
+    _pendingRequest = null;
+    notifyListeners();
+
+    await submitPrompt(
+      prompt: pending.prompt,
+      preferredOutputType: pending.preferredOutputType,
+      subjectId: pending.subjectId,
+      subSubjectId: pending.subSubjectId,
+      cancelToken: pending.cancelToken,
+    );
+  }
+
+  void _applyResource(Map<String, dynamic> resource) {
+    if (_resource == null) {
+      _resource = resource;
+    } else {
+      _resource = Map<String, dynamic>.from(_resource!)..addAll(resource);
+    }
+
+    final currentResource = _resource!;
+
+    _generationId = _stringAt(currentResource, ['id']) ?? _stringAt(currentResource, ['generation_id']) ?? _generationId;
+
+    final status = _stringAt(currentResource, ['status']);
+    final terminal = _boolAt(currentResource, ['status_meta', 'is_terminal']) ?? _isTerminalStatus(status);
+    final resourceError = _mapAt(currentResource, ['error']);
+
+    _presignedDownloadUrl = _stringAt(currentResource, ['presigned_download_url']) ?? _presignedDownloadUrl;
 
     if (!terminal) {
       _errorMessage = null;
@@ -505,4 +624,20 @@ class FreelancerSuggestion {
       successRate: (json['success_rate'] ?? 0.0).toDouble(),
     );
   }
+}
+
+class _PendingPromptRequest {
+  final String prompt;
+  final String preferredOutputType;
+  final int? subjectId;
+  final int? subSubjectId;
+  final CancelToken? cancelToken;
+
+  _PendingPromptRequest({
+    required this.prompt,
+    required this.preferredOutputType,
+    this.subjectId,
+    this.subSubjectId,
+    this.cancelToken,
+  });
 }

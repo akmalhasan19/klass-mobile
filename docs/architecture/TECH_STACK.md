@@ -62,7 +62,7 @@
 |-------|---------|---------|---------------|
 | `argon2` | `0.5` | Password hash verify | Byte-compatible with Laravel's Argon2id. `password_hash` feature for PHC string format. |
 | `sha2` | `0.10` | SHA-256 hashing | Sanctum token hash (`hash('sha256', plain_token)`). Cache key generation. File checksums. |
-| `hmac` | `0.12` | HMAC signing | Inter-service request signing. `HMAC-SHA256(timestamp + "." + body, secret)`. |
+| `hmac` | `0.12` | HMAC signing | Inter-service request signing & Webhook verification. `HMAC-SHA256(timestamp + "." + body, secret)`. |
 | `hex` | `0.4` | Hex encoding | Encode SHA-256 hash outputs. Encode HMAC signatures. |
 | `subtle` | `2.6` | Constant-time comparison | `ConstantTimeEq` for HMAC signature verification. Prevents timing attacks. |
 
@@ -231,6 +231,7 @@ REDIS_URL=redis://default:pass@xxx.upstash.io:6379
 # Media Generator (HF Space #3)
 MEDIA_GENERATION_PYTHON_BASE_URL=https://xxx.hf.space
 MEDIA_GENERATION_PYTHON_SHARED_SECRET=***
+MEDIA_GEN_WEBHOOK_SECRET=***
 
 # LLM Providers
 LLM_ADAPTER_GEMINI_API_KEY=***
@@ -564,3 +565,5 @@ klass-gateway
 - `docs/adr/0005-deployment-target-render.md` — Render deployment
 - `docs/adr/0006-queue-strategy-redis-streams.md` — Redis Streams choice
 - `docs/architecture/TARGET_ARCHITECTURE.md` — Component diagram & module dependencies
+- `docs/contracts/webhook_media_gen.md` — Webhook Contract
+- `docs/mobile/async_media_gen.md` — Mobile Integration Guide

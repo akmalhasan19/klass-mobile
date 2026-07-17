@@ -5,36 +5,35 @@ import logging
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
+import redis.asyncio as aioredis
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
+from arq.connections import ArqRedis
 
-from app.artifact_download import (
-    build_signed_artifact_locator,
-    media_type_for_filename,
-    verify_artifact_download_request,
-)
 from app.auth import verify_request_signature
 from app.contracts import (
     ARTIFACT_METADATA_VERSION,
     GENERATION_SPEC_VERSION,
     HEALTH_SCHEMA_VERSION,
-    HTML_MIME_TYPE,
     IMPLEMENTED_EXPORT_FORMATS,
-    PREVIEW_SCHEMA_VERSION,
     RESPONSE_SCHEMA_VERSION,
     SIGNATURE_ALGORITHM,
 )
-from app.document_model import build_render_document
-from app.engines.blueprint_builder import build_slide_blueprint
-from app.engines.html_template import HtmlTemplateEngine
 from app.engines.chromium_sidecar.sidecar.sidecar_manager import SidecarManager, build_sidecar_manager
 from app.errors import ContractValidationError, MediaGeneratorError, ServiceMisconfiguredError
 from app.generators.registry import GeneratorRegistry
-from app.models import GenerateErrorResponse, GenerateRequest, GenerateSuccessResponse
-from app.preview.preview_handler import build_preview_locator, store_preview_html
+from app.job_store import create_job, get_job
+from app.models import (
+    GenerateErrorResponse,
+    GenerateJobRequest,
+    GenerateRequest,
+    JobStatusResponse,
+)
 from app.settings import Settings, get_settings
 from app.templates.registry import TemplateRegistry
+from app.observability import metrics, refresh_redis_gauges
+from app.webhook_sender import close_shared_client
 
 logger = logging.getLogger("klass-media-generator")
 registry = GeneratorRegistry()
@@ -48,6 +47,10 @@ sidecar_manager: SidecarManager | None = None
 # HTML .html for PDF + preview).  Single source of truth for every
 # template_id across the three engine pillars.
 template_registry: TemplateRegistry | None = None
+
+# Module-level Redis client for async job queue (Task 2.1.2).
+# Initialized during lifespan; used by ``POST /v1/jobs``.
+redis_client: ArqRedis | None = None
 
 
 def build_error_response(request: Request, exc: MediaGeneratorError) -> JSONResponse:
@@ -80,7 +83,40 @@ def configure_logging(settings: Settings) -> None:
 async def lifespan(_: FastAPI):
     configure_logging(get_settings())
     settings = get_settings()
-    global sidecar_manager, template_registry, registry
+    global sidecar_manager, template_registry, registry, redis_client
+
+    # ── Bootstrap Redis client for async job queue ────────────────────
+    logger.info("Connecting to Redis for async job queue…")
+    try:
+        pool = aioredis.ConnectionPool.from_url(
+            settings.redis_url,
+            max_connections=settings.redis_max_connections,
+            socket_connect_timeout=settings.redis_socket_connect_timeout_seconds,
+            socket_timeout=settings.redis_socket_timeout_seconds,
+            health_check_interval=settings.redis_health_check_interval_seconds,
+            decode_responses=False,
+        )
+        redis_client = ArqRedis(
+            connection_pool=pool,
+            default_queue_name="gen:jobs:queue",
+        )
+        # Verify connection
+        async with redis_client.pipeline() as pipe:
+            await pipe.ping().execute()
+        logger.info(
+            "Redis connected (url=%s, max_connections=%d, socket_timeout=%ds, health_check=%ds)",
+            settings.redis_url,
+            settings.redis_max_connections,
+            settings.redis_socket_timeout_seconds,
+            settings.redis_health_check_interval_seconds,
+        )
+    except Exception as exc:
+        logger.critical("Failed to connect to Redis: %s", exc)
+        redis_client = None
+        raise ServiceMisconfiguredError(
+            "Redis connection failed. Async job processing will be unavailable.",
+            {"startup_error": str(exc)},
+        ) from exc
 
     # ── Bootstrap template registry (PPTX, DOCX, HTML masters) ────────
     logger.info("Loading master templates (PPTX, DOCX, HTML)…")
@@ -140,6 +176,23 @@ async def lifespan(_: FastAPI):
     try:
         yield
     finally:
+        # ── Shutdown shared webhook client ──────────────────────────────
+        logger.info("Closing shared webhook HTTP client…")
+        try:
+            await close_shared_client()
+        except Exception as exc:
+            logger.warning("Error during webhook client shutdown: %s", exc)
+
+        # ── Shutdown Redis client ──────────────────────────────────────
+        if redis_client is not None:
+            logger.info("Closing Redis connection…")
+            try:
+                await redis_client.close()
+            except Exception as exc:
+                logger.warning("Error during Redis shutdown: %s", exc)
+            redis_client = None
+            logger.info("Redis connection closed")
+
         # ── Shutdown sidecar ───────────────────────────────────────────
         if sidecar_manager is not None:
             logger.info("Shutting down Chromium sidecar…")
@@ -156,6 +209,15 @@ app = FastAPI(
     version=get_settings().service_version,
     lifespan=lifespan,
 )
+
+
+def get_redis() -> ArqRedis:
+    if redis_client is None:
+        raise ServiceMisconfiguredError(
+            "Redis is not configured. Async job operations are unavailable.",
+            {"config": "MEDIA_GENERATION_PYTHON_REDIS_URL"},
+        )
+    return redis_client
 
 
 @app.middleware("http")
@@ -250,13 +312,25 @@ def versioned_health(settings: Settings = Depends(get_settings)) -> dict[str, ob
     return health_payload(settings)
 
 
-@app.post("/v1/generate")
-async def generate_artifact(
-    payload: GenerateRequest,
+# ═════════════════════════════════════════════════════════════════════════════
+# Async job submission endpoint (Phase 2, Task 2.1.2)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+@app.post("/v1/jobs", status_code=202)
+async def submit_job(
+    payload: GenerateJobRequest,
     request: Request,
     settings: Settings = Depends(get_settings),
+    redis: aioredis.Redis = Depends(get_redis),
     _: None = Depends(verify_request_signature),
 ) -> dict[str, object]:
+    """Enqueue a media generation job for async processing.
+
+    Called by the Rust Gateway (fire-and-forget). The job metadata is stored
+    in Redis and the Arq worker will process it asynchronously, uploading the
+    generated artifact to S3 and sending a webhook back to the Gateway.
+    """
     header_generation_id = getattr(request.state, "authenticated_generation_id", None)
     if header_generation_id != payload.generation_id:
         raise ContractValidationError(
@@ -268,120 +342,184 @@ async def generate_artifact(
             },
         )
 
-    render_document = build_render_document(payload.generation_spec)
-    generator = registry.get(payload.generation_spec.export_format)
-    # ``generator.generate`` is a blocking, synchronous call (it drives the
-    # async sidecar via ``asyncio.run`` and writes files).  Run it in a
-    # thread-pool so the request event loop stays free — blocking it here would
-    # deadlock the sidecar, whose I/O is bound to that loop.
-    loop = asyncio.get_running_loop()
-    artifact_metadata = await loop.run_in_executor(
-        None,
-        lambda: generator.generate(payload, render_document, settings),
-    )
-    response_artifact_locator = build_signed_artifact_locator(
-        request,
+    # Serialise the generation_spec to a plain dict for Redis storage
+    spec_dict = payload.generation_spec.model_dump(mode="python")
+
+    await create_job(
+        redis,
+        job_id=payload.job_id,
         generation_id=payload.generation_id,
-        artifact_metadata=artifact_metadata,
-        settings=settings,
+        generation_spec=spec_dict,
+        webhook_url=payload.webhook_url,
     )
-    # Mutate the metadata dict so it includes the signed preview URL (if the
-    # request asked for a preview and we successfully rendered it).  This is
-    # set here rather than in the generator because the signed locator depends
-    # on the request context.
-    response_artifact_metadata = {
-        **artifact_metadata,
-        "artifact_locator": response_artifact_locator,
-    }
 
-    # ── Preview HTML rendering (best-effort, pptx/pdf only) ──────────
-    # The preview HTML is rendered via ``HtmlTemplateEngine`` (Jinja2, Fase 2)
-    # from the same ``SlideBlueprint`` used by the artifact generator.  It is
-    # self-contained (all CSS inline) and safe to load in Flutter's
-    # ``InAppWebView`` without external resource references.
-    preview_delivery: dict[str, object] | None = None
-    if payload.generation_spec.export_format in ("pptx", "pdf") and sidecar_manager is not None and template_registry is not None:
-        try:
-            blueprint = build_slide_blueprint(render_document)
+    # Enqueue to Arq worker
+    await redis.enqueue_job("process_generation_job", payload.job_id, _job_id=payload.job_id)
 
-            # Determine the HTML master template from the request's
-            # template preference (falls back to the default).
-            template_id = (
-                payload.generation_spec.template_id
-                or render_document.template_id
-                or "klass-educational-v1"
-            )
-            html_master = template_registry.get_html_master(template_id)
-            html_engine = HtmlTemplateEngine(master_path=html_master)
-            html = html_engine.render(blueprint)
+    response = JobStatusResponse(
+        job_id=payload.job_id,
+        generation_id=payload.generation_id,
+        status="pending",
+    )
 
-            # Persist the self-contained HTML and build a signed preview URL.
-            preview_path = store_preview_html(
-                html, payload.generation_id, render_document.title,
-            )
-            preview_locator = build_preview_locator(
-                request,
-                generation_id=payload.generation_id,
-                preview_path=preview_path,
-                title=render_document.title,
-                settings=settings,
-            )
-            preview_delivery = {
-                "schema_version": PREVIEW_SCHEMA_VERSION,
-                "mime_type": HTML_MIME_TYPE,
-                "locator": preview_locator,
-            }
-            # Also embed the preview URL in the artifact metadata so consumers
-            # that read ``artifact_metadata.preview_url`` can find it without
-            # parsing the separate ``preview_delivery`` envelope.
-            response_artifact_metadata["preview_url"] = preview_locator["value"]
-        except Exception as exc:
-            logger.warning(
-                "Preview HTML rendering failed for generation %s (non-fatal): %s",
-                payload.generation_id,
-                exc,
-            )
-
-    response = GenerateSuccessResponse.model_validate(
-        {
-            "schema_version": RESPONSE_SCHEMA_VERSION,
-            "request_id": request.state.request_id,
-            "status": "completed",
-            "data": {
-                "generation_id": payload.generation_id,
-                "artifact_delivery": response_artifact_locator,
-                "artifact_metadata": response_artifact_metadata,
-                "preview_delivery": preview_delivery,
-                "contracts": {
-                    "artifact_metadata": ARTIFACT_METADATA_VERSION,
-                },
-            },
-        }
+    logger.info(
+        "POST /v1/jobs: enqueued job %s for generation %s",
+        payload.job_id,
+        payload.generation_id,
     )
 
     return response.model_dump(mode="python")
 
 
-@app.get("/v1/artifacts/download", name="download_artifact")
-async def download_artifact(
-    generation_id: str,
-    path: str,
-    filename: str,
-    expires: int,
-    signature: str,
+# ═════════════════════════════════════════════════════════════════════════════
+# Async job status endpoint (Phase 2, Task 2.1.3)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+@app.get("/v1/jobs/{job_id}")
+async def get_job_status(
+    job_id: str,
     settings: Settings = Depends(get_settings),
-) -> FileResponse:
-    artifact_path = verify_artifact_download_request(
-        generation_id=generation_id,
-        artifact_path=path,
-        filename=filename,
-        expires=expires,
-        signature=signature,
-        settings=settings,
+    redis: aioredis.Redis = Depends(get_redis),
+    _: None = Depends(verify_request_signature),
+) -> dict[str, object]:
+    """Retrieve the current status of an async generation job.
+
+    Returns the full job metadata from Redis, including status, artifact
+    metadata (if completed), or error details (if failed).
+
+    This endpoint is primarily for debugging and administrative purposes.
+    The Rust Gateway receives job completion via webhook, not by polling
+    this endpoint.
+    """
+    job_data = await get_job(redis, job_id)
+    if job_data is None:
+        raise ContractValidationError(
+            "job_not_found",
+            f"Job '{job_id}' not found.",
+            {"job_id": job_id},
+        )
+
+    # Validate status against known values — fall back to "failed" for
+    # unknown/legacy statuses.
+    _VALID_JOB_STATUSES = {"pending", "processing", "completed", "failed"}
+    status = job_data.get("status", "unknown")
+    if status not in _VALID_JOB_STATUSES:
+        status = "failed"
+
+    response = JobStatusResponse(
+        job_id=job_id,
+        generation_id=job_data.get("generation_id", ""),
+        status=status,  # type: ignore[arg-type]
+        # Completed fields
+        artifact_metadata=job_data.get("artifact_metadata"),
+        presigned_url=job_data.get("presigned_url"),
+        s3_object_key=job_data.get("s3_object_key"),
+        # Failed fields
+        error_code=job_data.get("error_code"),
+        error_message=job_data.get("error_message"),
     )
 
-    return FileResponse(
-        path=str(artifact_path),
-        media_type=media_type_for_filename(filename),
-        filename=filename,
+    logger.info(
+        "GET /v1/jobs/%s: status=%s for generation %s",
+        job_id,
+        status,
+        job_data.get("generation_id"),
     )
+
+    return response.model_dump(mode="python")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Deprecated sync endpoint (Phase 2, Task 2.1.5)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+@app.post("/v1/generate")
+async def generate_artifact_deprecated(
+    payload: GenerateRequest,
+    request: Request,
+    settings: Settings = Depends(get_settings),
+    _: None = Depends(verify_request_signature),
+) -> JSONResponse:
+    """Deprecated: Use the async workflow via `POST /v1/jobs` instead.
+
+    This endpoint has been superseded by the async job submission workflow.
+    Clients should migrate to `POST /v1/jobs` which returns immediately
+    and processes generation in the background.
+
+    Migration guide:
+      POST /v1/jobs
+      {
+        "generation_id": "<uuid>",
+        "job_id": "<uuid>",
+        "generation_spec": { ... },
+        "webhook_url": "http://gateway:8080/internal/media-generations/webhook"
+      }
+
+    The Rust Gateway will:
+    1. Create the generation row (status=pending)
+    2. Enqueue via POST /v1/jobs
+    3. Get 202 Accepted immediately
+    4. Receive webhook callback when completed
+    """
+    logger.warning(
+        "DEPRECATED: POST /v1/generate called for generation %s — "
+        "migrate to POST /v1/jobs",
+        payload.generation_id,
+    )
+
+    return JSONResponse(
+        status_code=410,
+        content={
+            "schema_version": RESPONSE_SCHEMA_VERSION,
+            "request_id": request.state.request_id,
+            "status": "failed",
+            "error": {
+                "code": "endpoint_deprecated",
+                "message": (
+                    "POST /v1/generate is deprecated and has been replaced by "
+                    "POST /v1/jobs (async workflow). "
+                    "Please migrate to the async job submission endpoint. "
+                    "See migration guide in the endpoint documentation."
+                ),
+                "retryable": False,
+                "laravel_error_code_hint": "endpoint_deprecated",
+                "details": {
+                    "migration_endpoint": "POST /v1/jobs",
+                    "migration_guide": (
+                        "Send a GenerateJobRequest with generation_id, job_id, "
+                        "generation_spec, and webhook_url to POST /v1/jobs. "
+                        "The Rust Gateway will handle the rest."
+                    ),
+                },
+            },
+        },
+    )
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Metrics endpoint (Phase 3, Sub-task 3.2.2)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+@app.get("/v1/metrics")
+async def get_metrics(
+    redis: aioredis.Redis = Depends(get_redis),
+) -> dict[str, object]:
+    """Expose in-process observability metrics.
+
+    Returns a JSON snapshot of all tracked metrics including:
+    - Job duration histogram (count, sum, min, max, avg, p50, p95, p99)
+    - Job success/failure counters
+    - Queue depth gauge (refreshed from Redis)
+    - Webhook delivery attempts (success/failure counters)
+    - Webhook delivery latency histogram
+    - DLQ depth gauge (refreshed from Redis)
+
+    This endpoint is intended for monitoring dashboards and alerting systems.
+    """
+    # Refresh Redis-based gauges before returning snapshot
+    await refresh_redis_gauges(redis)
+
+    return metrics.snapshot()

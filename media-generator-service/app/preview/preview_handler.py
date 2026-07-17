@@ -34,7 +34,6 @@ from typing import Any
 
 from fastapi import Request
 
-from app.artifact_download import build_signed_artifact_locator
 from app.settings import Settings
 
 _HTML_MIME_TYPE = "text/html"
@@ -66,41 +65,6 @@ def store_preview_html(html: str, generation_id: str, title: str) -> Path:
         os.close(file_descriptor)
     return Path(path_str)
 
-
-def build_preview_locator(
-    request: Request,
-    *,
-    generation_id: str,
-    preview_path: Path,
-    title: str,
-    settings: Settings,
-) -> dict[str, str]:
-    """Return a signed ``{"kind": "signed_url", "value": "…"}`` locator.
-
-    The returned dict is structurally identical to the artifact locators
-    produced by :func:`app.artifact_download.build_signed_artifact_locator`
-    and can be consumed by the Flutter client's ``InAppWebView`` without
-    any special handling.
-    """
-    filename = f"{_slugify(title)[:48] or 'preview'}.html"
-    size_bytes = preview_path.stat().st_size
-    checksum = hashlib.sha256(preview_path.read_bytes()).hexdigest()
-
-    artifact_metadata: dict[str, Any] = {
-        "artifact_locator": {"kind": "temporary_path", "value": str(preview_path)},
-        "filename": filename,
-        "extension": "html",
-        "mime_type": _HTML_MIME_TYPE,
-        "size_bytes": size_bytes,
-        "checksum_sha256": checksum,
-    }
-
-    return build_signed_artifact_locator(
-        request,
-        generation_id=generation_id,
-        artifact_metadata=artifact_metadata,
-        settings=settings,
-    )
 
 
 def _slugify(value: str) -> str:

@@ -251,3 +251,71 @@ class GenerateErrorResponse(StrictModel):
     request_id: str = Field(min_length=1, max_length=100)
     status: Literal["failed"]
     error: ResponseError
+
+
+# ─── Async job submission (Phase 2, Task 2.1) ─────────────────────────────────
+
+
+class GenerateJobRequest(StrictModel):
+    """Request model for the async job submission endpoint (`POST /v1/jobs`).
+
+    Sent by the Rust Gateway to enqueue a media generation job for async
+    processing. The Python Arq worker will pick up the job, generate the
+    artifact, upload to S3, and send a webhook back to the Rust Gateway.
+    """
+
+    generation_id: str = Field(min_length=1, max_length=100)
+    job_id: str = Field(min_length=1, max_length=100)
+    generation_spec: GenerationSpec
+    webhook_url: str = Field(min_length=1, max_length=2048, pattern=r"^https?://")
+
+
+_JOB_STATUSES = Literal["pending", "processing", "completed", "failed"]
+
+
+class JobStatusResponse(StrictModel):
+    """Response for job status queries via `GET /v1/jobs/{job_id}`.
+
+    Fields are conditionally populated based on the current job state:
+    - ``artifact_metadata``, ``presigned_url``, ``s3_object_key`` are present
+      only when ``status == "completed"``.
+    - ``error_code``, ``error_message`` are present only when
+      ``status == "failed"``.
+    """
+
+    job_id: str = Field(min_length=1, max_length=100)
+    generation_id: str = Field(min_length=1, max_length=100)
+    status: _JOB_STATUSES
+
+    # Completed fields
+    artifact_metadata: dict[str, Any] | None = Field(
+        default=None,
+        description="Artifact metadata (filename, mime_type, size_bytes, etc.). "
+        "Only present when ``status == 'completed'``.",
+    )
+    presigned_url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description="Presigned download URL for the generated artifact. "
+        "Only present when ``status == 'completed'``.",
+    )
+    s3_object_key: str | None = Field(
+        default=None,
+        max_length=1024,
+        description="S3/R2 object key of the generated artifact. "
+        "Only present when ``status == 'completed'``.",
+    )
+
+    # Failed fields
+    error_code: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Machine-readable error code. "
+        "Only present when ``status == 'failed'``.",
+    )
+    error_message: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Human-readable error description. "
+        "Only present when ``status == 'failed'``.",
+    )
