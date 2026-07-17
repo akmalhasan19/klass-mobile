@@ -242,13 +242,13 @@
 
 ## Success Criteria
 
-- [ ] **Zero HTTP timeouts** on generation requests (mobile gets 202 instantly)
-- [ ] **No memory bloat** in Rust Gateway (no downloading artifact bytes)
-- [ ] **Direct S3 download** from mobile (presigned URL, bypass Gateway)
-- [ ] **Reliable delivery** via Webhook + Auto-Retry (no lost completions even if Rust restarts)
-- [ ] **Observability**: Job status visible in DB + Redis + Webhook metrics
-- [ ] **Backward compatibility**: Existing generations still accessible
-- [ ] **Zero polling overhead** on Python API (Rust never polls Python)
+- [x] **Zero HTTP timeouts** on generation requests (mobile gets 202 instantly)
+- [x] **No memory bloat** in Rust Gateway (no downloading artifact bytes)
+- [x] **Direct S3 download** from mobile (presigned URL, bypass Gateway)
+- [x] **Reliable delivery** via Webhook + Auto-Retry (no lost completions even if Rust restarts)
+- [x] **Observability**: Job status visible in DB + Redis + Webhook metrics
+- [x] **Backward compatibility**: Existing generations still accessible
+- [x] **Zero polling overhead** on Python API (Rust never polls Python)
 
 ---
 
