@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/features/auth/data/auth_repository.dart';
@@ -62,7 +63,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
       final authState = ref.read(authProvider);
       if (authState.hasError) {
         setState(() {
-          _errorMessage = authState.error.toString().replaceFirst('Exception: ', '');
+          _errorMessage = _extractServerErrorMessage(authState.error);
           _isLoading = false;
         });
         return;
@@ -104,7 +105,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
       Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = _extractServerErrorMessage(e);
         _isLoading = false;
       });
     }
@@ -323,6 +324,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
       default:
         return role;
     }
+  }
+
+  String _extractServerErrorMessage(Object? error) {
+    if (error == null) return 'An unknown error occurred';
+    if (error is DioException) {
+      final response = error.response;
+      if (response != null && response.data is Map) {
+        final body = response.data as Map<String, dynamic>;
+        final errorData = body['error'];
+        if (errorData is Map<String, dynamic>) {
+          final code = errorData['code'] ?? '';
+          final message = errorData['message'] ?? '';
+          return '$code: $message';
+        }
+      }
+      return error.message ?? error.toString();
+    }
+    return error.toString().replaceFirst('Exception: ', '');
   }
 
   Widget _buildRoleOption({

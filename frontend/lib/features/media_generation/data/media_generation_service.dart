@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -479,20 +480,31 @@ class MediaGenerationService extends ChangeNotifier {
     final responseMap = _asMap(responseData);
 
     final structuredErrorMessage = _stringAt(responseMap, ['error', 'message']);
-    if (structuredErrorMessage != null && structuredErrorMessage.isNotEmpty) {
-      return structuredErrorMessage;
-    }
-
     final topLevelMessage = _stringAt(responseMap, ['message']);
-    if (topLevelMessage != null && topLevelMessage.isNotEmpty) {
-      return topLevelMessage;
+
+    String detailedMessage = '';
+    if (structuredErrorMessage != null && structuredErrorMessage.isNotEmpty) {
+      detailedMessage = structuredErrorMessage;
+    } else if (topLevelMessage != null && topLevelMessage.isNotEmpty) {
+      detailedMessage = topLevelMessage;
+    } else {
+      detailedMessage = ApiDataNormalizer.buildDebugInfo(
+        error,
+        operation: ApiDebugOperation.networkRequestFailed,
+        endpoint: endpoint,
+      );
     }
 
-    return ApiDataNormalizer.buildDebugInfo(
-      error,
-      operation: ApiDebugOperation.networkRequestFailed,
-      endpoint: endpoint,
-    );
+    if (responseData != null) {
+      try {
+        final jsonStr = const JsonEncoder.withIndent('  ').convert(responseData);
+        return '$detailedMessage\n\nFull Response:\n$jsonStr';
+      } catch (_) {
+        return '$detailedMessage\n\nRaw Response: $responseData';
+      }
+    }
+    
+    return detailedMessage;
   }
 
   Map<String, dynamic>? _extractResource(dynamic payload) {

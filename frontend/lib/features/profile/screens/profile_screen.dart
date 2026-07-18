@@ -8,9 +8,8 @@ import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/features/auth/screens/account_settings_screen.dart';
 import 'package:klass_app/features/profile/screens/help_screen.dart';
 import 'package:klass_app/shared/widgets/feature_coming_soon.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:klass_app/features/auth/providers/auth_providers.dart';
+import 'package:klass_app/core/providers/secure_token_store_provider.dart';
 import 'package:klass_app/features/auth/screens/login_screen.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
 import 'package:klass_app/core/utils/logout_helper.dart';
@@ -53,13 +52,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with CancelableSt
   }
 
   Future<void> _loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasAuthToken = prefs.getString('auth_token') != null;
-    final userStr = prefs.getString('user_data');
+    final tokenStore = ref.read(secureTokenStoreProvider);
+    final hasAuthToken = await tokenStore.read() != null;
+    final userData = await tokenStore.readUserData();
 
-    if (userStr != null) {
+    if (userData != null) {
       setState(() {
-        _user = jsonDecode(userStr);
+        _user = userData;
         _isLoading = false;
       });
     }
