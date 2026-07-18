@@ -569,7 +569,6 @@ class WorkerSettings:
                 "queue_read_limit": 10,
                 "redis_settings": RedisSettings.from_dsn(
                     app_settings.redis_url,
-                    conn_timeout=int(app_settings.redis_socket_connect_timeout_seconds),
                 ),
                 "max_jobs": app_settings.worker_concurrency,
                 "job_timeout": app_settings.worker_job_timeout_seconds,
