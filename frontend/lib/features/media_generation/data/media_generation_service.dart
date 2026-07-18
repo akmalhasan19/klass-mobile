@@ -132,7 +132,7 @@ class MediaGenerationService extends ChangeNotifier {
     notifyListeners();
 
     final payload = <String, dynamic>{
-      'prompt': normalizedPrompt,
+      'raw_prompt': normalizedPrompt,
       'preferred_output_type': preferredOutputType,
     };
 
