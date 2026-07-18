@@ -276,7 +276,6 @@ async def process_generation_job(ctx: dict[str, Any], job_id: str) -> dict[str, 
                 artifact_metadata["preview_s3_key"] = preview_s3_key
                 
                 try:
-                    import os
                     os.unlink(preview_local_path)
                 except OSError:
                     pass

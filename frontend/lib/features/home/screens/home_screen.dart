@@ -76,7 +76,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
     final dio = ref.read(dioProvider);
     _homeService = HomeService(dio);
     _mediaGenerationService = MediaGenerationService(dio);
-    _mediaGenerationActionService = MediaGenerationActionService(dio: dio);
+    _mediaGenerationActionService = MediaGenerationActionService();
     _projectService = ProjectService(dio);
     _mediaGenerationService.addListener(_onMediaGenerationChanged);
 
@@ -375,7 +375,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
 
     try {
       await action();
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[ArtifactAction] error: $e\n$st');
       _showGenerationMessage(_localizedArtifactMessage(errorMessageId));
     }
   }

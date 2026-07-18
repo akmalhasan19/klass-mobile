@@ -22,9 +22,15 @@ class DownloadProgress {
 }
 
 class MediaGenerationActionService {
-  MediaGenerationActionService({Dio? dio}) : _dio = dio ?? Dio();
+  MediaGenerationActionService()
+      : _externalDio = Dio(BaseOptions(
+          receiveTimeout: const Duration(minutes: 10),
+          connectTimeout: const Duration(seconds: 30),
+        ));
 
-  final Dio _dio;
+  /// Clean Dio instance for external URLs (presigned R2 downloads).
+  /// No interceptors, no base URL — avoids Auth/Cache/Retry interference.
+  final Dio _externalDio;
 
   Future<void> openArtifact(String url) async {
     final uri = _parseUri(url);
@@ -63,12 +69,11 @@ class MediaGenerationActionService {
       headers[HttpHeaders.rangeHeader] = 'bytes=$existingBytes-';
     }
 
-    final response = await _dio.get<ResponseBody>(
+    final response = await _externalDio.get<ResponseBody>(
       uri.toString(),
       options: Options(
         responseType: ResponseType.stream,
         headers: headers,
-        receiveTimeout: const Duration(minutes: 10),
       ),
       cancelToken: cancelToken,
     );
