@@ -21,6 +21,8 @@ class MediaGenerationService extends ChangeNotifier {
   static const Duration _baseBackoffInterval = Duration(seconds: 2);
   static const Duration _maxBackoffInterval = Duration(seconds: 30);
 
+  static const Duration pollingInterval = _baseBackoffInterval;
+
   static final MediaGenerationService _instance = MediaGenerationService._internal();
 
   factory MediaGenerationService(Dio dio) {

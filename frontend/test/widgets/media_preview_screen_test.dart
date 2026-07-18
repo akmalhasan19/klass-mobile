@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
@@ -135,6 +134,7 @@ class MyMockInAppWebViewPlatform extends InAppWebViewPlatform {
 }
 
 class _MyMockPlatformInAppWebViewWidget extends PlatformInAppWebViewWidget {
+  // ignore: use_super_parameters
   _MyMockPlatformInAppWebViewWidget(PlatformInAppWebViewWidgetCreationParams params)
       : super.implementation(params);
 
