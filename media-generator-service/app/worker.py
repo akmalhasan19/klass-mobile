@@ -323,6 +323,7 @@ async def process_generation_job(ctx: dict[str, Any], job_id: str) -> dict[str, 
                 "status": "completed",
                 "s3_object_key": s3_object_key,
                 "presigned_url": presigned_url,
+                "file_url": presigned_url,
                 "expires_at": expires_at,
                 "artifact_metadata": artifact_metadata,
             }

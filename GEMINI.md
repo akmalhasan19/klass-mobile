@@ -13,7 +13,7 @@
 | Database | PostgreSQL (Neon Cloud) | via sqlx, PgBouncer |
 | Job Queue | Redis | Upstash (deadpool-redis) |
 | Object Storage | Cloudflare R2 / AWS S3 | aws-sdk-s3 |
-| LLM Providers | OpenRouter + Fallback | deepseek-v4-flash, gpt-5.4 |
+| LLM Providers | OpenRouter + Fallback | hy3:free, gpt-5.4 |
 | Media Generator Service | FastAPI (Python) | python-docx, HTML+Chromium (PDF), python-pptx |
 | LLM Adapter Service | FastAPI (Python) | FastAPI >=0.115 (Used as fallback) |
 | Frontend Build | Vite | ^8.0.0, Tailwind CSS ^4.0.0 |
