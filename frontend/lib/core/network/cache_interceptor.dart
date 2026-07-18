@@ -47,7 +47,11 @@ class CacheInterceptor extends Interceptor {
     final status = response.statusCode;
 
     if (options.method == 'GET' && status != null && status >= 200 && status < 300) {
-      await _cacheResponse(response);
+      try {
+        await _cacheResponse(response);
+      } catch (_) {
+        // Silently ignore cache write failures (e.g. missing Date header)
+      }
     }
 
     if (options.method != 'GET' && status != null && status >= 200 && status < 300) {
