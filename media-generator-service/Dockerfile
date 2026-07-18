@@ -39,10 +39,12 @@ RUN pip install --upgrade pip \
 # excludes the local node_modules/ from the build context).
 COPY app ./app
 COPY README.md ./README.md
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
 
 EXPOSE 7860
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT:-7860}/health || exit 1
 
-CMD ["sh", "-lc", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
+CMD ["./start.sh"]
