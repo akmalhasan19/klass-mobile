@@ -3,10 +3,12 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/core/config/feature_flags.dart';
 import 'package:klass_app/core/network/connectivity_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/network/api_data_normalizer.dart';
 
@@ -854,4 +856,12 @@ class _PendingPromptRequest {
     this.subSubjectId,
     this.cancelToken,
   });
-}
+}
+
+// ─── Riverpod Provider ────────────────────────────────────────────────────────
+// MediaGenerationService is a singleton; this provider ensures the ClarificationNotifier
+// and other consumers share the same instance that HomeScreen manages.
+final mediaGenerationServiceProvider = Provider<MediaGenerationService>((ref) {
+  final dio = ref.watch(dioProvider);
+  return MediaGenerationService(dio);
+});

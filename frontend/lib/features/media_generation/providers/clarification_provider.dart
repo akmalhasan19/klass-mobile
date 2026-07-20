@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/clarification_response.dart';
 import '../models/clarification_gap.dart';
 import '../models/chat_message.dart';
-import '../data/clarification_service.dart';
+import '../data/media_generation_service.dart';
 
 class ClarificationState {
   final String? generationId;
@@ -83,9 +83,9 @@ class ClarificationState {
 }
 
 class ClarificationNotifier extends StateNotifier<ClarificationState> {
-  final ClarificationService _service;
+  final MediaGenerationService _mediaGenService;
 
-  ClarificationNotifier(this._service) : super(ClarificationState());
+  ClarificationNotifier(this._mediaGenService) : super(ClarificationState());
 
   void initialize(ClarificationResponse response) {
     if (response.generationId.isEmpty) {
@@ -172,7 +172,18 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
     state = state.copyWith(isGenerating: true, clearError: true);
 
     try {
-      await _service.skipClarification(generationId: state.generationId!);
+      final success = await _mediaGenService.skipClarification(
+        generationId: state.generationId!,
+      );
+
+      if (!success) {
+        state = state.copyWith(
+          isGenerating: false,
+          error: _mediaGenService.errorMessage ?? 'Gagal menggunakan prompt yang disarankan.',
+        );
+        return;
+      }
+
       state = state.copyWith(isGenerating: false);
     } catch (e) {
       state = state.copyWith(
@@ -188,11 +199,20 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
     state = state.copyWith(isSubmitting: true, clearError: true);
 
     try {
-      await _service.confirmGeneration(
+      final success = await _mediaGenService.confirmGeneration(
         generationId: state.generationId!,
         enrichedPrompt: state.response!.suggestedPrompt,
         answers: state.answers,
       );
+
+      if (!success) {
+        state = state.copyWith(
+          isSubmitting: false,
+          error: _mediaGenService.errorMessage ?? 'Gagal mengonfirmasi generasi.',
+        );
+        return;
+      }
+
       state = state.copyWith(isSubmitting: false);
     } catch (e) {
       state = state.copyWith(
@@ -208,7 +228,18 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
     state = state.copyWith(isGenerating: true, clearError: true);
 
     try {
-      await _service.skipClarification(generationId: state.generationId!);
+      final success = await _mediaGenService.skipClarification(
+        generationId: state.generationId!,
+      );
+
+      if (!success) {
+        state = state.copyWith(
+          isGenerating: false,
+          error: _mediaGenService.errorMessage ?? 'Gagal melewati klarifikasi.',
+        );
+        return;
+      }
+
       state = state.copyWith(isGenerating: false);
     } catch (e) {
       state = state.copyWith(
@@ -276,14 +307,8 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
   }
 }
 
-final clarificationServiceProvider = Provider<ClarificationService>((ref) {
-  throw UnimplementedError(
-    'clarificationServiceProvider must be overridden at app level with a Dio instance.',
-  );
-});
-
 final clarificationProvider =
     StateNotifierProvider<ClarificationNotifier, ClarificationState>((ref) {
-  final service = ref.watch(clarificationServiceProvider);
-  return ClarificationNotifier(service);
+  final mediaGenService = ref.watch(mediaGenerationServiceProvider);
+  return ClarificationNotifier(mediaGenService);
 });
