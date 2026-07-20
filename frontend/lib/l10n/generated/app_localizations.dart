@@ -2563,6 +2563,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to analyze prompt. Please try again.'**
   String get clarificationPreflightError;
+
+  /// No description provided for @clarificationRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get clarificationRetry;
+
+  /// No description provided for @clarificationOfflineError.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Check your network.'**
+  String get clarificationOfflineError;
+
+  /// No description provided for @clarificationEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Prompt'**
+  String get clarificationEditTitle;
+
+  /// No description provided for @clarificationCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get clarificationCancel;
+
+  /// No description provided for @clarificationSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get clarificationSave;
 }
 
 class _AppLocalizationsDelegate

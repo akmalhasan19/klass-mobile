@@ -56,6 +56,8 @@ class ClarificationState {
 
   bool get allQuestionsAnswered => currentQuestionIndex >= totalGaps;
 
+  bool get isActive => isSubmitting || isGenerating;
+
   ClarificationState copyWith({
     String? generationId,
     ClarificationResponse? response,
@@ -86,6 +88,11 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
   ClarificationNotifier(this._service) : super(ClarificationState());
 
   void initialize(ClarificationResponse response) {
+    if (response.generationId.isEmpty) {
+      state = state.copyWith(error: 'Invalid clarification response: missing generation ID');
+      return;
+    }
+
     final messages = <ChatMessage>[];
 
     final topic = response.detected.topic;
@@ -170,7 +177,7 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
     } catch (e) {
       state = state.copyWith(
         isGenerating: false,
-        error: e.toString(),
+        error: _humanizeError(e),
       );
     }
   }
@@ -190,7 +197,7 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
     } catch (e) {
       state = state.copyWith(
         isSubmitting: false,
-        error: e.toString(),
+        error: _humanizeError(e),
       );
     }
   }
@@ -206,7 +213,7 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
     } catch (e) {
       state = state.copyWith(
         isGenerating: false,
-        error: e.toString(),
+        error: _humanizeError(e),
       );
     }
   }
@@ -246,6 +253,26 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
     }
 
     return parts.join(', ');
+  }
+
+  String _humanizeError(Object error) {
+    final message = error.toString();
+    if (message.contains('SocketException') || message.contains('Connection refused')) {
+      return 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+    }
+    if (message.contains('timeout') || message.contains('Timeout')) {
+      return 'Permintaan timeout. Silakan coba lagi.';
+    }
+    if (message.contains('400') || message.contains('Bad Request')) {
+      return 'Data tidak valid. Silakan periksa jawaban Anda.';
+    }
+    if (message.contains('401') || message.contains('403')) {
+      return 'Sesi Anda telah berakhir. Silakan login kembali.';
+    }
+    if (message.contains('500') || message.contains('Internal Server Error')) {
+      return 'Terjadi kesalahan server. Silakan coba lagi nanti.';
+    }
+    return message.isNotEmpty ? message : 'Terjadi kesalahan yang tidak diketahui.';
   }
 }
 

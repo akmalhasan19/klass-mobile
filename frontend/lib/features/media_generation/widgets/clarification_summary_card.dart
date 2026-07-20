@@ -8,8 +8,11 @@ class ClarificationSummaryCard extends StatelessWidget {
   final bool isGenerating;
   final VoidCallback onGenerate;
   final VoidCallback onEdit;
+  final Animation<double>? animation;
   final String? generateLabel;
   final String? editLabel;
+  final String? summaryTitleLabel;
+  final String? summaryProgressLabel;
 
   const ClarificationSummaryCard({
     super.key,
@@ -19,15 +22,18 @@ class ClarificationSummaryCard extends StatelessWidget {
     required this.isGenerating,
     required this.onGenerate,
     required this.onEdit,
+    this.animation,
     this.generateLabel,
     this.editLabel,
+    this.summaryTitleLabel,
+    this.summaryProgressLabel,
   });
 
   @override
   Widget build(BuildContext context) {
     final isIndonesian = Localizations.localeOf(context).languageCode == 'id';
 
-    return Container(
+    Widget card = Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.all(20),
@@ -55,7 +61,7 @@ class ClarificationSummaryCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  generateLabel ??
+                  summaryTitleLabel ??
                       (isIndonesian ? 'Prompt yang disempurnakan:' : 'Enhanced prompt:'),
                   style: const TextStyle(
                     fontFamily: 'Inter',
@@ -83,9 +89,10 @@ class ClarificationSummaryCard extends StatelessWidget {
           if (totalQuestions > 0) ...[
             const SizedBox(height: 10),
             Text(
-              isIndonesian
-                  ? '$answeredCount dari $totalQuestions pertanyaan terjawab'
-                  : '$answeredCount of $totalQuestions questions answered',
+              summaryProgressLabel ??
+                  (isIndonesian
+                      ? '$answeredCount dari $totalQuestions pertanyaan terjawab'
+                      : '$answeredCount of $totalQuestions questions answered'),
               style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 12,
@@ -157,5 +164,23 @@ class ClarificationSummaryCard extends StatelessWidget {
         ],
       ),
     );
+
+    if (animation != null) {
+      return FadeTransition(
+        opacity: animation!,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.1),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation!,
+            curve: Curves.easeOutCubic,
+          )),
+          child: card,
+        ),
+      );
+    }
+
+    return card;
   }
 }

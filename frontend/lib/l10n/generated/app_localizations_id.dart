@@ -1351,4 +1351,20 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get clarificationPreflightError =>
       'Gagal menganalisis prompt. Silakan coba lagi.';
+
+  @override
+  String get clarificationRetry => 'Coba Lagi';
+
+  @override
+  String get clarificationOfflineError =>
+      'Tidak ada koneksi internet. Periksa jaringan Anda.';
+
+  @override
+  String get clarificationEditTitle => 'Edit Prompt';
+
+  @override
+  String get clarificationCancel => 'Batal';
+
+  @override
+  String get clarificationSave => 'Simpan';
 }

@@ -1345,4 +1345,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get clarificationPreflightError =>
       'Failed to analyze prompt. Please try again.';
+
+  @override
+  String get clarificationRetry => 'Retry';
+
+  @override
+  String get clarificationOfflineError =>
+      'No internet connection. Check your network.';
+
+  @override
+  String get clarificationEditTitle => 'Edit Prompt';
+
+  @override
+  String get clarificationCancel => 'Cancel';
+
+  @override
+  String get clarificationSave => 'Save';
 }

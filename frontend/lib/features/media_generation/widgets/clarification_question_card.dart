@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:klass_app/core/config/app_colors.dart';
+import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/features/media_generation/models/clarification_gap.dart';
 import 'package:klass_app/features/media_generation/widgets/clarification_suggestion_chip.dart';
 
@@ -98,7 +99,7 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
   @override
   Widget build(BuildContext context) {
     final gap = widget.gap;
-    final isIndonesian = Localizations.localeOf(context).languageCode == 'id';
+    final loc = AppLocalizations.of(context)!;
 
     return SlideTransition(
       position: _slideAnimation,
@@ -136,8 +137,8 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
                     ),
                     child: Text(
                       gap.isRequired
-                          ? (isIndonesian ? 'Wajib' : 'Required')
-                          : (isIndonesian ? 'Disarankan' : 'Recommended'),
+                          ? loc.clarificationRequiredBadge
+                          : loc.clarificationRecommendedBadge,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 10,
@@ -176,8 +177,7 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  widget.chipOrTypeLabel ??
-                      (isIndonesian ? 'Atau ketik sendiri...' : 'Or type your own...'),
+                  widget.chipOrTypeLabel ?? loc.clarificationChipOrType,
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
@@ -193,7 +193,7 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
                 maxLines: 2,
                 minLines: 1,
                 decoration: InputDecoration(
-                  hintText: isIndonesian ? 'Ketik jawaban...' : 'Type your answer...',
+                  hintText: loc.clarificationInputHint,
                   hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),

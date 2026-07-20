@@ -512,5 +512,10 @@
   "clarificationAllAnswered": "Semua pertanyaan sudah terjawab!",
   "clarificationAutoAdvance": "Pertanyaan berikutnya...",
   "clarificationEmptyGaps": "Prompt Anda sudah lengkap! Siap untuk digenerate.",
-  "clarificationPreflightError": "Gagal menganalisis prompt. Silakan coba lagi."
+  "clarificationPreflightError": "Gagal menganalisis prompt. Silakan coba lagi.",
+  "clarificationRetry": "Coba Lagi",
+  "clarificationOfflineError": "Tidak ada koneksi internet. Periksa jaringan Anda.",
+  "clarificationEditTitle": "Edit Prompt",
+  "clarificationCancel": "Batal",
+  "clarificationSave": "Simpan"
 }

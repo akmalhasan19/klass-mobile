@@ -512,5 +512,10 @@
   "clarificationAllAnswered": "All questions answered!",
   "clarificationAutoAdvance": "Next question...",
   "clarificationEmptyGaps": "Your prompt is complete! Ready to generate.",
-  "clarificationPreflightError": "Failed to analyze prompt. Please try again."
+  "clarificationPreflightError": "Failed to analyze prompt. Please try again.",
+  "clarificationRetry": "Retry",
+  "clarificationOfflineError": "No internet connection. Check your network.",
+  "clarificationEditTitle": "Edit Prompt",
+  "clarificationCancel": "Cancel",
+  "clarificationSave": "Save"
 }

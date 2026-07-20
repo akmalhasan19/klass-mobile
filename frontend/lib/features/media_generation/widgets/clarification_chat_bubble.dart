@@ -4,17 +4,19 @@ import 'package:klass_app/features/media_generation/models/chat_message.dart';
 
 class ClarificationChatBubble extends StatelessWidget {
   final ChatMessage message;
+  final Animation<double>? animation;
 
   const ClarificationChatBubble({
     super.key,
     required this.message,
+    this.animation,
   });
 
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
 
-    return Align(
+    Widget bubble = Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
@@ -79,5 +81,23 @@ class ClarificationChatBubble extends StatelessWidget {
         ),
       ),
     );
+
+    if (animation != null) {
+      return FadeTransition(
+        opacity: animation!,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.15),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation!,
+            curve: Curves.easeOutCubic,
+          )),
+          child: bubble,
+        ),
+      );
+    }
+
+    return bubble;
   }
 }
