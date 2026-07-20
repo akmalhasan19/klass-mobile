@@ -2455,6 +2455,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to upload: {error}'**
   String accountSettingsAvatarUploadFailed(Object error);
+
+  /// No description provided for @clarificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clarify Prompt'**
+  String get clarificationTitle;
+
+  /// No description provided for @clarificationSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get clarificationSkip;
+
+  /// No description provided for @clarificationQuestionProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {current} of {total}'**
+  String clarificationQuestionProgress(int current, int total);
+
+  /// No description provided for @clarificationSystemIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand you want to create content about {topic}. I need a few more details to give you better results.'**
+  String clarificationSystemIntro(String topic);
+
+  /// No description provided for @clarificationSystemIntroGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'I need some additional information to make the content more relevant.'**
+  String get clarificationSystemIntroGeneric;
+
+  /// No description provided for @clarificationChipOrType.
+  ///
+  /// In en, this message translates to:
+  /// **'Or type your own...'**
+  String get clarificationChipOrType;
+
+  /// No description provided for @clarificationSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enhanced prompt:'**
+  String get clarificationSummaryTitle;
+
+  /// No description provided for @clarificationSummaryProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} questions answered'**
+  String clarificationSummaryProgress(int count, int total);
+
+  /// No description provided for @clarificationUsePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate with This Prompt'**
+  String get clarificationUsePrompt;
+
+  /// No description provided for @clarificationEditPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit This Prompt'**
+  String get clarificationEditPrompt;
+
+  /// No description provided for @clarificationInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your answer...'**
+  String get clarificationInputHint;
+
+  /// No description provided for @clarificationSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get clarificationSend;
+
+  /// No description provided for @clarificationRequiredBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get clarificationRequiredBadge;
+
+  /// No description provided for @clarificationRecommendedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get clarificationRecommendedBadge;
+
+  /// No description provided for @clarificationAllAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'All questions answered!'**
+  String get clarificationAllAnswered;
+
+  /// No description provided for @clarificationAutoAdvance.
+  ///
+  /// In en, this message translates to:
+  /// **'Next question...'**
+  String get clarificationAutoAdvance;
+
+  /// No description provided for @clarificationEmptyGaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Your prompt is complete! Ready to generate.'**
+  String get clarificationEmptyGaps;
+
+  /// No description provided for @clarificationPreflightError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to analyze prompt. Please try again.'**
+  String get clarificationPreflightError;
 }
 
 class _AppLocalizationsDelegate

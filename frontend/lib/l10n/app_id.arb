@@ -477,5 +477,40 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "clarificationTitle": "Clarifikasi Prompt",
+  "clarificationSkip": "Lewati",
+  "clarificationQuestionProgress": "Pertanyaan {current} dari {total}",
+  "@clarificationQuestionProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "clarificationSystemIntro": "Saya mengerti Anda ingin membuat konten tentang {topic}. Saya perlu beberapa info lagi agar hasilnya lebih baik.",
+  "@clarificationSystemIntro": {
+    "placeholders": {
+      "topic": { "type": "String" }
+    }
+  },
+  "clarificationSystemIntroGeneric": "Saya perlu beberapa informasi tambahan agar konten yang dihasilkan lebih sesuai.",
+  "clarificationChipOrType": "Atau ketik sendiri...",
+  "clarificationSummaryTitle": "Prompt yang disempurnakan:",
+  "clarificationSummaryProgress": "{count} dari {total} pertanyaan terjawab",
+  "@clarificationSummaryProgress": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "clarificationUsePrompt": "Generate dengan Prompt Ini",
+  "clarificationEditPrompt": "Edit Prompt Ini",
+  "clarificationInputHint": "Ketik jawaban...",
+  "clarificationSend": "Kirim",
+  "clarificationRequiredBadge": "Wajib",
+  "clarificationRecommendedBadge": "Disarankan",
+  "clarificationAllAnswered": "Semua pertanyaan sudah terjawab!",
+  "clarificationAutoAdvance": "Pertanyaan berikutnya...",
+  "clarificationEmptyGaps": "Prompt Anda sudah lengkap! Siap untuk digenerate.",
+  "clarificationPreflightError": "Gagal menganalisis prompt. Silakan coba lagi."
 }

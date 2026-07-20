@@ -17,6 +17,8 @@ import 'package:klass_app/core/config/animations.dart';
 import 'package:klass_app/features/home/data/home_service.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_action_service.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
+import 'package:klass_app/features/media_generation/data/clarification_service.dart';
+import 'package:klass_app/features/media_generation/screens/clarification_screen.dart';
 import 'package:klass_app/features/media_generation/data/project_service.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
@@ -58,6 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   late final HomeService _homeService;
   late final MediaGenerationService _mediaGenerationService;
   late final MediaGenerationActionService _mediaGenerationActionService;
+  late final ClarificationService _clarificationService;
   late final ProjectService _projectService;
   List<Map<String, dynamic>> projects = [];
   List<Map<String, dynamic>> freelancers = [];
@@ -77,6 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
     _homeService = HomeService(dio);
     _mediaGenerationService = MediaGenerationService(dio);
     _mediaGenerationActionService = MediaGenerationActionService();
+    _clarificationService = ClarificationService(dio);
     _projectService = ProjectService(dio);
     _mediaGenerationService.addListener(_onMediaGenerationChanged);
 
@@ -288,14 +292,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
       return;
     }
 
-    final submitted = await _mediaGenerationService.submitPrompt(prompt: text, cancelToken: cancelToken);
+    try {
+      final preflightResponse = await _clarificationService.preflight(
+        rawPrompt: text,
+        cancelToken: cancelToken,
+      );
 
-    if (!mounted || !submitted) {
-      return;
+      if (!mounted) return;
+
+      if (preflightResponse.isReady) {
+        final submitted = await _mediaGenerationService.submitPrompt(
+          prompt: preflightResponse.suggestedPrompt,
+          cancelToken: cancelToken,
+        );
+
+        if (!mounted || !submitted) return;
+
+        _promptController.clear();
+        _promptFocusNode.unfocus();
+        return;
+      }
+
+      final result = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => ClarificationScreen(
+            response: preflightResponse,
+            originalPrompt: text,
+          ),
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result == true) {
+        _promptController.clear();
+        _promptFocusNode.unfocus();
+      }
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal menganalisis prompt. Silakan coba lagi.',
+          ),
+        ),
+      );
     }
-
-    _promptController.clear();
-    _promptFocusNode.unfocus();
   }
 
   Future<void> _handleDownloadGeneratedArtifact() async {

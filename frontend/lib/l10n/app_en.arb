@@ -477,5 +477,40 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "clarificationTitle": "Clarify Prompt",
+  "clarificationSkip": "Skip",
+  "clarificationQuestionProgress": "Question {current} of {total}",
+  "@clarificationQuestionProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "clarificationSystemIntro": "I understand you want to create content about {topic}. I need a few more details to give you better results.",
+  "@clarificationSystemIntro": {
+    "placeholders": {
+      "topic": { "type": "String" }
+    }
+  },
+  "clarificationSystemIntroGeneric": "I need some additional information to make the content more relevant.",
+  "clarificationChipOrType": "Or type your own...",
+  "clarificationSummaryTitle": "Enhanced prompt:",
+  "clarificationSummaryProgress": "{count} of {total} questions answered",
+  "@clarificationSummaryProgress": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "clarificationUsePrompt": "Generate with This Prompt",
+  "clarificationEditPrompt": "Edit This Prompt",
+  "clarificationInputHint": "Type your answer...",
+  "clarificationSend": "Send",
+  "clarificationRequiredBadge": "Required",
+  "clarificationRecommendedBadge": "Recommended",
+  "clarificationAllAnswered": "All questions answered!",
+  "clarificationAutoAdvance": "Next question...",
+  "clarificationEmptyGaps": "Your prompt is complete! Ready to generate.",
+  "clarificationPreflightError": "Failed to analyze prompt. Please try again."
 }

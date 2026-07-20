@@ -1288,4 +1288,67 @@ class AppLocalizationsId extends AppLocalizations {
   String accountSettingsAvatarUploadFailed(Object error) {
     return 'Gagal mengunggah: $error';
   }
+
+  @override
+  String get clarificationTitle => 'Clarifikasi Prompt';
+
+  @override
+  String get clarificationSkip => 'Lewati';
+
+  @override
+  String clarificationQuestionProgress(int current, int total) {
+    return 'Pertanyaan $current dari $total';
+  }
+
+  @override
+  String clarificationSystemIntro(String topic) {
+    return 'Saya mengerti Anda ingin membuat konten tentang $topic. Saya perlu beberapa info lagi agar hasilnya lebih baik.';
+  }
+
+  @override
+  String get clarificationSystemIntroGeneric =>
+      'Saya perlu beberapa informasi tambahan agar konten yang dihasilkan lebih sesuai.';
+
+  @override
+  String get clarificationChipOrType => 'Atau ketik sendiri...';
+
+  @override
+  String get clarificationSummaryTitle => 'Prompt yang disempurnakan:';
+
+  @override
+  String clarificationSummaryProgress(int count, int total) {
+    return '$count dari $total pertanyaan terjawab';
+  }
+
+  @override
+  String get clarificationUsePrompt => 'Generate dengan Prompt Ini';
+
+  @override
+  String get clarificationEditPrompt => 'Edit Prompt Ini';
+
+  @override
+  String get clarificationInputHint => 'Ketik jawaban...';
+
+  @override
+  String get clarificationSend => 'Kirim';
+
+  @override
+  String get clarificationRequiredBadge => 'Wajib';
+
+  @override
+  String get clarificationRecommendedBadge => 'Disarankan';
+
+  @override
+  String get clarificationAllAnswered => 'Semua pertanyaan sudah terjawab!';
+
+  @override
+  String get clarificationAutoAdvance => 'Pertanyaan berikutnya...';
+
+  @override
+  String get clarificationEmptyGaps =>
+      'Prompt Anda sudah lengkap! Siap untuk digenerate.';
+
+  @override
+  String get clarificationPreflightError =>
+      'Gagal menganalisis prompt. Silakan coba lagi.';
 }

@@ -1282,4 +1282,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String accountSettingsAvatarUploadFailed(Object error) {
     return 'Failed to upload: $error';
   }
+
+  @override
+  String get clarificationTitle => 'Clarify Prompt';
+
+  @override
+  String get clarificationSkip => 'Skip';
+
+  @override
+  String clarificationQuestionProgress(int current, int total) {
+    return 'Question $current of $total';
+  }
+
+  @override
+  String clarificationSystemIntro(String topic) {
+    return 'I understand you want to create content about $topic. I need a few more details to give you better results.';
+  }
+
+  @override
+  String get clarificationSystemIntroGeneric =>
+      'I need some additional information to make the content more relevant.';
+
+  @override
+  String get clarificationChipOrType => 'Or type your own...';
+
+  @override
+  String get clarificationSummaryTitle => 'Enhanced prompt:';
+
+  @override
+  String clarificationSummaryProgress(int count, int total) {
+    return '$count of $total questions answered';
+  }
+
+  @override
+  String get clarificationUsePrompt => 'Generate with This Prompt';
+
+  @override
+  String get clarificationEditPrompt => 'Edit This Prompt';
+
+  @override
+  String get clarificationInputHint => 'Type your answer...';
+
+  @override
+  String get clarificationSend => 'Send';
+
+  @override
+  String get clarificationRequiredBadge => 'Required';
+
+  @override
+  String get clarificationRecommendedBadge => 'Recommended';
+
+  @override
+  String get clarificationAllAnswered => 'All questions answered!';
+
+  @override
+  String get clarificationAutoAdvance => 'Next question...';
+
+  @override
+  String get clarificationEmptyGaps =>
+      'Your prompt is complete! Ready to generate.';
+
+  @override
+  String get clarificationPreflightError =>
+      'Failed to analyze prompt. Please try again.';
 }

@@ -181,6 +181,206 @@ class MediaGenerationService extends ChangeNotifier {
     }
   }
 
+  /// Analyze prompt via preflight endpoint to detect gaps and get clarification questions.
+  ///
+  /// Returns the parsed preflight response or throws on failure.
+  Future<Map<String, dynamic>> preflight({
+    required String rawPrompt,
+    String preferredOutputType = 'auto',
+    int? subjectId,
+    int? subSubjectId,
+    CancelToken? cancelToken,
+  }) async {
+    final payload = <String, dynamic>{
+      'raw_prompt': rawPrompt.trim(),
+      'preferred_output_type': preferredOutputType,
+    };
+
+    if (subjectId != null) {
+      payload['subject_id'] = subjectId;
+    }
+
+    if (subSubjectId != null) {
+      payload['sub_subject_id'] = subSubjectId;
+    }
+
+    try {
+      final response = await _dio.post(
+        ApiConfig.v('/media-generations/preflight'),
+        data: payload,
+        cancelToken: cancelToken,
+      );
+
+      final dataMap = _asMap(response.data);
+      if (dataMap == null) {
+        throw Exception(
+          ApiDataNormalizer.buildDebugInfo(
+            'Invalid response format. Expected data as Object.',
+            operation: ApiDebugOperation.networkRequestFailed,
+            endpoint: ApiConfig.v('/media-generations/preflight'),
+          ),
+        );
+      }
+
+      final innerData = dataMap['data'];
+      final innerMap = _asMap(innerData);
+      if (innerMap == null) {
+        throw Exception(
+          ApiDataNormalizer.buildDebugInfo(
+            'Invalid response format. Expected data.data as Object.',
+            operation: ApiDebugOperation.networkRequestFailed,
+            endpoint: ApiConfig.v('/media-generations/preflight'),
+          ),
+        );
+      }
+
+      return innerMap;
+    } on DioException catch (error) {
+      throw Exception(
+        _resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations/preflight')),
+      );
+    } catch (error) {
+      throw Exception(
+        ApiDataNormalizer.buildDebugInfo(
+          error,
+          operation: ApiDebugOperation.networkRequestFailed,
+          endpoint: ApiConfig.v('/media-generations/preflight'),
+        ),
+      );
+    }
+  }
+
+  /// Submit enriched prompt after clarification to start generation.
+  ///
+  /// Calls `POST /media-generations/confirm` with generation_id,
+  /// enriched prompt, and clarification answers.
+  Future<bool> confirmGeneration({
+    required String generationId,
+    required String enrichedPrompt,
+    required Map<String, String> answers,
+    int? subjectId,
+    int? subSubjectId,
+    CancelToken? cancelToken,
+  }) async {
+    stopPolling();
+    _resource = null;
+    _generationId = generationId;
+    _submittedPrompt = enrichedPrompt;
+    _errorMessage = null;
+    _state = MediaGenerationViewState.loading;
+    notifyListeners();
+
+    final payload = <String, dynamic>{
+      'generation_id': generationId,
+      'enriched_prompt': enrichedPrompt,
+      'answers': answers,
+    };
+
+    if (subjectId != null) {
+      payload['subject_id'] = subjectId;
+    }
+
+    if (subSubjectId != null) {
+      payload['sub_subject_id'] = subSubjectId;
+    }
+
+    try {
+      final response = await _dio.post(
+        ApiConfig.v('/media-generations/confirm'),
+        data: payload,
+        cancelToken: cancelToken,
+      );
+
+      final resource = _extractResource(response.data);
+
+      if (resource == null) {
+        throw Exception(
+          ApiDataNormalizer.buildDebugInfo(
+            'Invalid response format. Expected data as Object.',
+            operation: ApiDebugOperation.networkRequestFailed,
+            endpoint: ApiConfig.v('/media-generations/confirm'),
+          ),
+        );
+      }
+
+      _applyResource(resource);
+
+      if (_state == MediaGenerationViewState.inProgress) {
+        _resetBackoff();
+        _startPolling(immediate: false);
+      }
+
+      return true;
+    } on DioException catch (error) {
+      _setError(_resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations/confirm')));
+      return false;
+    } catch (error) {
+      _setError(
+        ApiDataNormalizer.buildDebugInfo(
+          error,
+          operation: ApiDebugOperation.networkRequestFailed,
+          endpoint: ApiConfig.v('/media-generations/confirm'),
+        ),
+      );
+      return false;
+    }
+  }
+
+  /// Skip all clarification questions and generate with enriched prompt.
+  ///
+  /// Calls `POST /media-generations/{id}/skip-clarification`.
+  Future<bool> skipClarification({
+    required String generationId,
+    CancelToken? cancelToken,
+  }) async {
+    stopPolling();
+    _resource = null;
+    _generationId = generationId;
+    _errorMessage = null;
+    _state = MediaGenerationViewState.loading;
+    notifyListeners();
+
+    try {
+      final response = await _dio.post(
+        ApiConfig.v('/media-generations/$generationId/skip-clarification'),
+        cancelToken: cancelToken,
+      );
+
+      final resource = _extractResource(response.data);
+
+      if (resource == null) {
+        throw Exception(
+          ApiDataNormalizer.buildDebugInfo(
+            'Invalid response format. Expected data as Object.',
+            operation: ApiDebugOperation.networkRequestFailed,
+            endpoint: ApiConfig.v('/media-generations/$generationId/skip-clarification'),
+          ),
+        );
+      }
+
+      _applyResource(resource);
+
+      if (_state == MediaGenerationViewState.inProgress) {
+        _resetBackoff();
+        _startPolling(immediate: false);
+      }
+
+      return true;
+    } on DioException catch (error) {
+      _setError(_resolveDioErrorMessage(error, endpoint: ApiConfig.v('/media-generations/$generationId/skip-clarification')));
+      return false;
+    } catch (error) {
+      _setError(
+        ApiDataNormalizer.buildDebugInfo(
+          error,
+          operation: ApiDebugOperation.networkRequestFailed,
+          endpoint: ApiConfig.v('/media-generations/$generationId/skip-clarification'),
+        ),
+      );
+      return false;
+    }
+  }
+
   Future<void> pollNow({CancelToken? cancelToken}) async {
     if (_generationId == null || _isPollingRequestInFlight) {
       return;
