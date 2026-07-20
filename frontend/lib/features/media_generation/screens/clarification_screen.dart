@@ -226,7 +226,9 @@ class _ClarificationScreenState extends ConsumerState<ClarificationScreen>
       if (next.error != null && prev?.error == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.error!),
+            content: SelectableText(next.error!),
+            duration: const Duration(seconds: 15),
+            showCloseIcon: true,
             action: SnackBarAction(
               label: loc.clarificationRetry,
               onPressed: _onRetry,
