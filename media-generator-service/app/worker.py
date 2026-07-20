@@ -37,25 +37,35 @@ from app.webhook_sender import MAX_WEBHOOK_ATTEMPTS, send_webhook_with_retry
 
 logger = logging.getLogger("klass-media-generator.worker")
 
-# Module-level registry — initialised once at worker startup.
 _registry: GeneratorRegistry | None = None
 _template_registry: Any = None
+_sidecar_manager: Any = None
 
 
 async def startup(ctx: dict[str, Any]) -> None:
     """Arq startup hook — initialises the generator registry and reconfigures Redis pool."""
-    global _registry, _template_registry
+    global _registry, _template_registry, _sidecar_manager
     from app.templates.registry import TemplateRegistry
     import app.templates as templates_pkg
     from pathlib import Path
+    from app.engines.chromium_sidecar.sidecar.sidecar_manager import build_sidecar_manager
 
     _template_registry = TemplateRegistry()
     templates_dir = Path(templates_pkg.__file__).resolve().parent
     _template_registry.load_templates(templates_dir)
 
-    _registry = GeneratorRegistry(template_registry=_template_registry)
-
     settings = get_settings()
+
+    logger.info("Starting Chromium sidecar for worker…")
+    _sidecar_manager = build_sidecar_manager(settings)
+    await _sidecar_manager.start()
+    logger.info("Chromium sidecar started and ready in worker")
+
+    _registry = GeneratorRegistry(
+        template_registry=_template_registry,
+        sidecar_manager=_sidecar_manager,
+        event_loop=asyncio.get_running_loop(),
+    )
 
     # Reconfigure the worker's Redis connection pool with tuning parameters.
     # arq creates the connection internally via RedisSettings; we replace the
@@ -93,7 +103,11 @@ async def startup(ctx: dict[str, Any]) -> None:
 
 async def shutdown(ctx: dict[str, Any]) -> None:
     """Arq shutdown hook."""
+    global _sidecar_manager
     logger.info("Arq worker shutting down")
+    if _sidecar_manager is not None:
+        logger.info("Shutting down Chromium sidecar in worker…")
+        await _sidecar_manager.stop()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
