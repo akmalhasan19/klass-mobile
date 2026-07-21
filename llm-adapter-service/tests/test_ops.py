@@ -63,8 +63,8 @@ def test_ops_summary_endpoint_returns_metrics_and_active_providers(client) -> No
     governance_service = AdapterGovernanceService(settings)
     cost_service.upsert_price_catalog_entry(
         PriceCatalogEntry(
-            provider="gemini",
-            model="gemini-2.0-flash",
+            provider="minimax",
+            model="minimax-2.0-flash",
             input_cost_per_unit_usd=Decimal("0.001"),
             output_cost_per_unit_usd=Decimal("0.002"),
         )
@@ -74,8 +74,8 @@ def test_ops_summary_endpoint_returns_metrics_and_active_providers(client) -> No
         request_type="media_prompt_interpretation",
         result=_execution_result(
             route="interpret",
-            provider="gemini",
-            model="gemini-2.0-flash",
+            provider="minimax",
+            model="minimax-2.0-flash",
             generation_id="gen-ops-1",
             request_id_suffix="ops-success-1",
             latency_ms=20.0,
@@ -88,8 +88,8 @@ def test_ops_summary_endpoint_returns_metrics_and_active_providers(client) -> No
         generation_id="gen-ops-1",
         route="interpret",
         request_type="media_prompt_interpretation",
-        provider="gemini",
-        model="gemini-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
         requested_model="llm-gateway",
         cache_key="b" * 64,
     )
@@ -99,9 +99,9 @@ def test_ops_summary_endpoint_returns_metrics_and_active_providers(client) -> No
             generation_id="gen-ops-2",
             route="respond",
             request_type="media_delivery_response",
-            provider="gemini",
-            primary_provider="gemini",
-            model="gemini-2.0-flash",
+            provider="minimax",
+            primary_provider="minimax",
+            model="minimax-2.0-flash",
             requested_model="llm-gateway",
             error_class="ProviderRequestError",
             error_code="provider_timeout",
@@ -127,8 +127,8 @@ def test_ops_summary_endpoint_returns_metrics_and_active_providers(client) -> No
     )
     governance_service.record_denial(
         route="interpret",
-        provider="gemini",
-        model="gemini-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
         request_id="req-ops-deny-1",
         generation_id="gen-ops-1",
         policy=interpretation_day_policy,
@@ -140,7 +140,7 @@ def test_ops_summary_endpoint_returns_metrics_and_active_providers(client) -> No
     payload = response.json()
     assert payload["schema_version"] == "llm_adapter_ops.v1"
     assert payload["active_routes"][0]["route"] == "interpret"
-    assert payload["active_routes"][0]["provider"] == "gemini"
+    assert payload["active_routes"][0]["provider"] == "minimax"
     assert payload["active_routes"][1]["route"] == "respond"
 
     interpret_route = next(route for route in payload["routes"] if route["route"] == "interpret")
@@ -157,7 +157,7 @@ def test_ops_summary_endpoint_returns_metrics_and_active_providers(client) -> No
     assert respond_route["total_estimated_cost_usd"] == "0.01000000"
 
     provider_metric = next(metric for metric in payload["provider_models"] if metric["route"] == "interpret")
-    assert provider_metric["provider"] == "gemini"
-    assert provider_metric["model"] == "gemini-2.0-flash"
+    assert provider_metric["provider"] == "minimax"
+    assert provider_metric["model"] == "minimax-2.0-flash"
     assert provider_metric["request_count"] == 2
     assert provider_metric["cache_hit_ratio"] == 0.5

@@ -111,8 +111,8 @@
 
 | Crate | Version | Purpose | Why this crate |
 |-------|---------|---------|---------------|
-| `reqwest` | (above) | HTTP/2 + connection pooling | HTTP client for Gemini API (query-param key auth) + OpenAI API (bearer token auth). |
-| `serde_json` | (above) | JSON request/response | Parse Gemini `generateContent` response, OpenAI `v1/responses` response. |
+| `reqwest` | (above) | HTTP/2 + connection pooling | HTTP client for minimax API (query-param key auth) + OpenAI API (bearer token auth). |
+| `serde_json` | (above) | JSON request/response | Parse minimax `generateContent` response, OpenAI `v1/responses` response. |
 | `async-trait` | `0.1` | Async trait support | `Provider` trait with `async fn complete()`. Required until native async traits stabilize. |
 
 ---
@@ -234,10 +234,10 @@ MEDIA_GENERATION_PYTHON_SHARED_SECRET=***
 MEDIA_GEN_WEBHOOK_SECRET=***
 
 # LLM Providers
-LLM_ADAPTER_GEMINI_API_KEY=***
-LLM_ADAPTER_GEMINI_BASE_URL=https://generativelanguage.googleapis.com
-LLM_ADAPTER_GEMINI_INTERPRET_MODEL=gemini-2.0-flash
-LLM_ADAPTER_GEMINI_DELIVERY_MODEL=gemini-2.0-flash
+LLM_ADAPTER_minimax_API_KEY=***
+LLM_ADAPTER_minimax_BASE_URL=https://generativelanguage.googleapis.com
+LLM_ADAPTER_minimax_INTERPRET_MODEL=minimax-2.0-flash
+LLM_ADAPTER_minimax_DELIVERY_MODEL=minimax-2.0-flash
 
 LLM_ADAPTER_OPENAI_API_KEY=***
 LLM_ADAPTER_OPENAI_BASE_URL=https://api.openai.com
@@ -245,8 +245,8 @@ LLM_ADAPTER_OPENAI_INTERPRET_MODEL=gpt-5.4
 LLM_ADAPTER_OPENAI_DELIVERY_MODEL=gpt-5.4
 
 # Provider routing
-LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER=gemini
-LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER=gemini
+LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER=minimax
+LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER=minimax
 LLM_ADAPTER_INTERPRETATION_FALLBACK_PROVIDER=openai
 LLM_ADAPTER_UPSTREAM_TIMEOUT_SECONDS=30
 

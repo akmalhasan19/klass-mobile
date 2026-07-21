@@ -66,12 +66,12 @@ def test_interpretation_cache_document_excludes_generation_id() -> None:
 
     document = build_interpretation_cache_document(
         payload,
-        provider="Gemini",
-        model="gemini-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
     )
 
     assert document["route"] == "interpret"
-    assert document["provider"] == "gemini"
+    assert document["provider"] == "minimax"
     assert document["instruction"] == "Return exactly one JSON object."
     assert document["input"]["teacher_prompt"] == "Buatkan handout pecahan untuk kelas 5."
     assert "generation_id" not in document
@@ -83,13 +83,13 @@ def test_interpretation_cache_key_ignores_generation_id_for_same_semantic_reques
 
     first_key = build_interpretation_cache_key(
         first_payload,
-        provider="gemini",
-        model="gemini-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
     )
     second_key = build_interpretation_cache_key(
         second_payload,
-        provider="gemini",
-        model="gemini-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
     )
 
     assert first_key == second_key
@@ -105,13 +105,13 @@ def test_delivery_cache_key_changes_when_semantic_payload_changes() -> None:
 
     first_key = build_delivery_cache_key(
         first_payload,
-        provider="gemini",
-        model="gemini-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
     )
     second_key = build_delivery_cache_key(
         second_payload,
-        provider="gemini",
-        model="gemini-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
     )
 
     assert first_key != second_key

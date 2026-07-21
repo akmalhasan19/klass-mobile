@@ -1402,12 +1402,12 @@ def _default_model_for_route(settings: Settings, route: ProviderRoute) -> str:
         if settings.active_interpretation_provider == "openai":
             return settings.openai_interpretation_model
 
-        return settings.gemini_interpretation_model
+        return settings.minimax_interpretation_model
 
     if settings.active_delivery_provider == "openai":
         return settings.openai_delivery_model
 
-    return settings.gemini_delivery_model
+    return settings.minimax_delivery_model
 
 
 def _format_decimal(value: Decimal) -> str:

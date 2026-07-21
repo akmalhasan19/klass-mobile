@@ -123,8 +123,8 @@ def build_execution_result(
     *,
     generation_id: str,
     raw_completion: str,
-    provider: str = "gemini",
-    model: str = "gemini-2.0-flash",
+    provider: str = "minimax",
+    model: str = "minimax-2.0-flash",
     requested_model: str = "llm-gateway",
     primary_provider: str | None = None,
     fallback_used: bool = False,
@@ -185,14 +185,14 @@ def test_respond_route_returns_validated_payload_and_records_cache_and_ledger(cl
     payload = response.json()
     assert payload["schema_version"] == "media_delivery_response.v1"
     assert payload["response_meta"]["llm_used"] is True
-    assert payload["response_meta"]["provider"] == "gemini"
-    assert payload["response_meta"]["model"] == "gemini-2.0-flash"
+    assert payload["response_meta"]["provider"] == "minimax"
+    assert payload["response_meta"]["model"] == "minimax-2.0-flash"
     assert payload["fallback"]["triggered"] is False
     assert payload["recommended_next_steps"] == []
     assert payload["classroom_tips"] == []
-    assert response.headers["X-Klass-LLM-Provider"] == "gemini"
-    assert response.headers["X-Klass-LLM-Model"] == "gemini-2.0-flash"
-    assert response.headers["X-Klass-LLM-Primary-Provider"] == "gemini"
+    assert response.headers["X-Klass-LLM-Provider"] == "minimax"
+    assert response.headers["X-Klass-LLM-Model"] == "minimax-2.0-flash"
+    assert response.headers["X-Klass-LLM-Primary-Provider"] == "minimax"
     assert response.headers["X-Klass-LLM-Fallback-Used"] == "false"
     assert calls == ["gen-respond-success-1"]
     assert len(fake_database_state.cache_tables[DELIVERY_CACHE_TABLE_NAME]) == 1
@@ -232,9 +232,9 @@ def test_respond_route_reuses_cache_across_generations_with_same_semantic_reques
 
     assert first_response.status_code == 200
     assert second_response.status_code == 200
-    assert second_response.headers["X-Klass-LLM-Provider"] == "gemini"
-    assert second_response.headers["X-Klass-LLM-Model"] == "gemini-2.0-flash"
-    assert second_response.headers["X-Klass-LLM-Primary-Provider"] == "gemini"
+    assert second_response.headers["X-Klass-LLM-Provider"] == "minimax"
+    assert second_response.headers["X-Klass-LLM-Model"] == "minimax-2.0-flash"
+    assert second_response.headers["X-Klass-LLM-Primary-Provider"] == "minimax"
     assert calls == ["gen-respond-cache-1"]
     second_ledger_row = fake_database_state.ledger_rows["req-respond-cache-2"]
     assert second_ledger_row["cache_status"] == "hit"
@@ -317,7 +317,7 @@ def test_respond_route_returns_structured_failure_when_provider_payload_is_inval
     payload = response.json()
     assert payload["code"] == "provider_response_contract_invalid"
     assert payload["details"]["route"] == "respond"
-    assert payload["details"]["provider"] == "gemini"
+    assert payload["details"]["provider"] == "minimax"
     ledger_row = fake_database_state.ledger_rows["req-respond-invalid-contract-1"]
     assert ledger_row["final_status"] == "failed"
     assert ledger_row["error_code"] == "provider_response_contract_invalid"
@@ -327,11 +327,11 @@ def test_respond_route_maps_provider_timeout_to_explicit_adapter_error(client, f
     async def stub_execute(self, payload):
         raise ProviderRequestError(
             code="provider_timeout",
-            message="Gemini request timed out.",
+            message="minimax request timed out.",
             status_code=504,
             details={
-                "provider": "gemini",
-                "model": "gemini-2.0-flash",
+                "provider": "minimax",
+                "model": "minimax-2.0-flash",
             },
             retryable=True,
         )
@@ -350,7 +350,7 @@ def test_respond_route_maps_provider_timeout_to_explicit_adapter_error(client, f
     payload = response.json()
     assert payload["code"] == "provider_timeout"
     assert payload["retryable"] is True
-    assert "test-gemini-api-key" not in json.dumps(payload)
+    assert "test-minimax-api-key" not in json.dumps(payload)
     ledger_row = fake_database_state.ledger_rows["req-respond-timeout-1"]
     assert ledger_row["final_status"] == "failed"
     assert ledger_row["error_code"] == "provider_timeout"

@@ -12,7 +12,7 @@
 ## Context
 
 LLM Adapter saat ini adalah service Python terpisah (HF Space #2) dengan:
-- **Provider module** (829 lines): Gemini + OpenAI client, routing, fallback logic
+- **Provider module** (829 lines): minimax + OpenAI client, routing, fallback logic
 - **Cache module** (829 lines): Semantic cache dengan PostgreSQL advisory lock stampede protection
 - **Governance module** (1014 lines): Rate limiting fixed-window, budget tracking, preflight check
 - **Rate limit module** (291 lines): Policy definitions, bucket mutations, window calculation
@@ -35,7 +35,7 @@ Before:                              After:
 │ Laravel   │ ─────>│ LLM       │    │ Rust Gateway             │
 │  (PHP)    │       │ Adapter   │    │                          │
 └──────────┘       │ (Python)  │    │  src/providers/          │
-                   └─────┬─────┘    │    gemini.rs             │
+                   └─────┬─────┘    │    minimax.rs             │
                          │          │    openai.rs             │
                    ┌─────▼─────┐    │    routing.rs            │
                    │ DB sendiri │    │                          │
@@ -52,7 +52,7 @@ Before:                              After:
 
 | Python (LLM Adapter) | Rust (Gateway) | Lines (est.) |
 |----------------------|----------------|-------------|
-| `app/providers/gemini.py` (339) | `src/providers/gemini.rs` | ~300 |
+| `app/providers/minimax.py` (339) | `src/providers/minimax.rs` | ~300 |
 | `app/providers/openai.py` (401) | `src/providers/openai.rs` | ~350 |
 | `app/providers/base.py` (203) | `src/providers/mod.rs` | ~150 |
 | `app/providers/routing.py` (238) | `src/providers/routing.rs` | ~200 |
@@ -141,7 +141,7 @@ Cache hash **harus byte-identical** dengan Python untuk memungkinkan cache migra
 | Rewrite 3,000 lines Python → Rust | Provider module paling straightforward (HTTP call + JSON parse); cache + governance sudah well-documented di `INTEGRATION_MAPPING.md` |
 | Cache hash incompatibility | Unit test Fase 5: hash 100 sample payload di Python + Rust, assert byte-identik |
 | Advisory lock ID mismatch | Blake2b params verified via unit test (person b"klasscch", digest_size=8) |
-| Provider response parsing beda (Pydantic vs serde) | Contract test: 5 real Gemini + OpenAI responses, deserialize di Rust |
+| Provider response parsing beda (Pydantic vs serde) | Contract test: 5 real minimax + OpenAI responses, deserialize di Rust |
 
 ---
 

@@ -662,8 +662,8 @@ class InterpretationWorkflowService:
 
     def _default_model_for_provider(self, provider: str, requested_model: str) -> str:
         normalized_provider = provider.strip().lower()
-        if normalized_provider == "gemini":
-            return self.settings.gemini_interpretation_model
+        if normalized_provider == "minimax":
+            return self.settings.minimax_interpretation_model
         if normalized_provider == "openai":
             return self.settings.openai_interpretation_model
         return requested_model.strip()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.errors import ProviderConfigurationError
 from app.contracts import SUPPORTED_PROVIDERS
 from app.providers.base import ProviderClient, ProviderDefinition
-from app.providers.gemini import GeminiProviderClient
+from app.providers.minimax import minimaxProviderClient
 from app.providers.openai import OpenAIProviderClient
 from app.settings import Settings
 
@@ -11,10 +11,10 @@ from app.settings import Settings
 class ProviderRegistry:
     def __init__(self) -> None:
         self._providers = {
-            "gemini": ProviderDefinition(
-                name="gemini",
-                required_env_fields=("LLM_ADAPTER_GEMINI_API_KEY",),
-                client_factory=GeminiProviderClient,
+            "minimax": ProviderDefinition(
+                name="minimax",
+                required_env_fields=("LLM_ADAPTER_minimax_API_KEY",),
+                client_factory=minimaxProviderClient,
             ),
             "openai": ProviderDefinition(
                 name="openai",

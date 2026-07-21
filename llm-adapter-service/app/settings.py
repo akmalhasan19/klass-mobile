@@ -11,10 +11,10 @@ from app.contracts import (
     DEFAULT_PROVIDER_FALLBACK_ERROR_CODES,
     DEFAULT_DELIVERY_PROVIDER,
     DEFAULT_INTERPRETATION_PROVIDER,
-    GEMINI_API_VERSION,
-    GEMINI_BASE_URL,
-    GEMINI_DEFAULT_DELIVERY_MODEL,
-    GEMINI_DEFAULT_INTERPRETATION_MODEL,
+    minimax_API_VERSION,
+    minimax_BASE_URL,
+    minimax_DEFAULT_DELIVERY_MODEL,
+    minimax_DEFAULT_INTERPRETATION_MODEL,
     OPENAI_BASE_URL,
     OPENAI_DEFAULT_DELIVERY_MODEL,
     OPENAI_DEFAULT_INTERPRETATION_MODEL,
@@ -62,11 +62,11 @@ class Settings:
     delivery_exhausted_action: str
     budget_warning_ratio: Decimal
     content_integrity_threshold: Decimal
-    gemini_api_key: str
-    gemini_base_url: str
-    gemini_api_version: str
-    gemini_interpretation_model: str
-    gemini_delivery_model: str
+    minimax_api_key: str
+    minimax_base_url: str
+    minimax_api_version: str
+    minimax_interpretation_model: str
+    minimax_delivery_model: str
     openai_api_key: str
     openai_base_url: str
     openai_interpretation_model: str
@@ -342,16 +342,16 @@ def get_settings() -> Settings:
             os.getenv("LLM_ADAPTER_CONTENT_INTEGRITY_THRESHOLD"),
             Decimal("0.75"),
         ),
-        gemini_api_key=_clean_str(os.getenv("LLM_ADAPTER_GEMINI_API_KEY")),
-        gemini_base_url=_clean_str(os.getenv("LLM_ADAPTER_GEMINI_BASE_URL"), GEMINI_BASE_URL),
-        gemini_api_version=_clean_str(os.getenv("LLM_ADAPTER_GEMINI_API_VERSION"), GEMINI_API_VERSION),
-        gemini_interpretation_model=_clean_str(
-            os.getenv("LLM_ADAPTER_GEMINI_INTERPRET_MODEL"),
-            GEMINI_DEFAULT_INTERPRETATION_MODEL,
+        minimax_api_key=_clean_str(os.getenv("LLM_ADAPTER_minimax_API_KEY")),
+        minimax_base_url=_clean_str(os.getenv("LLM_ADAPTER_minimax_BASE_URL"), minimax_BASE_URL),
+        minimax_api_version=_clean_str(os.getenv("LLM_ADAPTER_minimax_API_VERSION"), minimax_API_VERSION),
+        minimax_interpretation_model=_clean_str(
+            os.getenv("LLM_ADAPTER_minimax_INTERPRET_MODEL"),
+            minimax_DEFAULT_INTERPRETATION_MODEL,
         ),
-        gemini_delivery_model=_clean_str(
-            os.getenv("LLM_ADAPTER_GEMINI_DELIVERY_MODEL"),
-            GEMINI_DEFAULT_DELIVERY_MODEL,
+        minimax_delivery_model=_clean_str(
+            os.getenv("LLM_ADAPTER_minimax_DELIVERY_MODEL"),
+            minimax_DEFAULT_DELIVERY_MODEL,
         ),
         openai_api_key=_clean_str(os.getenv("LLM_ADAPTER_OPENAI_API_KEY")),
         openai_base_url=_clean_str(os.getenv("LLM_ADAPTER_OPENAI_BASE_URL"), OPENAI_BASE_URL),
