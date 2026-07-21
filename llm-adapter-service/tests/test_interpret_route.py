@@ -211,8 +211,8 @@ def build_execution_result(
     *,
     generation_id: str,
     raw_completion: str,
-    provider: str = "xiaomi",
-    model: str = "xiaomi-2.0-flash",
+    provider: str = "minimax",
+    model: str = "minimax-2.0-flash",
     requested_model: str = "llm-gateway",
     primary_provider: str | None = None,
     fallback_used: bool = False,
@@ -273,9 +273,9 @@ def test_interpret_route_returns_validated_payload_and_records_cache_and_ledger(
     payload = response.json()
     assert payload["schema_version"] == "media_prompt_understanding.v1"
     assert [candidate["type"] for candidate in payload["output_type_candidates"]] == ["pdf", "docx", "pptx"]
-    assert response.headers["X-Klass-LLM-Provider"] == "xiaomi"
-    assert response.headers["X-Klass-LLM-Model"] == "xiaomi-2.0-flash"
-    assert response.headers["X-Klass-LLM-Primary-Provider"] == "xiaomi"
+    assert response.headers["X-Klass-LLM-Provider"] == "minimax"
+    assert response.headers["X-Klass-LLM-Model"] == "minimax-2.0-flash"
+    assert response.headers["X-Klass-LLM-Primary-Provider"] == "minimax"
     assert response.headers["X-Klass-LLM-Fallback-Used"] == "false"
     assert calls == ["gen-interpret-success-1"]
     assert len(fake_database_state.cache_tables[INTERPRETATION_CACHE_TABLE_NAME]) == 1
@@ -363,9 +363,9 @@ def test_interpret_route_reuses_cache_across_generations_with_same_semantic_requ
 
     assert first_response.status_code == 200
     assert second_response.status_code == 200
-    assert second_response.headers["X-Klass-LLM-Provider"] == "xiaomi"
-    assert second_response.headers["X-Klass-LLM-Model"] == "xiaomi-2.0-flash"
-    assert second_response.headers["X-Klass-LLM-Primary-Provider"] == "xiaomi"
+    assert second_response.headers["X-Klass-LLM-Provider"] == "minimax"
+    assert second_response.headers["X-Klass-LLM-Model"] == "minimax-2.0-flash"
+    assert second_response.headers["X-Klass-LLM-Primary-Provider"] == "minimax"
     assert calls == ["gen-cache-1"]
     second_ledger_row = fake_database_state.ledger_rows["req-cache-2"]
     assert second_ledger_row["cache_status"] == "hit"
@@ -444,11 +444,11 @@ def test_interpret_route_maps_provider_timeout_to_explicit_adapter_error(client,
     async def stub_execute(self, payload):
         raise ProviderRequestError(
             code="provider_timeout",
-            message="xiaomi request timed out.",
+            message="minimax request timed out.",
             status_code=504,
             details={
-                "provider": "xiaomi",
-                "model": "xiaomi-2.0-flash",
+                "provider": "minimax",
+                "model": "minimax-2.0-flash",
             },
             retryable=True,
         )
@@ -467,7 +467,7 @@ def test_interpret_route_maps_provider_timeout_to_explicit_adapter_error(client,
     payload = response.json()
     assert payload["code"] == "provider_timeout"
     assert payload["retryable"] is True
-    assert "test-xiaomi-api-key" not in json.dumps(payload)
+    assert "test-minimax-api-key" not in json.dumps(payload)
     ledger_row = fake_database_state.ledger_rows["req-timeout-1"]
     assert ledger_row["final_status"] == "failed"
     assert ledger_row["error_code"] == "provider_timeout"
@@ -475,7 +475,7 @@ def test_interpret_route_maps_provider_timeout_to_explicit_adapter_error(client,
 
 
 def test_interpret_route_maps_provider_configuration_failure_to_explicit_adapter_error(client, fake_database_state, monkeypatch) -> None:
-    monkeypatch.delenv("LLM_ADAPTER_xiaomi_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_ADAPTER_minimax_API_KEY", raising=False)
     clear_settings_cache()
     request_payload = interpretation_request_payload(generation_id="gen-config-1")
     body, headers = build_signed_request(
@@ -489,7 +489,7 @@ def test_interpret_route_maps_provider_configuration_failure_to_explicit_adapter
     assert response.status_code == 503
     payload = response.json()
     assert payload["code"] == "provider_config_missing"
-    assert payload["details"]["missing_settings"] == ["LLM_ADAPTER_xiaomi_API_KEY"]
+    assert payload["details"]["missing_settings"] == ["LLM_ADAPTER_minimax_API_KEY"]
     ledger_row = fake_database_state.ledger_rows["req-config-1"]
     assert ledger_row["final_status"] == "failed"
     assert ledger_row["error_code"] == "provider_config_missing"

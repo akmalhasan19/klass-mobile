@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | **Protocol** | HTTPS + API Key / Bearer Token |
-| **Direction** | Gateway → xiaomi API / OpenAI API |
+| **Direction** | Gateway → minimax API / OpenAI API |
 | **Protocol version** | HTTP/2 (with HTTP/1.1 fallback via reqwest) |
 
 ---
@@ -18,7 +18,7 @@ ProviderRouter::execute_interpretation(payload) / execute_delivery(payload)
   │
   ├── Primary provider (configurable per route)
   │     │
-  │     ├── xiaomi: POST /v1beta/models/{model}:generateContent
+  │     ├── minimax: POST /v1beta/models/{model}:generateContent
   │     └── OpenAI: POST /v1/responses
   │
   └── Fallback provider (if primary fails with retryable error)
@@ -30,7 +30,7 @@ ProviderRouter::execute_interpretation(payload) / execute_delivery(payload)
 
 | Setting | Interpret | Delivery | Default |
 |---------|-----------|----------|---------|
-| Provider | `LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER` | `LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER` | `xiaomi` |
+| Provider | `LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER` | `LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER` | `minimax` |
 | Fallback | `LLM_ADAPTER_INTERPRETATION_FALLBACK_PROVIDER` | `LLM_ADAPTER_DELIVERY_FALLBACK_PROVIDER` | — (optional) |
 | Timeout | 30s | 30s | `LLM_ADAPTER_UPSTREAM_TIMEOUT_SECONDS` |
 
@@ -44,7 +44,7 @@ Fallback hanya dipicu untuk error code berikut:
 
 ---
 
-## Provider 1: Google xiaomi
+## Provider 1: Google minimax
 
 ### Endpoint
 
@@ -56,25 +56,25 @@ POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateCon
 
 | Method | Location | Env Variable |
 |--------|----------|-------------|
-| API Key | Query parameter `?key=` | `LLM_ADAPTER_xiaomi_API_KEY` |
+| API Key | Query parameter `?key=` | `LLM_ADAPTER_minimax_API_KEY` |
 
 ### Model Configuration
 
 | Route | Default Model | Env Override |
 |-------|-------------|-------------|
-| Interpretation | `xiaomi-2.0-flash` | `LLM_ADAPTER_xiaomi_INTERPRET_MODEL` |
-| Delivery | `xiaomi-2.0-flash` | `LLM_ADAPTER_xiaomi_DELIVERY_MODEL` |
+| Interpretation | `minimax-2.0-flash` | `LLM_ADAPTER_minimax_INTERPRET_MODEL` |
+| Delivery | `minimax-2.0-flash` | `LLM_ADAPTER_minimax_DELIVERY_MODEL` |
 
 ### Model Resolution
 
 ```rust
 fn resolve_model(route: ProviderRoute, requested: &str) -> String {
-    if requested.to_lowercase().starts_with("xiaomi") {
+    if requested.to_lowercase().starts_with("minimax") {
         return requested.to_string(); // Passthrough
     }
     match route {
-        ProviderRoute::Interpret => settings.xiaomi_interpretation_model.clone(),
-        ProviderRoute::Respond   => settings.xiaomi_delivery_model.clone(),
+        ProviderRoute::Interpret => settings.minimax_interpretation_model.clone(),
+        ProviderRoute::Respond   => settings.minimax_delivery_model.clone(),
     }
 }
 ```
@@ -147,7 +147,7 @@ fn resolve_model(route: ProviderRoute, requested: &str) -> String {
     "candidatesTokenCount": 800,
     "totalTokenCount": 950
   },
-  "modelVersion": "xiaomi-2.0-flash",
+  "modelVersion": "minimax-2.0-flash",
   "responseId": "abc123"
 }
 ```
@@ -162,7 +162,7 @@ fn resolve_model(route: ProviderRoute, requested: &str) -> String {
 
 ### Error Response Mapping
 
-| HTTP Status | xiaomi Error | Gateway Error Code | Retryable |
+| HTTP Status | minimax Error | Gateway Error Code | Retryable |
 |-------------|-------------|-------------------|-----------|
 | 400 | Invalid request | `provider_request_invalid` | No |
 | 401, 403 | Auth failed | `provider_auth_failed` | No |
@@ -252,7 +252,7 @@ fn resolve_model(route: ProviderRoute, requested: &str) -> String {
       "content": [
         {
           "type": "input_text",
-          "text": "<serialized_prompt_payload>"  // Same JSON serialization as xiaomi
+          "text": "<serialized_prompt_payload>"  // Same JSON serialization as minimax
         }
       ]
     }
@@ -331,7 +331,7 @@ Request ID: `x-request-id` response header or response `id` field
 ```rust
 #[async_trait]
 pub trait Provider: Send + Sync {
-    /// Provider identifier ("xiaomi", "openai")
+    /// Provider identifier ("minimax", "openai")
     fn name(&self) -> &'static str;
 
     /// Resolve the model name for a route
@@ -383,11 +383,11 @@ use tower::timeout::TimeoutLayer;
 
 ```rust
 struct LLMConfig {
-    xiaomi_api_key: String,
-    xiaomi_base_url: String,              // https://generativelanguage.googleapis.com
-    xiaomi_api_version: String,           // v1beta
-    xiaomi_interpretation_model: String,  // xiaomi-2.0-flash
-    xiaomi_delivery_model: String,        // xiaomi-2.0-flash
+    minimax_api_key: String,
+    minimax_base_url: String,              // https://generativelanguage.googleapis.com
+    minimax_api_version: String,           // v1beta
+    minimax_interpretation_model: String,  // minimax-2.0-flash
+    minimax_delivery_model: String,        // minimax-2.0-flash
 
     openai_api_key: String,
     openai_base_url: String,              // https://api.openai.com
@@ -396,8 +396,8 @@ struct LLMConfig {
     openai_organization: String,          // optional
     openai_project: String,               // optional
 
-    active_interpretation_provider: String,  // "xiaomi" | "openai"
-    active_delivery_provider: String,        // "xiaomi" | "openai"
+    active_interpretation_provider: String,  // "minimax" | "openai"
+    active_delivery_provider: String,        // "minimax" | "openai"
     interpretation_fallback_provider: Option<String>,
     delivery_fallback_provider: Option<String>,
     allow_route_provider_divergence: bool,

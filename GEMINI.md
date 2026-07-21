@@ -13,7 +13,7 @@
 | Database | PostgreSQL (Neon Cloud) | via sqlx, PgBouncer |
 | Job Queue | Redis | Upstash (deadpool-redis) |
 | Object Storage | Cloudflare R2 / AWS S3 | aws-sdk-s3 |
-| LLM Providers | OpenRouter + Fallback | mimo-v2.5-pro, gpt-5.4 |
+| LLM Providers | OpenRouter + Fallback | minimax-m3, gpt-5.4 |
 | Media Generator Service | FastAPI (Python) | python-docx, HTML+Chromium (PDF), python-pptx |
 | LLM Adapter Service | FastAPI (Python) | FastAPI >=0.115 (Used as fallback) |
 | Frontend Build | Vite | ^8.0.0, Tailwind CSS ^4.0.0 |
@@ -45,7 +45,7 @@ The project is structured into four main components:
 
 3.  **`media-generator-service/` (FastAPI/Python):** Document renderer for PDF (HTML+Chromium/Playwright), DOCX (python-docx), and PPTX (python-pptx) formats with registry pattern. Receives signed specification payloads from Rust gateway, renders artifacts, and returns signed download URLs. 7 test files.
 
-4.  **`llm-adapter-service/` (FastAPI/Python):** Legacy boundary for LLM interactions (xiaomi + OpenAI) now acting as a fallback for the Rust gateway. Handles prompt interpretation, content classification, drafting, and delivery response composition.
+4.  **`llm-adapter-service/` (FastAPI/Python):** Legacy boundary for LLM interactions (minimax + OpenAI) now acting as a fallback for the Rust gateway. Handles prompt interpretation, content classification, drafting, and delivery response composition.
 
 ### Additional Components
 
@@ -94,7 +94,7 @@ gateway/
 
 llm-adapter-service/
   app/
-    providers/               # xiaomi.py, openai.py, routing.py, base.py, registry.py
+    providers/               # minimax.py, openai.py, routing.py, base.py, registry.py
     routes/                  # interpret, draft, respond, health, ops
   tests/                     # 23 test files
 

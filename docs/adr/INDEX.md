@@ -78,7 +78,7 @@ Each ADR follows a standard format:
 
 ### 7. LLM Adapter Consolidation (ADR-007)
 **In-process module**:
-- Provider module (xiaomi + OpenAI clients)
+- Provider module (minimax + OpenAI clients)
 - Cache module (829 lines → ~700 lines Rust)
 - Governance module (1014 lines → ~800 lines Rust)
 - Rate limit module (291 lines → ~250 lines Rust)

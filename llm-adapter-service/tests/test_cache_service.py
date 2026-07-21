@@ -276,14 +276,14 @@ def test_cache_key_changes_when_schema_version_changes() -> None:
 
     first_key = build_interpretation_cache_key(
         payload,
-        provider="xiaomi",
-        model="xiaomi-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
         schema_version="llm_adapter_cache.v1",
     )
     second_key = build_interpretation_cache_key(
         payload,
-        provider="xiaomi",
-        model="xiaomi-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
         schema_version="llm_adapter_cache.v2",
     )
 
@@ -295,18 +295,18 @@ def test_cache_key_changes_when_provider_or_model_changes() -> None:
 
     base_key = build_interpretation_cache_key(
         payload,
-        provider="xiaomi",
-        model="xiaomi-2.0-flash",
+        provider="minimax",
+        model="minimax-2.0-flash",
     )
     provider_key = build_interpretation_cache_key(
         payload,
         provider="openai",
-        model="xiaomi-2.0-flash",
+        model="minimax-2.0-flash",
     )
     model_key = build_interpretation_cache_key(
         payload,
-        provider="xiaomi",
-        model="xiaomi-2.5-flash",
+        provider="minimax",
+        model="minimax-2.5-flash",
     )
 
     assert base_key != provider_key

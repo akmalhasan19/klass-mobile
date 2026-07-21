@@ -106,7 +106,7 @@ class StubRegistry:
 
 def test_provider_router_allows_different_providers_per_route_via_active_config(monkeypatch) -> None:
     monkeypatch.setenv("LLM_ADAPTER_OPENAI_API_KEY", "test-openai-key")
-    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "xiaomi")
+    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "minimax")
     monkeypatch.setenv("LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER", "openai")
     monkeypatch.setenv("LLM_ADAPTER_ALLOW_ROUTE_PROVIDER_DIVERGENCE", "true")
     clear_settings_cache()
@@ -115,7 +115,7 @@ def test_provider_router_allows_different_providers_per_route_via_active_config(
     interpret_policy = router.policy_for_route("interpret")
     delivery_policy = router.policy_for_route("respond")
 
-    assert interpret_policy.primary_provider == "xiaomi"
+    assert interpret_policy.primary_provider == "minimax"
     assert delivery_policy.primary_provider == "openai"
     assert interpret_policy.allow_route_divergence is True
     assert delivery_policy.allow_route_divergence is True
@@ -123,7 +123,7 @@ def test_provider_router_allows_different_providers_per_route_via_active_config(
 
 def test_provider_router_rejects_divergent_route_providers_when_disabled(monkeypatch) -> None:
     monkeypatch.setenv("LLM_ADAPTER_OPENAI_API_KEY", "test-openai-key")
-    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "xiaomi")
+    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "minimax")
     monkeypatch.setenv("LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER", "openai")
     monkeypatch.setenv("LLM_ADAPTER_ALLOW_ROUTE_PROVIDER_DIVERGENCE", "false")
     clear_settings_cache()
@@ -139,16 +139,16 @@ def test_provider_router_rejects_divergent_route_providers_when_disabled(monkeyp
 
 
 def test_provider_router_uses_fallback_provider_when_primary_is_rate_limited(monkeypatch) -> None:
-    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "xiaomi")
+    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "minimax")
     monkeypatch.setenv("LLM_ADAPTER_INTERPRETATION_FALLBACK_PROVIDER", "openai")
     monkeypatch.setenv("LLM_ADAPTER_PROVIDER_FALLBACK_ERROR_CODES", "provider_rate_limited,provider_unavailable")
     clear_settings_cache()
-    primary_client = StubClient(name="xiaomi", completion_text="", should_fail=True)
+    primary_client = StubClient(name="minimax", completion_text="", should_fail=True)
     fallback_client = StubClient(name="openai", completion_text='{"schema_version":"media_prompt_understanding.v1"}')
     router = ProviderRouter(
         get_settings(),
         registry=StubRegistry({
-            "xiaomi": primary_client,
+            "minimax": primary_client,
             "openai": fallback_client,
         }),
     )
@@ -156,22 +156,22 @@ def test_provider_router_uses_fallback_provider_when_primary_is_rate_limited(mon
 
     result = asyncio.run(router.execute_interpretation(payload))
 
-    assert result.primary_provider == "xiaomi"
+    assert result.primary_provider == "minimax"
     assert result.fallback_used is True
     assert result.fallback_reason == "provider_rate_limited"
-    assert result.attempted_providers == ("xiaomi", "openai")
+    assert result.attempted_providers == ("minimax", "openai")
     assert result.completion.provider == "openai"
-    assert primary_client.calls == ["normalize:xiaomi:gen-route-1", "complete:xiaomi:gen-route-1"]
+    assert primary_client.calls == ["normalize:minimax:gen-route-1", "complete:minimax:gen-route-1"]
     assert fallback_client.calls == ["normalize:openai:gen-route-1", "complete:openai:gen-route-1"]
 
 
 def test_provider_router_does_not_fallback_for_non_policy_error_code(monkeypatch) -> None:
-    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "xiaomi")
+    monkeypatch.setenv("LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER", "minimax")
     monkeypatch.setenv("LLM_ADAPTER_INTERPRETATION_FALLBACK_PROVIDER", "openai")
     monkeypatch.setenv("LLM_ADAPTER_PROVIDER_FALLBACK_ERROR_CODES", "provider_rate_limited")
     clear_settings_cache()
     primary_client = StubClient(
-        name="xiaomi",
+        name="minimax",
         completion_text="",
         should_fail=True,
         failure_code="provider_request_invalid",
@@ -180,7 +180,7 @@ def test_provider_router_does_not_fallback_for_non_policy_error_code(monkeypatch
     router = ProviderRouter(
         get_settings(),
         registry=StubRegistry({
-            "xiaomi": primary_client,
+            "minimax": primary_client,
             "openai": fallback_client,
         }),
     )

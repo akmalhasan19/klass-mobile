@@ -25,7 +25,7 @@
 
 ```
 ┌──────────┐   REST/JSON      ┌──────────┐   HMAC-SHA256    ┌───────────────┐   API Key    ┌──────────┐
-│  Flutter  │ ───────────────>│  Laravel  │ ───────────────>│  LLM Adapter   │ ───────────>│  xiaomi  │
+│  Flutter  │ ───────────────>│  Laravel  │ ───────────────>│  LLM Adapter   │ ───────────>│  minimax  │
 │  (Dio)    │ <──polling───── │  (PHP)    │ <───────────────│  (Python)      │ <───────────│ / OpenAI │
 └──────────┘                  └────┬─────┘                  └───────┬───────┘              └──────────┘
                                    │                                │
@@ -70,7 +70,7 @@ sequenceDiagram
     participant Laravel
     participant Queue as Laravel Queue (DB)
     participant Adapter as LLM Adapter
-    participant Provider as xiaomi/OpenAI
+    participant Provider as minimax/OpenAI
     participant MediaGen as Media Generator
     participant R2 as Cloudflare R2
 
@@ -179,7 +179,7 @@ sequenceDiagram
     participant Laravel
     participant Adapter as LLM Adapter
     participant Router as ProviderRouter
-    participant Primary as Primary (xiaomi)
+    participant Primary as Primary (minimax)
     participant Fallback as Fallback (OpenAI)
 
     Laravel->>Adapter: POST /v1/interpret (HMAC)
@@ -187,7 +187,7 @@ sequenceDiagram
     Router->>Router: policy_for_route("interpret")
     Router->>Primary: complete(normalized_request)
 
-    Primary->>Primary: HTTP POST to xiaomi API
+    Primary->>Primary: HTTP POST to minimax API
     alt Success
         Primary-->>Router: ProviderCompletion
         Router-->>Adapter: ProviderExecutionResult (fallback_used=false)
@@ -363,18 +363,18 @@ The LLM Adapter exposes 3 endpoints, mapped to 2 internal routes:
 
 | Provider | Status | Required Env |
 |----------|--------|-------------|
-| `xiaomi` | Implemented | `LLM_ADAPTER_xiaomi_API_KEY` |
+| `minimax` | Implemented | `LLM_ADAPTER_minimax_API_KEY` |
 | `openai` | Implemented | `LLM_ADAPTER_OPENAI_API_KEY` |
 
-### xiaomi Provider
+### minimax Provider
 
-- **Source**: `llm-adapter-service/app/providers/xiaomi.py` (339 lines)
-- **Class**: `xiaomiProviderClient`
+- **Source**: `llm-adapter-service/app/providers/minimax.py` (339 lines)
+- **Class**: `minimaxProviderClient`
 - **Endpoint**: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
 - **Auth**: API key as query parameter (`?key=...`)
 - **Default models**:
-  - Interpretation: `xiaomi-2.0-flash`
-  - Delivery: `xiaomi-2.0-flash`
+  - Interpretation: `minimax-2.0-flash`
+  - Delivery: `minimax-2.0-flash`
 - **Request format**:
   ```json
   {
@@ -448,10 +448,10 @@ DEFAULT_PROVIDER_FALLBACK_ERROR_CODES = (
 
 | Requested model starts with... | Route | Resolved model |
 |-------------------------------|-------|---------------|
-| `xiaomi` | any | As-is (passthrough) |
+| `minimax` | any | As-is (passthrough) |
 | `gpt` / `o` / `chatgpt` | any | As-is (passthrough) |
-| other / empty | `interpret` | `LLM_ADAPTER_xiaomi_INTERPRET_MODEL` (default: `xiaomi-2.0-flash`) |
-| other / empty | `respond` | `LLM_ADAPTER_xiaomi_DELIVERY_MODEL` (default: `xiaomi-2.0-flash`) |
+| other / empty | `interpret` | `LLM_ADAPTER_minimax_INTERPRET_MODEL` (default: `minimax-2.0-flash`) |
+| other / empty | `respond` | `LLM_ADAPTER_minimax_DELIVERY_MODEL` (default: `minimax-2.0-flash`) |
 
 ---
 
@@ -507,8 +507,8 @@ Request In
 ### Policy Scopes (in evaluation order)
 
 1. **route** — specific to a route (interpret/respond)
-2. **provider** — per provider (xiaomi/openai)
-3. **model** — per model (xiaomi-2.0-flash, etc.)
+2. **provider** — per provider (minimax/openai)
+3. **model** — per model (minimax-2.0-flash, etc.)
 4. **global** — applies to all
 
 ### Budget Statuses
@@ -536,14 +536,14 @@ Request In
 
 | Code | HTTP | Retryable | Source | Notes |
 |------|------|-----------|--------|-------|
-| `provider_timeout` | 504 | Yes | xiaomi/OpenAI | Triggers provider fallback |
-| `provider_connection_failed` | 503 | Yes | xiaomi/OpenAI | DNS/TCP failure |
-| `provider_rate_limited` | 429 | Yes | xiaomi/OpenAI | Upstream provider rate limit |
-| `provider_unavailable` | 503 | Yes | xiaomi/OpenAI | Upstream 5xx |
-| `provider_auth_failed` | 503 | No | xiaomi/OpenAI | Bad API key (401/403) |
-| `provider_request_invalid` | 502 | No | xiaomi/OpenAI | Bad request payload (400) |
-| `provider_upstream_failed` | 502 | No | xiaomi/OpenAI | Unexpected error |
-| `provider_response_invalid` | 502 | Yes | xiaomi/OpenAI | Non-JSON or missing text |
+| `provider_timeout` | 504 | Yes | minimax/OpenAI | Triggers provider fallback |
+| `provider_connection_failed` | 503 | Yes | minimax/OpenAI | DNS/TCP failure |
+| `provider_rate_limited` | 429 | Yes | minimax/OpenAI | Upstream provider rate limit |
+| `provider_unavailable` | 503 | Yes | minimax/OpenAI | Upstream 5xx |
+| `provider_auth_failed` | 503 | No | minimax/OpenAI | Bad API key (401/403) |
+| `provider_request_invalid` | 502 | No | minimax/OpenAI | Bad request payload (400) |
+| `provider_upstream_failed` | 502 | No | minimax/OpenAI | Unexpected error |
+| `provider_response_invalid` | 502 | Yes | minimax/OpenAI | Non-JSON or missing text |
 
 ### Governance Errors (LLM Adapter internal)
 
@@ -672,7 +672,7 @@ Queue timeout:                300s  ⚠️ Gap!
 
 ### Risks Without Circuit Breaker
 
-1. **Cascading failure**: If xiaomi is degraded, all 3 retries still hit it before fallback
+1. **Cascading failure**: If minimax is degraded, all 3 retries still hit it before fallback
 2. **Resource waste**: Failed attempts consume connection pool and CPU
 3. **No fast-fail**: Slower recovery when upstream is definitively down
 4. **Thundering herd**: All concurrent jobs hit the same failing service
@@ -825,15 +825,15 @@ Body: (matches MediaGenerationSpec schema)
 | `MEDIA_GENERATION_DELIVERY_PATH` | Laravel | `/v1/respond` |
 | `MEDIA_GENERATION_PYTHON_BASE_URL` | Laravel | — |
 | `MEDIA_GENERATION_PYTHON_GENERATE_PATH` | Laravel | `/v1/generate` |
-| `LLM_ADAPTER_xiaomi_BASE_URL` | LLM Adapter | `https://generativelanguage.googleapis.com` |
-| `LLM_ADAPTER_xiaomi_API_VERSION` | LLM Adapter | `v1beta` |
+| `LLM_ADAPTER_minimax_BASE_URL` | LLM Adapter | `https://generativelanguage.googleapis.com` |
+| `LLM_ADAPTER_minimax_API_VERSION` | LLM Adapter | `v1beta` |
 | `LLM_ADAPTER_OPENAI_BASE_URL` | LLM Adapter | `https://api.openai.com` |
 
 ### Provider API Keys
 
 | Variable | Service | Provider |
 |----------|---------|----------|
-| `LLM_ADAPTER_xiaomi_API_KEY` | LLM Adapter | xiaomi |
+| `LLM_ADAPTER_minimax_API_KEY` | LLM Adapter | minimax |
 | `LLM_ADAPTER_OPENAI_API_KEY` | LLM Adapter | OpenAI |
 | `LLM_ADAPTER_OPENAI_ORGANIZATION` | LLM Adapter | OpenAI (optional) |
 | `LLM_ADAPTER_OPENAI_PROJECT` | LLM Adapter | OpenAI (optional) |
