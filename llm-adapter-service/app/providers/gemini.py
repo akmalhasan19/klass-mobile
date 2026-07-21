@@ -18,19 +18,19 @@ from app.providers.base import (
 )
 
 
-class minimaxProviderClient(ProviderClient):
-    name = "minimax"
+class xiaomiProviderClient(ProviderClient):
+    name = "xiaomi"
 
     def resolve_model(self, route: ProviderRoute, requested_model: str) -> str:
         normalized_requested_model = requested_model.strip().lower()
 
-        if normalized_requested_model.startswith("minimax"):
+        if normalized_requested_model.startswith("xiaomi"):
             return requested_model.strip()
 
         if route == "interpret":
-            return self.settings.minimax_interpretation_model
+            return self.settings.xiaomi_interpretation_model
 
-        return self.settings.minimax_delivery_model
+        return self.settings.xiaomi_delivery_model
 
     async def complete(
         self,
@@ -44,14 +44,14 @@ class minimaxProviderClient(ProviderClient):
         try:
             response = await client.post(
                 self._endpoint_url(request.model),
-                params={"key": self.settings.minimax_api_key},
+                params={"key": self.settings.xiaomi_api_key},
                 json=self._build_request_body(request),
                 headers={"Content-Type": "application/json"},
             )
         except httpx.TimeoutException as exc:
             raise ProviderRequestError(
                 code="provider_timeout",
-                message="minimax request timed out.",
+                message="xiaomi request timed out.",
                 status_code=504,
                 details={"provider": self.name, "model": request.model},
                 retryable=True,
@@ -59,7 +59,7 @@ class minimaxProviderClient(ProviderClient):
         except httpx.HTTPError as exc:
             raise ProviderRequestError(
                 code="provider_connection_failed",
-                message="Could not reach minimax.",
+                message="Could not reach xiaomi.",
                 status_code=503,
                 details={"provider": self.name, "model": request.model, "exception": str(exc)},
                 retryable=True,
@@ -96,8 +96,8 @@ class minimaxProviderClient(ProviderClient):
         )
 
     def _endpoint_url(self, model: str) -> str:
-        base_url = self.settings.minimax_base_url.rstrip("/")
-        api_version = self.settings.minimax_api_version.strip("/")
+        base_url = self.settings.xiaomi_base_url.rstrip("/")
+        api_version = self.settings.xiaomi_api_version.strip("/")
         encoded_model = quote(model, safe="")
 
         return f"{base_url}/{api_version}/models/{encoded_model}:generateContent"
@@ -129,7 +129,7 @@ class minimaxProviderClient(ProviderClient):
         except ValueError as exc:
             raise ProviderRequestError(
                 code="provider_response_invalid",
-                message="minimax returned a non-JSON response.",
+                message="xiaomi returned a non-JSON response.",
                 status_code=502,
                 details={"provider": self.name, "model": request.model},
                 retryable=True,
@@ -138,7 +138,7 @@ class minimaxProviderClient(ProviderClient):
         if not isinstance(payload, dict):
             raise ProviderRequestError(
                 code="provider_response_invalid",
-                message="minimax returned an unexpected response shape.",
+                message="xiaomi returned an unexpected response shape.",
                 status_code=502,
                 details={"provider": self.name, "model": request.model},
                 retryable=True,
@@ -156,7 +156,7 @@ class minimaxProviderClient(ProviderClient):
         if not isinstance(candidates, list):
             raise ProviderRequestError(
                 code="provider_response_invalid",
-                message="minimax response did not include candidates.",
+                message="xiaomi response did not include candidates.",
                 status_code=502,
                 details={"provider": self.name, "model": request.model},
                 retryable=True,
@@ -189,7 +189,7 @@ class minimaxProviderClient(ProviderClient):
 
         raise ProviderRequestError(
             code="provider_response_invalid",
-            message="minimax response did not contain any text completion.",
+            message="xiaomi response did not contain any text completion.",
             status_code=502,
             details={"provider": self.name, "model": request.model},
             retryable=True,
@@ -263,7 +263,7 @@ class minimaxProviderClient(ProviderClient):
         if response.status_code in (401, 403):
             return ProviderRequestError(
                 code="provider_auth_failed",
-                message="minimax rejected the request due to invalid credentials or permissions.",
+                message="xiaomi rejected the request due to invalid credentials or permissions.",
                 status_code=503,
                 details=self._compact_details(details),
                 retryable=False,
@@ -272,7 +272,7 @@ class minimaxProviderClient(ProviderClient):
         if response.status_code == 429:
             return ProviderRequestError(
                 code="provider_rate_limited",
-                message="minimax rate limit was exceeded.",
+                message="xiaomi rate limit was exceeded.",
                 status_code=429,
                 details=self._compact_details(details),
                 retryable=True,
@@ -281,7 +281,7 @@ class minimaxProviderClient(ProviderClient):
         if response.status_code == 400:
             return ProviderRequestError(
                 code="provider_request_invalid",
-                message="minimax rejected the normalized request payload.",
+                message="xiaomi rejected the normalized request payload.",
                 status_code=502,
                 details=self._compact_details(details),
                 retryable=False,
@@ -290,7 +290,7 @@ class minimaxProviderClient(ProviderClient):
         if response.status_code >= 500:
             return ProviderRequestError(
                 code="provider_unavailable",
-                message="minimax is currently unavailable.",
+                message="xiaomi is currently unavailable.",
                 status_code=503,
                 details=self._compact_details(details),
                 retryable=True,
@@ -298,7 +298,7 @@ class minimaxProviderClient(ProviderClient):
 
         return ProviderRequestError(
             code="provider_upstream_failed",
-            message="minimax returned an unexpected error response.",
+            message="xiaomi returned an unexpected error response.",
             status_code=502,
             details=self._compact_details(details),
             retryable=False,

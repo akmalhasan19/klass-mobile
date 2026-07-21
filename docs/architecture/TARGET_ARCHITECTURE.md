@@ -29,12 +29,12 @@ C4Context
 
     System(klass, "Klass Platform", "AI-powered educational content generation and marketplace")
 
-    System_Ext(minimax, "Google minimax", "LLM — content interpretation & drafting")
+    System_Ext(xiaomi, "Google xiaomi", "LLM — content interpretation & drafting")
     System_Ext(openai, "OpenAI", "LLM — fallback provider")
     System_Ext(r2, "Cloudflare R2", "Object storage — artifacts & thumbnails")
 
     Rel(teacher, klass, "Generates learning materials, browses marketplace", "Mobile (iOS/Android)")
-    Rel(klass, minimax, "Prompt interpretation + content drafting", "HTTPS + API Key")
+    Rel(klass, xiaomi, "Prompt interpretation + content drafting", "HTTPS + API Key")
     Rel(klass, openai, "Fallback LLM calls", "HTTPS + Bearer Token")
     Rel(klass, r2, "Upload/download generated artifacts", "S3 API + signed URLs")
 
@@ -62,14 +62,14 @@ C4Container
         ContainerDb(r2, "Cloudflare R2", "S3-compatible object storage", "Generated artifacts (.pdf, .docx, .pptx) and thumbnails. Signed URL delivery to Flutter.")
     }
 
-    System_Ext(minimax, "Google minimax", "LLM — interpretation + drafting")
+    System_Ext(xiaomi, "Google xiaomi", "LLM — interpretation + drafting")
     System_Ext(openai, "OpenAI", "LLM — fallback provider")
 
     Rel(teacher, flutter, "User interaction", "Mobile")
     Rel(flutter, gateway, "REST API calls", "REST/JSON (Dio)")
     Rel(flutter, gateway, "Media-gen progress stream", "gRPC server-streaming")
     Rel(gateway, media_gen, "Submit generation spec, get artifact URL", "HTTP/2 + HMAC-SHA256")
-    Rel(gateway, minimax, "LLM API calls", "HTTPS + API Key")
+    Rel(gateway, xiaomi, "LLM API calls", "HTTPS + API Key")
     Rel(gateway, openai, "Fallback LLM calls", "HTTPS + Bearer Token")
     Rel(gateway, neon, "Read/write application data, cache, governance", "sqlx (PgBouncer, TLS)")
     Rel(gateway, redis, "Enqueue/dequeue media-gen jobs", "Redis Streams (XADD/XREADGROUP)")
@@ -113,7 +113,7 @@ C4Container
 
         Container(orchestrator, "Orchestrator", "tokio::join!", "WorkflowService: interpret → classify → generate → upload → publish → complete. State machine with 9 states and statusBefore invariant. tokio::join!(interpret, draft) for parallel LLM calls.")
 
-        Container(providers, "LLM Provider Module", "reqwest 0.12", "minimaxProviderClient + OpenAIProviderClient. ProviderRouter with primary/fallback logic. HTTP/2 connection pooling. Circuit breaker via tower::limit + tower::retry.")
+        Container(providers, "LLM Provider Module", "reqwest 0.12", "xiaomiProviderClient + OpenAIProviderClient. ProviderRouter with primary/fallback logic. HTTP/2 connection pooling. Circuit breaker via tower::limit + tower::retry.")
 
         Container(cache, "Cache Module", "sqlx", "AdapterCacheService: semantic cache with SHA-256 key. PostgreSQL advisory lock stampede protection (pg_try_advisory_lock). Lazy TTL cleanup. Byte-compatible hash with Python for migration.")
 
@@ -195,7 +195,7 @@ orchestrator (WorkflowService)
   ├── tokio::join!(interpret, draft)  ← parallel LLM calls
   │
   ├── interpret → LLM Provider Module (router)
-  │     ├── Primary: minimaxProviderClient → https://generativelanguage.googleapis.com
+  │     ├── Primary: xiaomiProviderClient → https://generativelanguage.googleapis.com
   │     ├── Fallback: OpenAIProviderClient → https://api.openai.com
   │     ├── Circuit breaker: tower::limit + tower::retry
   │     └── Cache integration: lookup before call, store after
@@ -235,7 +235,7 @@ sequenceDiagram
     participant Orchestrator as WorkflowService
     participant State as StateMachine (9-state)
     participant Provider as LLM Provider Module
-    participant minimax as Google minimax
+    participant xiaomi as Google xiaomi
     participant Cache as Cache Module (sqlx)
     participant Gov as Governance Module
     participant Queue as Redis Streams
@@ -273,8 +273,8 @@ sequenceDiagram
             Gov->>DB: SELECT rate_limit_buckets
             Gov-->>Orchestrator: GovernanceDecision(allowed=true)
             Orchestrator->>Provider: interpret(payload)
-            Provider->>minimax: POST /v1beta/models/minimax-2.0-flash:generateContent
-            minimax-->>Provider: interpretation JSON
+            Provider->>xiaomi: POST /v1beta/models/xiaomi-2.0-flash:generateContent
+            xiaomi-->>Provider: interpretation JSON
             Provider->>Gov: record_usage(route=interpret, tokens, cost)
             Gov->>DB: UPSERT rate_limit_buckets
             Provider->>Cache: store_interp(cache_key, response)
@@ -284,8 +284,8 @@ sequenceDiagram
 
         and
             Orchestrator->>Provider: draft(payload)
-            Provider->>minimax: POST /v1beta/models/minimax-2.0-flash:generateContent
-            minimax-->>Provider: content draft JSON
+            Provider->>xiaomi: POST /v1beta/models/xiaomi-2.0-flash:generateContent
+            xiaomi-->>Provider: content draft JSON
         end
 
     Orchestrator->>State: transition(INTERPRETING → CLASSIFIED)
@@ -310,8 +310,8 @@ sequenceDiagram
     Orchestrator->>Cache: lookup_delivery(cache_key)
     alt Cache miss
         Orchestrator->>Provider: respond(delivery_payload)
-        Provider->>minimax: POST generateContent
-        minimax-->>Provider: delivery JSON
+        Provider->>xiaomi: POST generateContent
+        xiaomi-->>Provider: delivery JSON
         Provider->>Cache: store_delivery(cache_key, response)
     end
     Cache-->>Orchestrator: DeliveryResult
@@ -374,7 +374,7 @@ Any state ──(user cancel)──► CANCELLED
 ## Communication Protocol Matrix
 
 ```
-                    Flutter                   Rust Gateway             Media Gen           minimax/OpenAI          R2
+                    Flutter                   Rust Gateway             Media Gen           xiaomi/OpenAI          R2
                     ───────                   ────────────             ─────────           ─────────────          ──
 Flutter             ·                         REST/JSON (Dio)          ·                    ·                      S3 signed URL (HTTPS)
                                              + gRPC stream (tonic)
@@ -401,7 +401,7 @@ Neon PostgreSQL     ·                         sqlx (PgBouncer, TLS)    ·      
 | 2 | Flutter | Rust Gateway | gRPC server-streaming | Bearer (metadata) | 50051 | Yes | Tonic + grpc (Dart). Single RPC with stream of `GenerationProgressEvent`. Fallback to REST polling if gRPC blocked. |
 | 3 | Flutter | R2 | HTTPS GET | Signed URL (query param) | 443 | Yes | Download generated artifact. URL from `delivery_payload.artifact.url`. Time-limited (expiry configurable). |
 | 4 | Rust Gateway | Media Generator | HTTP/2 + JSON | HMAC-SHA256 | 443 | Yes | POST `/v1/generate`. Headers: `X-Klass-Generation-Id`, `X-Klass-Request-Timestamp`, `X-Klass-Signature-Algorithm`, `X-Klass-Signature`. Timeout: 60s. Retry: 2x, backoff 500ms. |
-| 5 | Rust Gateway | minimax | HTTPS + JSON | API Key (query param) | 443 | Yes | POST `/v1beta/models/{model}:generateContent`. Default model: `minimax-2.0-flash`. Timeout: 30s. |
+| 5 | Rust Gateway | xiaomi | HTTPS + JSON | API Key (query param) | 443 | Yes | POST `/v1beta/models/{model}:generateContent`. Default model: `xiaomi-2.0-flash`. Timeout: 30s. |
 | 6 | Rust Gateway | OpenAI | HTTPS + JSON | Bearer Token | 443 | Yes | POST `/v1/responses`. Optional: `OpenAI-Organization`, `OpenAI-Project` headers. Default model: `gpt-5.4`. Timeout: 30s. |
 | 7 | Rust Gateway | Neon PostgreSQL | PostgreSQL wire | Password | 5432 | Yes | Via PgBouncer (connection pooling). Max 5 connections from Gateway. sqlx async queries. |
 | 8 | Rust Gateway | Upstash Redis | Redis protocol | Password | 6379 | Yes | Redis Streams commands: XADD, XREADGROUP, XACK, XCLAIM. Connection pool: deadpool-redis. |
@@ -463,7 +463,7 @@ C4Deployment
 | Render → Neon (same region) | <1ms (same DC) | <1ms | <5ms |
 | Render → Upstash (same region) | <1ms (same DC) | <1ms | <5ms |
 | Render → Media Gen (US East → Singapore) | ~12,000 km | 180ms | 250ms |
-| Render → minimax API (Google) | Variable | 80ms | 200ms |
+| Render → xiaomi API (Google) | Variable | 80ms | 200ms |
 | Render → OpenAI API | Variable | 150ms | 400ms |
 | Render → R2 (CDN) | Variable (nearest PoP) | 20ms | 80ms |
 

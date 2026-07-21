@@ -17,8 +17,8 @@ def test_interpretation_preflight_denies_after_minute_quota_is_consumed(
 
     allowed = service.preflight_check(
         route="interpret",
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         request_id="req-1",
         generation_id="gen-1",
     )
@@ -26,8 +26,8 @@ def test_interpretation_preflight_denies_after_minute_quota_is_consumed(
 
     service.record_usage(
         route="interpret",
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         request_id="req-1",
         generation_id="gen-1",
         usage=ProviderUsage(
@@ -43,8 +43,8 @@ def test_interpretation_preflight_denies_after_minute_quota_is_consumed(
 
     denied = service.preflight_check(
         route="interpret",
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         request_id="req-2",
         generation_id="gen-1",
     )
@@ -77,8 +77,8 @@ def test_delivery_route_can_be_disabled_without_breaking_fallback(monkeypatch) -
 
     decision = service.preflight_check(
         route="respond",
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         request_id="req-delivery-disabled",
         generation_id="gen-delivery-disabled",
     )
@@ -98,8 +98,8 @@ def test_delivery_daily_budget_can_trigger_degrade_mode(monkeypatch, fake_databa
 
     decision = service.preflight_check(
         route="respond",
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         request_id="req-budget-1",
         generation_id="gen-budget-1",
     )
@@ -132,8 +132,8 @@ def test_budget_status_reports_warning_before_exhaustion(monkeypatch) -> None:
 
     service.record_usage(
         route="respond",
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         request_id="req-warning-1",
         generation_id="gen-warning-1",
         usage=ProviderUsage(

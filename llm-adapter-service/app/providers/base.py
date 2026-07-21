@@ -36,7 +36,7 @@ class ProviderDefinition:
 
     def missing_settings(self, settings: Settings) -> list[str]:
         env_values = {
-            "LLM_ADAPTER_minimax_API_KEY": settings.minimax_api_key,
+            "LLM_ADAPTER_xiaomi_API_KEY": settings.xiaomi_api_key,
             "LLM_ADAPTER_OPENAI_API_KEY": settings.openai_api_key,
         }
 

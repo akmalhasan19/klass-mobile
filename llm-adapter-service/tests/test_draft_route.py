@@ -200,8 +200,8 @@ def build_execution_result(
     *,
     generation_id: str,
     raw_completion: str,
-    provider: str = "minimax",
-    model: str = "minimax-2.0-flash",
+    provider: str = "xiaomi",
+    model: str = "xiaomi-2.0-flash",
     requested_model: str = "llm-gateway",
     primary_provider: str | None = None,
     fallback_used: bool = False,
@@ -265,9 +265,9 @@ def test_draft_route_returns_validated_payload_and_records_cache_and_ledger(clie
     assert payload["schema_version"] == "media_content_draft.v1"
     assert payload["fallback"]["triggered"] is False
     assert payload["sections"][0]["body_blocks"][0]["type"] == "paragraph"
-    assert response.headers["X-Klass-LLM-Provider"] == "minimax"
-    assert response.headers["X-Klass-LLM-Model"] == "minimax-2.0-flash"
-    assert response.headers["X-Klass-LLM-Primary-Provider"] == "minimax"
+    assert response.headers["X-Klass-LLM-Provider"] == "xiaomi"
+    assert response.headers["X-Klass-LLM-Model"] == "xiaomi-2.0-flash"
+    assert response.headers["X-Klass-LLM-Primary-Provider"] == "xiaomi"
     assert response.headers["X-Klass-LLM-Fallback-Used"] == "false"
     assert calls == ["gen-draft-success-1"]
     assert taxonomy_sources == ["prompt_inference"]
@@ -370,7 +370,7 @@ def test_draft_route_returns_structured_failure_when_provider_payload_is_invalid
     payload = response.json()
     assert payload["code"] == "provider_response_contract_invalid"
     assert payload["details"]["route"] == "respond"
-    assert payload["details"]["provider"] == "minimax"
+    assert payload["details"]["provider"] == "xiaomi"
     ledger_row = fake_database_state.ledger_rows["req-draft-invalid-contract-1"]
     assert ledger_row["final_status"] == "failed"
     assert ledger_row["error_code"] == "provider_response_contract_invalid"
@@ -380,11 +380,11 @@ def test_draft_route_maps_provider_timeout_to_explicit_adapter_error(client, fak
     async def stub_execute(self, payload):
         raise ProviderRequestError(
             code="provider_timeout",
-            message="minimax request timed out.",
+            message="xiaomi request timed out.",
             status_code=504,
             details={
-                "provider": "minimax",
-                "model": "minimax-2.0-flash",
+                "provider": "xiaomi",
+                "model": "xiaomi-2.0-flash",
             },
             retryable=True,
         )

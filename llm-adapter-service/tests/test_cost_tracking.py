@@ -62,16 +62,16 @@ def test_cost_service_records_success_path_with_price_catalog_estimate(fake_data
     service = AdapterCostService(get_settings())
     service.upsert_price_catalog_entry(
         PriceCatalogEntry(
-            provider="minimax",
-            model="minimax-2.0-flash",
+            provider="xiaomi",
+            model="xiaomi-2.0-flash",
             input_cost_per_unit_usd=Decimal("0.001"),
             output_cost_per_unit_usd=Decimal("0.002"),
         )
     )
     result = _build_execution_result(
-        provider="minimax",
+        provider="xiaomi",
         route="interpret",
-        model="minimax-2.0-flash",
+        model="xiaomi-2.0-flash",
         requested_model="llm-gateway",
         generation_id="gen-success-1",
     )
@@ -86,7 +86,7 @@ def test_cost_service_records_success_path_with_price_catalog_estimate(fake_data
     stored_row = fake_database_state.ledger_rows["req-success-1"]
     assert stored_row["final_status"] == "success"
     assert stored_row["cache_status"] == "miss"
-    assert stored_row["upstream_request_id"] == "upstream-minimax"
+    assert stored_row["upstream_request_id"] == "upstream-xiaomi"
     assert stored_row["metadata"]["cost_source"] == "price_catalog"
     assert stored_row["metadata"]["estimated_cost_usd"] == "0.00200000"
 
@@ -98,9 +98,9 @@ def test_cost_service_records_failure_path_with_error_metadata(fake_database_sta
         generation_id="gen-failure-1",
         route="respond",
         request_type="media_delivery_response",
-        provider="minimax",
-        primary_provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        primary_provider="xiaomi",
+        model="xiaomi-2.0-flash",
         requested_model="llm-gateway",
         error_class="ProviderRequestError",
         error_code="provider_timeout",
@@ -138,8 +138,8 @@ def test_cost_service_records_cache_hit_path_with_zero_cost(fake_database_state)
         generation_id="gen-cache-hit-1",
         route="interpret",
         request_type="media_prompt_interpretation",
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         requested_model="llm-gateway",
         cache_key="a" * 64,
     )
@@ -169,9 +169,9 @@ def test_cost_service_records_fallback_path_and_upstream_request_id(fake_databas
         requested_model="llm-gateway",
         generation_id="gen-fallback-1",
         fallback_used=True,
-        primary_provider="minimax",
+        primary_provider="xiaomi",
         fallback_reason="provider_rate_limited",
-        attempted_providers=("minimax", "openai"),
+        attempted_providers=("xiaomi", "openai"),
         usage=ProviderUsage(
             input_tokens=500,
             output_tokens=250,
@@ -191,18 +191,18 @@ def test_cost_service_records_fallback_path_and_upstream_request_id(fake_databas
     assert ledger_entry.fallback_used is True
     assert ledger_entry.fallback_reason == "provider_rate_limited"
     stored_row = fake_database_state.ledger_rows["req-fallback-1"]
-    assert stored_row["primary_provider"] == "minimax"
+    assert stored_row["primary_provider"] == "xiaomi"
     assert stored_row["provider"] == "openai"
-    assert stored_row["attempted_providers"] == ["minimax", "openai"]
+    assert stored_row["attempted_providers"] == ["xiaomi", "openai"]
     assert stored_row["upstream_request_id"] == "upstream-openai-1"
 
 
 def test_cost_service_uses_route_default_estimate_when_price_catalog_is_missing(fake_database_state) -> None:
     service = AdapterCostService(get_settings())
     result = _build_execution_result(
-        provider="minimax",
+        provider="xiaomi",
         route="interpret",
-        model="minimax-2.0-flash",
+        model="xiaomi-2.0-flash",
         requested_model="llm-gateway",
         generation_id="gen-default-estimate-1",
     )

@@ -20,8 +20,8 @@ from app.providers.base import (
 
 def test_estimate_usage_cost_combines_request_input_and_output_pricing() -> None:
     entry = PriceCatalogEntry(
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         input_cost_per_unit_usd=Decimal("0.00125"),
         output_cost_per_unit_usd=Decimal("0.005"),
         request_cost_usd=Decimal("0.002"),
@@ -66,10 +66,10 @@ def test_build_ledger_entry_from_execution_result_preserves_fallback_and_cost_me
     )
     result = ProviderExecutionResult(
         completion=completion,
-        primary_provider="minimax",
+        primary_provider="xiaomi",
         fallback_used=True,
         fallback_reason="provider_rate_limited",
-        attempted_providers=("minimax", "openai"),
+        attempted_providers=("xiaomi", "openai"),
     )
     price_entry = PriceCatalogEntry(
         provider="openai",
@@ -91,13 +91,13 @@ def test_build_ledger_entry_from_execution_result_preserves_fallback_and_cost_me
     )
 
     assert ledger_entry.provider == "openai"
-    assert ledger_entry.primary_provider == "minimax"
+    assert ledger_entry.primary_provider == "xiaomi"
     assert ledger_entry.retry_count == 1
     assert ledger_entry.fallback_used is True
     assert ledger_entry.fallback_reason == "provider_rate_limited"
     assert ledger_entry.estimated_cost_usd == Decimal("0.00400000")
     assert ledger_entry.cache_key == "a" * 64
-    assert ledger_entry.as_record()["attempted_providers"] == ["minimax", "openai"]
+    assert ledger_entry.as_record()["attempted_providers"] == ["xiaomi", "openai"]
 
 
 def test_cost_queries_target_price_catalog_and_daily_views() -> None:

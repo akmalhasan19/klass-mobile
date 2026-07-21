@@ -16,14 +16,14 @@ def test_rate_limit_policy_normalizes_provider_daily_budget_dimensions() -> None
     policy = RateLimitPolicyRecord(
         scope_type="provider",
         window_unit="day",
-        provider="minimax",
+        provider="xiaomi",
         max_estimated_cost_usd=Decimal("25.00"),
     )
 
     dimensions = policy.normalized_dimensions()
 
     assert dimensions.route == "all"
-    assert dimensions.provider == "minimax"
+    assert dimensions.provider == "xiaomi"
     assert dimensions.model == "*"
 
 
@@ -32,8 +32,8 @@ def test_build_rate_limit_bucket_params_uses_fixed_window_boundaries() -> None:
         scope_type="model",
         window_unit="minute",
         route="interpret",
-        provider="minimax",
-        model="minimax-2.0-flash",
+        provider="xiaomi",
+        model="xiaomi-2.0-flash",
         max_requests=120,
     )
     usage = ProviderUsage(
@@ -60,8 +60,8 @@ def test_build_rate_limit_bucket_params_uses_fixed_window_boundaries() -> None:
 
     assert params["policy_id"] == 42
     assert params["route"] == "interpret"
-    assert params["provider"] == "minimax"
-    assert params["model"] == "minimax-2.0-flash"
+    assert params["provider"] == "xiaomi"
+    assert params["model"] == "xiaomi-2.0-flash"
     assert params["window_started_at"] == datetime(2026, 4, 9, 10, 44, 0, tzinfo=timezone.utc)
     assert params["window_ends_at"] == datetime(2026, 4, 9, 10, 45, 0, tzinfo=timezone.utc)
     assert params["input_tokens"] == 120

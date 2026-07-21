@@ -11,10 +11,10 @@ from app.contracts import (
     DEFAULT_PROVIDER_FALLBACK_ERROR_CODES,
     DEFAULT_DELIVERY_PROVIDER,
     DEFAULT_INTERPRETATION_PROVIDER,
-    minimax_API_VERSION,
-    minimax_BASE_URL,
-    minimax_DEFAULT_DELIVERY_MODEL,
-    minimax_DEFAULT_INTERPRETATION_MODEL,
+    xiaomi_API_VERSION,
+    xiaomi_BASE_URL,
+    xiaomi_DEFAULT_DELIVERY_MODEL,
+    xiaomi_DEFAULT_INTERPRETATION_MODEL,
     OPENAI_BASE_URL,
     OPENAI_DEFAULT_DELIVERY_MODEL,
     OPENAI_DEFAULT_INTERPRETATION_MODEL,
@@ -62,11 +62,11 @@ class Settings:
     delivery_exhausted_action: str
     budget_warning_ratio: Decimal
     content_integrity_threshold: Decimal
-    minimax_api_key: str
-    minimax_base_url: str
-    minimax_api_version: str
-    minimax_interpretation_model: str
-    minimax_delivery_model: str
+    xiaomi_api_key: str
+    xiaomi_base_url: str
+    xiaomi_api_version: str
+    xiaomi_interpretation_model: str
+    xiaomi_delivery_model: str
     openai_api_key: str
     openai_base_url: str
     openai_interpretation_model: str
@@ -342,16 +342,16 @@ def get_settings() -> Settings:
             os.getenv("LLM_ADAPTER_CONTENT_INTEGRITY_THRESHOLD"),
             Decimal("0.75"),
         ),
-        minimax_api_key=_clean_str(os.getenv("LLM_ADAPTER_minimax_API_KEY")),
-        minimax_base_url=_clean_str(os.getenv("LLM_ADAPTER_minimax_BASE_URL"), minimax_BASE_URL),
-        minimax_api_version=_clean_str(os.getenv("LLM_ADAPTER_minimax_API_VERSION"), minimax_API_VERSION),
-        minimax_interpretation_model=_clean_str(
-            os.getenv("LLM_ADAPTER_minimax_INTERPRET_MODEL"),
-            minimax_DEFAULT_INTERPRETATION_MODEL,
+        xiaomi_api_key=_clean_str(os.getenv("LLM_ADAPTER_xiaomi_API_KEY")),
+        xiaomi_base_url=_clean_str(os.getenv("LLM_ADAPTER_xiaomi_BASE_URL"), xiaomi_BASE_URL),
+        xiaomi_api_version=_clean_str(os.getenv("LLM_ADAPTER_xiaomi_API_VERSION"), xiaomi_API_VERSION),
+        xiaomi_interpretation_model=_clean_str(
+            os.getenv("LLM_ADAPTER_xiaomi_INTERPRET_MODEL"),
+            xiaomi_DEFAULT_INTERPRETATION_MODEL,
         ),
-        minimax_delivery_model=_clean_str(
-            os.getenv("LLM_ADAPTER_minimax_DELIVERY_MODEL"),
-            minimax_DEFAULT_DELIVERY_MODEL,
+        xiaomi_delivery_model=_clean_str(
+            os.getenv("LLM_ADAPTER_xiaomi_DELIVERY_MODEL"),
+            xiaomi_DEFAULT_DELIVERY_MODEL,
         ),
         openai_api_key=_clean_str(os.getenv("LLM_ADAPTER_OPENAI_API_KEY")),
         openai_base_url=_clean_str(os.getenv("LLM_ADAPTER_OPENAI_BASE_URL"), OPENAI_BASE_URL),

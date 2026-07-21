@@ -19,9 +19,9 @@ def test_health_endpoint_reports_ready_dependencies_and_auth(client) -> None:
     assert payload["dependencies"]["postgres"]["ready"] is True
     assert payload["dependencies"]["postgres"]["driver"] == "postgresql"
     assert payload["dependencies"]["postgres"]["host"] == "db.example"
-    assert payload["dependencies"]["providers"]["interpretation"]["provider"] == "minimax"
+    assert payload["dependencies"]["providers"]["interpretation"]["provider"] == "xiaomi"
     assert payload["dependencies"]["providers"]["interpretation"]["ready"] is True
-    assert payload["dependencies"]["providers"]["delivery"]["provider"] == "minimax"
+    assert payload["dependencies"]["providers"]["delivery"]["provider"] == "xiaomi"
     assert payload["dependencies"]["providers"]["delivery"]["ready"] is True
     assert payload["auth"]["configured"] is True
     assert payload["auth"]["ready"] is True
@@ -79,7 +79,7 @@ def test_health_endpoint_returns_503_when_database_is_not_configured(client, mon
 
 
 def test_health_endpoint_returns_503_when_active_provider_is_missing_credentials(client, monkeypatch) -> None:
-    monkeypatch.delenv("LLM_ADAPTER_minimax_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_ADAPTER_xiaomi_API_KEY", raising=False)
     clear_settings_cache()
 
     response = client.get("/health")
@@ -90,7 +90,7 @@ def test_health_endpoint_returns_503_when_active_provider_is_missing_credentials
     assert payload["dependencies"]["providers"]["interpretation"]["ready"] is False
     assert payload["dependencies"]["providers"]["delivery"]["ready"] is False
     assert payload["dependencies"]["providers"]["interpretation"]["missing_settings"] == [
-        "LLM_ADAPTER_minimax_API_KEY"
+        "LLM_ADAPTER_xiaomi_API_KEY"
     ]
 
 

@@ -19,14 +19,14 @@ Current capabilities in this provider phase:
 - Reports readiness for Postgres connectivity, active provider configuration, and inter-service auth configuration.
 - Exposes `POST /v1/interpret` and `POST /v1/respond` with request validation, governance preflight, semantic cache reuse, provider execution, response-contract validation, ledger writes, and fallback or structured-error behavior.
 - Normalizes interpretation and delivery payloads into a vendor-neutral internal provider request shape.
-- Implements the minimax provider client for `generateContent` calls, response text extraction, stable error mapping, and usage metadata capture.
+- Implements the xiaomi provider client for `generateContent` calls, response text extraction, stable error mapping, and usage metadata capture.
 - Adds an OpenAI-ready provider client for `responses`-style JSON generation and a route-level provider router with per-route primary/fallback policy.
 - Adds adapter-owned Postgres cache tables, deterministic semantic cache-key generation, route-specific TTL policies, advisory-lock stampede protection helpers, and lazy/manual cleanup utilities without Redis.
 - Adds fixed-window rate-limit policy and bucket tables, request ledger tables, price catalog state, and daily cost aggregation views for future governance and observability.
 - Adds a governance runtime that syncs baseline route policies into Postgres, enforces interpretation and delivery request quotas before provider calls, tracks deny counters without inflating request counts on blocked retries, and applies daily route budgets using estimated request cost.
 - Exposes governance visibility in the health payload so operators can see active route limits, disable delivery temporarily, and detect when daily budget headroom is approaching exhaustion.
 - Registers a shared adapter error handler so future routes can return stable structured JSON errors for quota or budget denials.
-- Adds a cost tracking runtime that resolves active price-catalog entries, estimates request cost from normalized minimax/OpenAI token usage, writes request-ledger rows for success, failure, cache-hit, and fallback paths, and preserves upstream request ids plus cost-source metadata.
+- Adds a cost tracking runtime that resolves active price-catalog entries, estimates request cost from normalized xiaomi/OpenAI token usage, writes request-ledger rows for success, failure, cache-hit, and fallback paths, and preserves upstream request ids plus cost-source metadata.
 - Exposes `GET /ops/summary` and `GET /v1/ops/summary` for route/provider operational metrics including latency, cache-hit ratio, deny rate, retry volume, fallback volume, and estimated cost totals.
 - Adds configurable Postgres pooling and optional startup auto-migration for Docker or Hugging Face deployment.
 - Leaves backend cutover, deployment hardening, and end-to-end smoke verification as the primary remaining phases.
@@ -72,8 +72,8 @@ Suggested Space secrets and variables for the baseline:
 - `LLM_ADAPTER_CACHE_STAMPEDE_WAIT_TIMEOUT_MS=1500`
 - `LLM_ADAPTER_CACHE_CLEANUP_BATCH_SIZE=100`
 - `LLM_ADAPTER_CACHE_LAZY_CLEANUP_INTERVAL_SECONDS=60`
-- `LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER=minimax`
-- `LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER=minimax`
+- `LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER=xiaomi`
+- `LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER=xiaomi`
 - `LLM_ADAPTER_ALLOW_ROUTE_PROVIDER_DIVERGENCE=true`
 - `LLM_ADAPTER_INTERPRETATION_FALLBACK_PROVIDER=` optional secondary provider for `/v1/interpret`
 - `LLM_ADAPTER_DELIVERY_FALLBACK_PROVIDER=` optional secondary provider for `/v1/respond`
@@ -90,11 +90,11 @@ Suggested Space secrets and variables for the baseline:
 - `LLM_ADAPTER_DELIVERY_DEFAULT_ESTIMATED_COST_USD=0.010`
 - `LLM_ADAPTER_DELIVERY_EXHAUSTED_ACTION=degrade`
 - `LLM_ADAPTER_BUDGET_WARNING_RATIO=0.80`
-- `LLM_ADAPTER_minimax_API_KEY`
-- `LLM_ADAPTER_minimax_BASE_URL=https://generativelanguage.googleapis.com`
-- `LLM_ADAPTER_minimax_API_VERSION=v1beta`
-- `LLM_ADAPTER_minimax_INTERPRET_MODEL=minimax-2.0-flash`
-- `LLM_ADAPTER_minimax_DELIVERY_MODEL=minimax-2.0-flash`
+- `LLM_ADAPTER_xiaomi_API_KEY`
+- `LLM_ADAPTER_xiaomi_BASE_URL=https://generativelanguage.googleapis.com`
+- `LLM_ADAPTER_xiaomi_API_VERSION=v1beta`
+- `LLM_ADAPTER_xiaomi_INTERPRET_MODEL=xiaomi-2.0-flash`
+- `LLM_ADAPTER_xiaomi_DELIVERY_MODEL=xiaomi-2.0-flash`
 - `LLM_ADAPTER_OPENAI_API_KEY` optional until OpenAI is enabled
 - `LLM_ADAPTER_OPENAI_BASE_URL=https://api.openai.com`
 - `LLM_ADAPTER_OPENAI_INTERPRET_MODEL=gpt-5.4`
@@ -121,7 +121,7 @@ Smoke test endpoints:
 - `LLM_ADAPTER_DATABASE_POOL_MAX_SIZE`: maximum pooled Postgres connections opened by the adapter process. Default `5`.
 - `LLM_ADAPTER_DATABASE_POOL_MAX_IDLE_SECONDS`: idle lifetime for pooled Postgres connections. Default `300`.
 - `LLM_ADAPTER_DATABASE_AUTO_MIGRATE`: when `true`, the adapter tries to apply pending SQL migrations during startup and logs failures without crashing the process. Default `false`.
-- `LLM_ADAPTER_UPSTREAM_TIMEOUT_SECONDS`: timeout for minimax or future provider calls. Default `30`.
+- `LLM_ADAPTER_UPSTREAM_TIMEOUT_SECONDS`: timeout for xiaomi or future provider calls. Default `30`.
 - `LLM_ADAPTER_SHARED_SECRET`: shared secret placeholder for future signed request auth readiness.
 - `LLM_ADAPTER_SHARED_SECRET_PREVIOUS`: optional comma-separated previous secrets accepted during rotation.
 - `LLM_ADAPTER_REQUEST_MAX_AGE_SECONDS`: placeholder max age used by future signed auth. Default `300`.
@@ -132,8 +132,8 @@ Smoke test endpoints:
 - `LLM_ADAPTER_CACHE_STAMPEDE_WAIT_TIMEOUT_MS`: maximum wait time before failing fast when another replica owns the in-flight cache fill lock. Default `1500`.
 - `LLM_ADAPTER_CACHE_CLEANUP_BATCH_SIZE`: maximum expired rows deleted per cache table in one cleanup run. Default `100`.
 - `LLM_ADAPTER_CACHE_LAZY_CLEANUP_INTERVAL_SECONDS`: minimum interval between lazy cleanup runs triggered by cache operations. Default `60`; set `0` to allow cleanup on every cache access.
-- `LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER`: active provider alias for `/v1/interpret`. Default `minimax`.
-- `LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER`: active provider alias for `/v1/respond`. Default `minimax`.
+- `LLM_ADAPTER_ACTIVE_INTERPRETATION_PROVIDER`: active provider alias for `/v1/interpret`. Default `xiaomi`.
+- `LLM_ADAPTER_ACTIVE_DELIVERY_PROVIDER`: active provider alias for `/v1/respond`. Default `xiaomi`.
 - `LLM_ADAPTER_ALLOW_ROUTE_PROVIDER_DIVERGENCE`: when `true`, interpretation and delivery may use different active providers. Default `true`.
 - `LLM_ADAPTER_INTERPRETATION_FALLBACK_PROVIDER`: optional fallback provider alias for interpretation when the primary provider is unavailable, times out, or gets rate-limited.
 - `LLM_ADAPTER_DELIVERY_FALLBACK_PROVIDER`: optional fallback provider alias for delivery when the primary provider is unavailable, times out, or gets rate-limited.
@@ -150,11 +150,11 @@ Smoke test endpoints:
 - `LLM_ADAPTER_DELIVERY_DEFAULT_ESTIMATED_COST_USD`: preflight estimated cost applied when checking the delivery daily budget before an upstream call. Default `0.010`.
 - `LLM_ADAPTER_DELIVERY_EXHAUSTED_ACTION`: governance action when delivery quota or budget is exhausted. Supported values: `deny`, `degrade`. Default `degrade`.
 - `LLM_ADAPTER_BUDGET_WARNING_RATIO`: threshold ratio used by health visibility to flag a route budget as nearing exhaustion. Default `0.80`.
-- `LLM_ADAPTER_minimax_API_KEY`: minimax provider credential.
-- `LLM_ADAPTER_minimax_BASE_URL`: minimax API base URL. Default `https://generativelanguage.googleapis.com`.
-- `LLM_ADAPTER_minimax_API_VERSION`: minimax REST API version segment. Default `v1beta`.
-- `LLM_ADAPTER_minimax_INTERPRET_MODEL`: minimax model used when the interpretation request model alias is provider-neutral. Default `minimax-2.0-flash`.
-- `LLM_ADAPTER_minimax_DELIVERY_MODEL`: minimax model used when the delivery request model alias is provider-neutral. Default `minimax-2.0-flash`.
+- `LLM_ADAPTER_xiaomi_API_KEY`: xiaomi provider credential.
+- `LLM_ADAPTER_xiaomi_BASE_URL`: xiaomi API base URL. Default `https://generativelanguage.googleapis.com`.
+- `LLM_ADAPTER_xiaomi_API_VERSION`: xiaomi REST API version segment. Default `v1beta`.
+- `LLM_ADAPTER_xiaomi_INTERPRET_MODEL`: xiaomi model used when the interpretation request model alias is provider-neutral. Default `xiaomi-2.0-flash`.
+- `LLM_ADAPTER_xiaomi_DELIVERY_MODEL`: xiaomi model used when the delivery request model alias is provider-neutral. Default `xiaomi-2.0-flash`.
 - `LLM_ADAPTER_OPENAI_API_KEY`: OpenAI provider credential.
 - `LLM_ADAPTER_OPENAI_BASE_URL`: OpenAI API base URL. Default `https://api.openai.com`.
 - `LLM_ADAPTER_OPENAI_INTERPRET_MODEL`: OpenAI model used when the interpretation request model alias is provider-neutral. Default `gpt-5.4`.
@@ -181,7 +181,7 @@ The signature format matches the existing Python renderer boundary:
 
 `sha256_hmac(shared_secret, timestamp + "." + raw_request_body)`
 
-Only the adapter shared secret should live in Laravel. Provider API keys such as minimax or OpenAI must remain exclusive to `llm-adapter-service`.
+Only the adapter shared secret should live in Laravel. Provider API keys such as xiaomi or OpenAI must remain exclusive to `llm-adapter-service`.
 
 ## Credential Rotation
 

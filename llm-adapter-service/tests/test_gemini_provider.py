@@ -73,11 +73,11 @@ def delivery_payload() -> dict[str, object]:
     }
 
 
-def test_minimax_provider_normalizes_interpretation_request_to_vendor_neutral_shape(monkeypatch) -> None:
-    monkeypatch.setenv("LLM_ADAPTER_minimax_INTERPRET_MODEL", "minimax-1.5-flash")
+def test_xiaomi_provider_normalizes_interpretation_request_to_vendor_neutral_shape(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_ADAPTER_xiaomi_INTERPRET_MODEL", "xiaomi-1.5-flash")
     clear_settings_cache()
     settings = get_settings()
-    provider = ProviderRegistry().build_client("minimax", settings)
+    provider = ProviderRegistry().build_client("xiaomi", settings)
     request = provider.normalize_interpretation_request(
         InterpretationRequest.model_validate(interpretation_payload())
     )
@@ -86,7 +86,7 @@ def test_minimax_provider_normalizes_interpretation_request_to_vendor_neutral_sh
     assert request.request_type == "media_prompt_interpretation"
     assert request.generation_id == "gen-123"
     assert request.requested_model == "gpt-5.4"
-    assert request.model == "minimax-1.5-flash"
+    assert request.model == "xiaomi-1.5-flash"
     assert request.input_payload["teacher_prompt"] == "Buatkan handout pecahan untuk kelas 5."
     assert json.loads(request.serialize_prompt_payload()) == {
         "generation_id": "gen-123",
@@ -96,33 +96,33 @@ def test_minimax_provider_normalizes_interpretation_request_to_vendor_neutral_sh
     }
 
 
-def test_minimax_provider_normalizes_delivery_request_to_vendor_neutral_shape(monkeypatch) -> None:
-    monkeypatch.setenv("LLM_ADAPTER_minimax_DELIVERY_MODEL", "minimax-1.5-pro")
+def test_xiaomi_provider_normalizes_delivery_request_to_vendor_neutral_shape(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_ADAPTER_xiaomi_DELIVERY_MODEL", "xiaomi-1.5-pro")
     clear_settings_cache()
     settings = get_settings()
-    provider = ProviderRegistry().build_client("minimax", settings)
+    provider = ProviderRegistry().build_client("xiaomi", settings)
     request = provider.normalize_delivery_request(DeliveryRequest.model_validate(delivery_payload()))
 
     assert request.route == "respond"
     assert request.request_type == "media_delivery_response"
     assert request.generation_id == "gen-456"
     assert request.requested_model == "gpt-5.4"
-    assert request.model == "minimax-1.5-pro"
+    assert request.model == "xiaomi-1.5-pro"
     assert request.input_payload["artifact"]["output_type"] == "pdf"
     assert request.input_payload["publication"]["recommended_project"]["id"] == "project-123"
 
 
-def test_minimax_provider_maps_request_response_usage_and_reference_metadata() -> None:
+def test_xiaomi_provider_maps_request_response_usage_and_reference_metadata() -> None:
     settings = get_settings()
-    provider = ProviderRegistry().build_client("minimax", settings)
+    provider = ProviderRegistry().build_client("xiaomi", settings)
     request = provider.normalize_interpretation_request(
         InterpretationRequest.model_validate(interpretation_payload())
     )
 
     def handler(http_request: httpx.Request) -> httpx.Response:
         assert str(http_request.url) == (
-            "https://generativelanguage.googleapis.com/v1beta/models/minimax-2.0-flash:generateContent"
-            "?key=test-minimax-api-key"
+            "https://generativelanguage.googleapis.com/v1beta/models/xiaomi-2.0-flash:generateContent"
+            "?key=test-xiaomi-api-key"
         )
         payload = json.loads(http_request.content.decode("utf-8"))
         system_instruction = payload["systemInstruction"]["parts"][0]["text"]
@@ -140,8 +140,8 @@ def test_minimax_provider_maps_request_response_usage_and_reference_metadata() -
             status_code=200,
             headers={"x-goog-request-id": "goog-req-123"},
             json={
-                "responseId": "minimax-response-123",
-                "modelVersion": "minimax-2.0-flash-001",
+                "responseId": "xiaomi-response-123",
+                "modelVersion": "xiaomi-2.0-flash-001",
                 "candidates": [
                     {
                         "finishReason": "STOP",
@@ -168,9 +168,9 @@ def test_minimax_provider_maps_request_response_usage_and_reference_metadata() -
 
     completion = asyncio.run(run_completion())
 
-    assert completion.provider == "minimax"
+    assert completion.provider == "xiaomi"
     assert completion.route == "interpret"
-    assert completion.model == "minimax-2.0-flash"
+    assert completion.model == "xiaomi-2.0-flash"
     assert completion.raw_completion == '{"schema_version":"media_prompt_understanding.v1"}'
     assert completion.usage.input_tokens == 123
     assert completion.usage.output_tokens == 45
@@ -178,14 +178,14 @@ def test_minimax_provider_maps_request_response_usage_and_reference_metadata() -
     assert completion.usage.finish_reason == "stop"
     assert completion.usage.upstream_request_id == "goog-req-123"
     assert completion.usage.latency_ms is not None
-    assert completion.response_reference.response_id == "minimax-response-123"
-    assert completion.response_reference.model_version == "minimax-2.0-flash-001"
+    assert completion.response_reference.response_id == "xiaomi-response-123"
+    assert completion.response_reference.model_version == "xiaomi-2.0-flash-001"
     assert completion.response_reference.candidate_index == 0
 
 
-def test_minimax_provider_maps_rate_limit_errors_to_stable_adapter_error() -> None:
+def test_xiaomi_provider_maps_rate_limit_errors_to_stable_adapter_error() -> None:
     settings = get_settings()
-    provider = ProviderRegistry().build_client("minimax", settings)
+    provider = ProviderRegistry().build_client("xiaomi", settings)
     request = provider.normalize_interpretation_request(
         InterpretationRequest.model_validate(interpretation_payload())
     )
