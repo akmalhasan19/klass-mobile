@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.models import AssessmentBlock, Asset, BodyBlock, GenerationSpec, Section
+from app.models import AssessmentBlock, Asset, BodyBlock, GenerationSpec, PptxSlideItem, Section
 
 
 LABELS = {
@@ -87,6 +87,21 @@ class RenderActivity:
 
 
 @dataclass(frozen=True)
+class RenderPptxSlideContentItem:
+    heading: str
+    body: str
+
+
+@dataclass(frozen=True)
+class RenderPptxSlide:
+    slide_number: int
+    layout_type: str
+    title: str
+    subtitle: str | None
+    content: list[RenderPptxSlideContentItem]
+
+
+@dataclass(frozen=True)
 class RenderDocument:
     title: str
     export_format: str
@@ -104,6 +119,10 @@ class RenderDocument:
     template_id: str | None = None
     subject: str | None = None
     sub_subject: str | None = None
+    # ── PPTX-specific: explicit slide structures from the LLM ──
+    pptx_slides: list[RenderPptxSlide] | None = None
+    pptx_presentation_title: str | None = None
+    pptx_theme_suggestion: str | None = None
 
 
 def _map_sections(sections: list[Section]) -> list[RenderSection]:
@@ -141,6 +160,24 @@ def _map_activities(activity_blocks: list[AssessmentBlock]) -> list[RenderActivi
     ]
 
 
+def _map_pptx_slides(slides: list[PptxSlideItem] | None) -> list[RenderPptxSlide] | None:
+    if slides is None:
+        return None
+    return [
+        RenderPptxSlide(
+            slide_number=s.slide_number,
+            layout_type=s.layout_type,
+            title=s.title,
+            subtitle=s.subtitle,
+            content=[
+                RenderPptxSlideContentItem(heading=c.heading, body=c.body)
+                for c in s.content
+            ],
+        )
+        for s in slides
+    ]
+
+
 def build_render_document(spec: GenerationSpec) -> RenderDocument:
     return RenderDocument(
         title=spec.title,
@@ -166,4 +203,8 @@ def build_render_document(spec: GenerationSpec) -> RenderDocument:
             spec.content_context.sub_subject_context if spec.content_context else None,
             "sub_subject_name",
         ),
+        # PPTX slide structure passthrough
+        pptx_slides=_map_pptx_slides(spec.pptx_slides),
+        pptx_presentation_title=spec.pptx_presentation_title,
+        pptx_theme_suggestion=spec.pptx_theme_suggestion,
     )

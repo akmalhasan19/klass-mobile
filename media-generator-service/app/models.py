@@ -32,10 +32,25 @@ class Section(StrictModel):
     emphasis: Literal["short", "medium", "long"]
 
 
+class PptxSlideContentItem(StrictModel):
+    """A single content item inside a PPTX slide (heading + body pair)."""
+    heading: str = Field(default="")
+    body: str = Field(default="")
+
+
+class PptxSlideItem(StrictModel):
+    """A single slide in the PPTX presentation structure from the LLM draft."""
+    slide_number: int = Field(ge=1)
+    layout_type: str = Field(min_length=1, max_length=50)
+    title: str = Field(min_length=1, max_length=200)
+    subtitle: str | None = Field(default=None)
+    content: list[PptxSlideContentItem] = Field(default_factory=list)
+
+
 class LayoutHints(StrictModel):
     document_mode: Literal["document", "slide_deck"]
     visual_density: Literal["low", "medium", "high"]
-    section_count: int = Field(ge=1)
+    section_count: int = Field(ge=0)
     asset_count: int = Field(ge=0)
     assessment_block_count: int = Field(ge=0)
 
@@ -50,7 +65,7 @@ class PageOrSlideStructure(StrictModel):
     unit_type: Literal["page", "slide"]
     total_units: int = Field(ge=1)
     opening_unit: bool
-    section_units: int = Field(ge=1)
+    section_units: int = Field(ge=0)
     closing_unit: bool
     requested_units: int | None = Field(
         default=None,
@@ -90,7 +105,7 @@ class GenerationSpec(StrictModel):
     language: str = Field(min_length=1, max_length=32)
     summary: str = Field(min_length=1, max_length=1000)
     learning_objectives: list[str] = Field(default_factory=list)
-    sections: list[Section] = Field(min_length=1)
+    sections: list[Section] = Field(default_factory=list)
     layout_hints: LayoutHints
     style_hints: StyleHints
     page_or_slide_structure: PageOrSlideStructure
@@ -100,6 +115,22 @@ class GenerationSpec(StrictModel):
     teacher_delivery_summary: str = Field(min_length=1, max_length=1000)
     contract_versions: ContractVersions
     content_integrity: dict[str, Any] | None = Field(default=None)
+    # ── PPTX-specific: explicit slide structures from the LLM ──
+    pptx_slides: list[PptxSlideItem] | None = Field(
+        default=None,
+        description="Structured slide definitions produced by the PPTX draft instruction. "
+        "When present, these take precedence over sections for building the SlideBlueprint.",
+    )
+    pptx_presentation_title: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Presentation title suggested by the LLM (may differ from title).",
+    )
+    pptx_theme_suggestion: str | None = Field(
+        default=None,
+        max_length=50,
+        description='Theme suggestion from the LLM: "dark_executive", "clean_light", or "modern_blue".',
+    )
     # ── Optional fields for PPTX preview / template selection (Fase 4) ──
     template_id: str | None = Field(
         default=None,
@@ -132,8 +163,21 @@ class GenerationSpec(StrictModel):
 
     @model_validator(mode="after")
     def validate_consistency(self) -> "GenerationSpec":
-        if self.layout_hints.section_count != len(self.sections):
-            raise ValueError("layout_hints.section_count must equal the number of sections")
+        # When PPTX slides are present, sections may be empty
+        has_pptx_slides = self.pptx_slides is not None and len(self.pptx_slides) > 0
+
+        if not has_pptx_slides:
+            # Standard validation: sections must be non-empty
+            if len(self.sections) == 0:
+                raise ValueError("sections must contain at least 1 item when pptx_slides is not provided")
+
+            if self.layout_hints.section_count != len(self.sections):
+                raise ValueError("layout_hints.section_count must equal the number of sections")
+
+            if self.page_or_slide_structure.section_units != len(self.sections):
+                raise ValueError(
+                    "page_or_slide_structure.section_units must equal the number of sections"
+                )
 
         if self.layout_hints.asset_count != len(self.assets):
             raise ValueError("layout_hints.asset_count must equal the number of assets")
@@ -141,11 +185,6 @@ class GenerationSpec(StrictModel):
         if self.layout_hints.assessment_block_count != len(self.assessment_or_activity_blocks):
             raise ValueError(
                 "layout_hints.assessment_block_count must equal the number of assessment blocks"
-            )
-
-        if self.page_or_slide_structure.section_units != len(self.sections):
-            raise ValueError(
-                "page_or_slide_structure.section_units must equal the number of sections"
             )
 
         expected_unit_type = "slide" if self.export_format == "pptx" else "page"

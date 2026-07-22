@@ -103,23 +103,60 @@ class PptxGenerator(BaseGenerator):
                 "bg_color": "0F172A",
                 "text_color": "E2E8F0"
             })
+        # ── New theme palettes from LLM slide designer ──
+        elif theme_id == "dark_executive":
+            theme.update({
+                "primary_color": "F1F5F9",
+                "secondary_color": "6366F1",
+                "bg_color": "0F172A",
+                "text_color": "CBD5E1",
+                "font_heading": "Helvetica",
+                "font_body": "Arial"
+            })
+        elif theme_id == "clean_light":
+            theme.update({
+                "primary_color": "1E293B",
+                "secondary_color": "0EA5E9",
+                "bg_color": "FFFFFF",
+                "text_color": "334155",
+                "font_heading": "Helvetica",
+                "font_body": "Arial"
+            })
+        elif theme_id == "modern_blue":
+            theme.update({
+                "primary_color": "1E3A5F",
+                "secondary_color": "2563EB",
+                "bg_color": "F0F4FF",
+                "text_color": "1E293B",
+                "font_heading": "Helvetica",
+                "font_body": "Arial"
+            })
 
         slides = []
         for i, slide in enumerate(blueprint.slides):
-            layout_type = "one_column"
-            if slide.slide_type == "title":
-                layout_type = "title_hero"
-            elif slide.slide_type == "assessment":
-                layout_type = "two_columns"
-            elif slide.slide_type == "content":
-                if len(slide.cards) == 2:
+            # Check for explicit layout_type marker from PPTX slides mode
+            explicit_layout = None
+            if slide.speaker_notes and slide.speaker_notes.startswith("layout_type:"):
+                explicit_layout = slide.speaker_notes.split(":", 1)[1]
+
+            if explicit_layout:
+                layout_type = explicit_layout
+            else:
+                # Legacy heuristic layout detection
+                layout_type = "one_column"
+                if slide.slide_type == "title":
+                    layout_type = "title_hero"
+                elif slide.slide_type == "assessment":
                     layout_type = "two_columns"
-                elif len(slide.cards) == 3:
-                    layout_type = "three_columns"
-                elif len(slide.cards) >= 4:
-                    layout_type = "metric_highlight"
-                else:
-                    layout_type = "one_column"
+                elif slide.slide_type == "content":
+                    if len(slide.cards) == 2:
+                        layout_type = "two_columns"
+                    elif len(slide.cards) == 3:
+                        layout_type = "three_columns"
+                    elif len(slide.cards) >= 4:
+                        layout_type = "metric_highlight"
+                    else:
+                        layout_type = "one_column"
 
             content_items = []
             for card in slide.cards:
