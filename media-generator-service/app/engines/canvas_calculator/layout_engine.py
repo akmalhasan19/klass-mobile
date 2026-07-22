@@ -186,16 +186,40 @@ class CanvasLayoutEngine:
         Uses the same per-width font sizes (``_font_sizes``) that
         ``CanvasShapeRenderer`` applies when drawing, so the computed box height
         matches the rendered text and never clips.
+
+        The available text width is ``box_w_emu - 2 * text_frame_h_margin``
+        because the ``CanvasShapeRenderer`` sets
+        ``frame.margin_left = frame.margin_right = 0.12 in`` on every card
+        shape.  Failing to subtract this caused ``estimate_box`` to
+        underestimate the number of wrapped lines, which in turn produced
+        card boxes that were too short — the root cause of the content
+        overflow the user observed.
+
+        Paragraph spacing (``space_after``) is also accounted for: the
+        heading paragraph has ``Pt(6)`` and each body paragraph has
+        ``Pt(4)``.
         """
-        pad = Inches(0.22)  # top + bottom margins inside the card
+        # Text frame horizontal margins (must match shape_renderer.py)
+        text_h_margin = Inches(0.12) * 2
+        text_w_emu = box_w_emu - int(text_h_margin)
+        if text_w_emu <= 0:
+            text_w_emu = box_w_emu  # fallback for extremely narrow boxes
+
+        # Vertical margins inside the text frame (must match shape_renderer.py)
+        text_v_margin = Inches(0.1) * 2  # top + bottom
+
         heading_pt, body_pt = _font_sizes(box_w_emu)
         total: Emu = Emu(0)
         if card.heading:
-            total += estimate_box(card.heading, heading_pt, box_w_emu)
-        body_text = "\n".join(self._format_block(b) for b in card.body_blocks)
+            total += estimate_box(card.heading, heading_pt, text_w_emu)
+            total += Pt(6)  # paragraph.space_after for heading
+        body_blocks = card.body_blocks
+        body_text = "\n".join(self._format_block(b) for b in body_blocks)
         if body_text:
-            total += estimate_box(body_text, body_pt, box_w_emu)
-        return total + pad
+            total += estimate_box(body_text, body_pt, text_w_emu)
+            # Account for space_after on each body paragraph
+            total += Pt(4) * len(body_blocks)
+        return total + text_v_margin
 
     @staticmethod
     def _format_block(block: ContentBlock) -> str:

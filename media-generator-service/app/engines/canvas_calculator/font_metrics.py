@@ -22,10 +22,14 @@ from pptx.util import Emu
 EMU_PER_INCH = 914_400
 EMU_PER_POINT = EMU_PER_INCH / 72  # 12700 EMU per point
 
-# Average glyph advance as a fraction of the font size (points). 0.5 is the
-# conventional heuristic for proportional Latin/text fonts and is adequate for
-# the Indonesian/Latin mix this service renders.
-AVG_GLYPH_ADVANCE = 0.5
+# Average glyph advance as a fraction of the font size (points).  0.45 is
+# slightly more conservative than the conventional 0.5 heuristic, which
+# overestimates chars-per-line for Indonesian/Latin mixed text that contains
+# wide glyphs (e.g. "W", "M") and CJK characters.  Using 0.45 causes
+# estimate_box to predict ~11 % more wrapped lines, which better matches
+# reality in PowerPoint where word-wrap follows word boundaries (not fixed
+# char counts).
+AVG_GLYPH_ADVANCE = 0.45
 
 # Multiplier applied to the nominal font size to obtain the line box height.
 LINE_SPACING = 1.2

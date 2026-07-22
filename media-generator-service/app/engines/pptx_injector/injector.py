@@ -273,6 +273,12 @@ class TemplateInjector:
         reused verbatim. For multi-line bodies the first line reuses the master's
         first run and each subsequent line gets a new paragraph whose run
         replicates the master run's font, so bullet/colour styling is consistent.
+
+        **Overflow protection**: When the rendered text would exceed the
+        shape's available height, the font size is iteratively reduced
+        (in 0.5 pt steps, down to a floor of 8 pt) until the content
+        fits.  This prevents the user-observed issue where long slide
+        content overflows the PPT view and appears truncated.
         """
         frame = shape.text_frame
         if not preserve_master or not frame.paragraphs or not frame.paragraphs[0].runs:
@@ -291,3 +297,97 @@ class TemplateInjector:
             run = p.add_run()
             run.text = line
             _copy_run_formatting(first_run.font, run.font)
+
+        # ── Overflow protection ──────────────────────────────────────
+        # If the text overflows the shape's height, iteratively shrink
+        # font sizes until the content fits (floor: 8 pt).
+        _auto_fit_text_frame(frame, shape, value)
+
+
+# ─── Overflow-protection helper ───────────────────────────────────────────────
+
+# Minimum font size (in pt) before we stop shrinking.  Going below this
+# produces unreadable text; at that point it is better to let the content
+# overflow slightly than to render illegible slides.
+_MIN_FONT_PT = 8.0
+
+
+def _auto_fit_text_frame(frame, shape, text_value: str) -> None:
+    """Iteratively shrink font sizes in *frame* until the text fits *shape*.
+
+    Reuses :func:`app.engines.canvas_calculator.font_metrics.estimate_box`
+    for height estimation so the template-injector and canvas-fallback
+    paths stay consistent.
+
+    Args:
+        frame: The ``TextFrame`` that was just populated by ``_write_text``.
+        shape: The parent ``BaseShape`` (provides ``shape.height``).
+        text_value: The original text written into the frame.
+    """
+    from pptx.util import Emu, Pt
+
+    from app.engines.canvas_calculator.font_metrics import estimate_box
+
+    available_h = shape.height  # EMU
+    if available_h is None or available_h <= 0:
+        return  # no height constraint — nothing to do
+
+    # Account for the text-frame's internal vertical margins so the
+    # usable area is accurate.
+    try:
+        top_m = frame.margin_top or 0
+        btm_m = frame.margin_bottom or 0
+        available_h -= (top_m + btm_m)
+    except Exception:
+        pass
+
+    if available_h <= 0:
+        return
+
+    # Also account for horizontal margins when estimating chars-per-line.
+    try:
+        left_m = frame.margin_left or 0
+        right_m = frame.margin_right or 0
+        available_w = shape.width - (left_m + right_m)
+    except Exception:
+        available_w = shape.width
+
+    if available_w is None or available_w <= 0:
+        available_w = shape.width or Emu(0)
+
+    # Collect every run so we can shrink them all.
+    runs = []
+    for paragraph in frame.paragraphs:
+        for run in paragraph.runs:
+            runs.append(run)
+
+    if not runs:
+        return
+
+    # Determine starting font size from the first run.
+    first_size = runs[0].font.size
+    if first_size is None:
+        return  # no font size set — cannot auto-fit
+
+    current_pt = first_size / 12700  # EMU → pt
+    if current_pt <= _MIN_FONT_PT:
+        return  # already at floor
+
+    # Shrink loop: reduce font size by 0.5 pt each iteration until
+    # estimated text height ≤ available_h or we hit the floor.
+    # Maximum iterations = (current_pt - _MIN_FONT_PT) / 0.5, capped at 60.
+    max_iterations = min(60, int((current_pt - _MIN_FONT_PT) / 0.5) + 1)
+
+    for _ in range(max_iterations):
+        if current_pt <= _MIN_FONT_PT:
+            break
+
+        estimated_h = estimate_box(text_value, current_pt, available_w)
+        if estimated_h <= available_h:
+            break  # fits!
+        current_pt -= 0.5
+
+    # Apply the final font size to every run.
+    final_size = Pt(current_pt)
+    for run in runs:
+        run.font.size = final_size

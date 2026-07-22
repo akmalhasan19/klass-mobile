@@ -759,54 +759,6 @@ class _MediaGenerationGeometricLoaderState extends State<_MediaGenerationGeometr
   }
 }
 
-class _ProgressStepper extends StatelessWidget {
-  const _ProgressStepper({required this.isIndonesian, required this.currentStatus});
-  final bool isIndonesian;
-  final String currentStatus;
-  @override
-  Widget build(BuildContext context) {
-    final steps = [
-      {'id': 'pending', 'label': isIndonesian ? 'Menunggu' : 'Pending'},
-      {'id': 'interpreting', 'label': isIndonesian ? 'Memahami prompt' : 'Understanding prompt'},
-      {'id': 'classified', 'label': isIndonesian ? 'Menentukan format' : 'Deciding format'},
-      {'id': 'generating', 'label': isIndonesian ? 'Menghasilkan file' : 'Generating file'},
-      {'id': 'processing', 'label': isIndonesian ? 'Sedang diproses' : 'Processing'},
-      {'id': 'publishing', 'label': isIndonesian ? 'Mempublikasikan hasil' : 'Publishing result'},
-    ];
-    return Column(
-      children: steps.map((step) {
-        final isActive = currentStatus == step['id'];
-        final isPast = _isPastStatus(currentStatus, step['id']!);
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              Icon(
-                isActive
-                    ? Icons.check_circle_outline_rounded
-                    : isPast
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked_rounded,
-                size: 16,
-                color: isActive || isPast ? AppColors.primary : AppColors.textMuted,
-              ),
-              const SizedBox(width: 8),
-              Text(step['label']!, style: TextStyle(fontFamily: 'Inter', fontSize: 12, fontWeight: isActive ? FontWeight.w700 : FontWeight.w500, color: isActive ? AppColors.textPrimary : AppColors.textMuted)),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  bool _isPastStatus(String currentStatus, String stepId) {
-    const order = ['pending', 'queued', 'interpreting', 'classified', 'generating', 'processing', 'uploading', 'publishing', 'completed'];
-    final currentIdx = order.indexOf(currentStatus);
-    final stepIdx = order.indexOf(stepId);
-    return currentIdx > stepIdx && stepIdx >= 0;
-  }
-}
-
 class _DetailPanel extends StatelessWidget {
   const _DetailPanel({required this.icon, required this.title, required this.description});
   final IconData icon; final String title; final String description;
