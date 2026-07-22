@@ -194,30 +194,78 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
                 ),
               ],
               const SizedBox(height: 8),
-              TextField(
-                controller: _textController,
-                focusNode: _focusNode,
-                maxLines: 2,
-                minLines: 1,
-                decoration: InputDecoration(
-                  hintText: loc.clarificationInputHint,
-                  hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      focusNode: _focusNode,
+                      maxLines: 2,
+                      minLines: 1,
+                      textInputAction: TextInputAction.send,
+                      decoration: InputDecoration(
+                        hintText: loc.clarificationInputHint,
+                        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
+                      onSubmitted: (_) => _onTextSubmitted(),
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  const SizedBox(width: 8),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _textController,
+                    builder: (context, value, child) {
+                      final hasText = value.text.trim().isNotEmpty;
+                      return SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          key: const Key('clarification_submit_button'),
+                          onPressed: hasText ? _onTextSubmitted : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.border,
+                            disabledForegroundColor: AppColors.textMuted,
+                            elevation: hasText ? 2 : 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                loc.clarificationSend,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.send_rounded, size: 16),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  contentPadding: const EdgeInsets.all(12),
-                ),
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
-                onSubmitted: (_) => _onTextSubmitted(),
+                ],
               ),
             ],
           ),
