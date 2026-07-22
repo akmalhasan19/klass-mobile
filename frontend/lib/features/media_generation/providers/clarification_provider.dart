@@ -14,6 +14,7 @@ class ClarificationState {
   final bool isSubmitting;
   final bool isGenerating;
   final String? error;
+  final String originalSuggestedPrompt;
 
   ClarificationState({
     this.generationId,
@@ -24,6 +25,7 @@ class ClarificationState {
     this.isSubmitting = false,
     this.isGenerating = false,
     this.error,
+    this.originalSuggestedPrompt = '',
   });
 
   bool get isReady => response?.isReady ?? true;
@@ -68,6 +70,7 @@ class ClarificationState {
     bool? isGenerating,
     String? error,
     bool clearError = false,
+    String? originalSuggestedPrompt,
   }) {
     return ClarificationState(
       generationId: generationId ?? this.generationId,
@@ -78,6 +81,8 @@ class ClarificationState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isGenerating: isGenerating ?? this.isGenerating,
       error: clearError ? null : (error ?? this.error),
+      originalSuggestedPrompt:
+          originalSuggestedPrompt ?? this.originalSuggestedPrompt,
     );
   }
 }
@@ -112,6 +117,7 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
       response: response,
       messages: messages,
       currentQuestionIndex: 0,
+      originalSuggestedPrompt: response.suggestedPrompt,
     );
   }
 
@@ -266,24 +272,88 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
   }
 
   String _buildEnrichedPrompt(Map<String, String> answers) {
-    final parts = <String>[];
-    final base = state.response?.suggestedPrompt ?? '';
-
-    if (base.isNotEmpty) {
-      parts.add(base);
+    final base = state.originalSuggestedPrompt;
+    if (answers.isEmpty || base.isEmpty) {
+      return base;
     }
 
+    final baseLower = base.toLowerCase();
+    final slideParts = <MapEntry<int, String>>[];
+    final extraParts = <String>[];
+
     for (final entry in answers.entries) {
-      final gap = state.response?.gaps.firstWhere(
-        (g) => g.fieldId == entry.key,
-        orElse: () => state.response!.gaps.first,
-      );
-      if (gap != null && entry.value.isNotEmpty) {
-        parts.add(entry.value);
+      final value = entry.value.trim();
+      if (value.isEmpty) continue;
+
+      final skipValues = {'no', 'tidak', 'none', 'skip', 'auto'};
+      if (skipValues.contains(value.toLowerCase())) continue;
+
+      if (baseLower.contains(value.toLowerCase())) continue;
+
+      if (entry.key.startsWith('slide_')) {
+        final index = int.tryParse(entry.key.replaceFirst('slide_', '')) ?? 0;
+        if (index > 0) {
+          slideParts.add(MapEntry(index, value));
+        }
+      } else if (entry.key == 'learning_objectives') {
+        extraParts.add('dengan tujuan pembelajaran: $value');
+      } else if (entry.key == 'target_audience') {
+        extraParts.add('untuk jenjang $value');
+      } else if (entry.key == 'output_type') {
+        extraParts.add('dalam format ${value.toUpperCase()}');
+      } else if (entry.key == 'difficulty_level') {
+        extraParts.add('tingkat kesulitan $value');
+      } else if (entry.key == 'question_count') {
+        extraParts.add('dengan $value soal');
+      } else if (entry.key == 'teaching_method') {
+        extraParts.add('dengan metode ${value.replaceAll('_', ' ')}');
+      } else if (entry.key == 'slide_count') {
+        // already handled if user answered; skip or add explicitly
+        if (!baseLower.contains('slide') && !baseLower.contains('halaman')) {
+          extraParts.add('sebanyak $value slide');
+        }
+      } else {
+        extraParts.add(value);
       }
     }
 
-    return parts.join(', ');
+    if (slideParts.isEmpty && extraParts.isEmpty) {
+      return base;
+    }
+
+    slideParts.sort((a, b) => a.key.compareTo(b.key));
+    final slideLabels = slideParts
+        .map((e) => e.value.contains(':')
+            ? e.value.split(':').first.trim()
+            : e.value)
+        .where((l) => l.isNotEmpty)
+        .toList();
+
+    // Strip trailing period from base if we're appending anything
+    var cleanBase = base;
+    if ((extraParts.isNotEmpty || slideLabels.isNotEmpty) &&
+        cleanBase.endsWith('.')) {
+      cleanBase = cleanBase.substring(0, cleanBase.length - 1);
+    }
+
+    final enriched = StringBuffer(cleanBase);
+
+    if (extraParts.isNotEmpty) {
+      enriched.write(', ');
+      enriched.write(extraParts.join(', '));
+    }
+
+    if (slideLabels.length >= 3) {
+      enriched.write(
+          '. Susunannya: ${slideLabels.sublist(0, slideLabels.length - 1).join(', ')}, serta ${slideLabels.last}');
+    } else if (slideLabels.length == 2) {
+      enriched.write(
+          '. Susunannya: ${slideLabels[0]} serta ${slideLabels[1]}');
+    } else if (slideLabels.length == 1) {
+      enriched.write('. Susunannya: ${slideLabels.first}');
+    }
+
+    return enriched.toString();
   }
 
   String _humanizeError(Object error) {
