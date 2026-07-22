@@ -52,6 +52,12 @@ class PageOrSlideStructure(StrictModel):
     opening_unit: bool
     section_units: int = Field(ge=1)
     closing_unit: bool
+    requested_units: int | None = Field(
+        default=None,
+        ge=1,
+        description="Original page/slide count requested by the teacher. "
+        "None when the teacher did not specify a count.",
+    )
 
 
 class ContentContext(StrictModel):
