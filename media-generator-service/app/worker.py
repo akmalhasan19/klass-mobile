@@ -263,6 +263,13 @@ async def process_generation_job(ctx: dict[str, Any], job_id: str) -> dict[str, 
             try:
                 logger.info("worker: generating preview for job %s", job_id)
                 blueprint = build_slide_blueprint(render_document)
+                if len(blueprint.slides) < 3:
+                    logger.warning(
+                        "generation_id=%s has only %d slides — content may be insufficient. "
+                        "Check if the upstream GenerationSpec has enough sections.",
+                        generation_id,
+                        len(blueprint.slides),
+                    )
                 if _template_registry is None:
                     raise RuntimeError("Template registry not initialised")
                 html_master = _template_registry.get_html_master("klass-educational-v1")

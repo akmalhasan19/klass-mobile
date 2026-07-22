@@ -103,28 +103,83 @@ def _build_title_slide(render_document: RenderDocument) -> Slide:
 
 
 def _build_content_slides(render_document: RenderDocument) -> list[Slide]:
-    """One content slide per ``RenderSection``."""
+    """One content slide per ``RenderSection``, with splitting for long sections."""
     slides: list[Slide] = []
 
     for section in render_document.sections:
         cards: list[Card] = []
 
         if section.blocks:
-            cards.append(Card(
-                body_blocks=[_convert_block(block) for block in section.blocks],
-            ))
+            # Split blocks into chunks that fit on a single slide
+            chunks = _split_blocks_into_chunks(section.blocks, max_blocks_per_slide=6)
+            for chunk in chunks:
+                cards.append(Card(
+                    body_blocks=[_convert_block(block) for block in chunk],
+                ))
         else:
             cards.append(Card(
                 body_blocks=[ContentBlock(kind="paragraph", content=section.purpose)],
             ))
 
-        slides.append(Slide(
-            slide_type="content",
-            title=section.title,
-            cards=cards,
-        ))
+        # If multiple cards (split sections), create one slide per card
+        if len(cards) > 1:
+            for i, card in enumerate(cards):
+                slide_title = f"{section.title}" if i == 0 else f"{section.title} (lanjutan)"
+                slides.append(Slide(
+                    slide_type="content",
+                    title=slide_title,
+                    cards=[card],
+                ))
+        else:
+            slides.append(Slide(
+                slide_type="content",
+                title=section.title,
+                cards=cards,
+            ))
 
     return slides
+
+
+def _split_blocks_into_chunks(blocks: list, max_blocks_per_slide: int = 6) -> list[list]:
+    """Split a list of blocks into chunks that fit on a single slide.
+
+    Heuristic: each slide can hold ~6 blocks comfortably at 720px height.
+    Longer blocks (paragraphs) count as 2, shorter ones (bullets) as 1.
+    """
+    if len(blocks) <= max_blocks_per_slide:
+        return [blocks]
+
+    chunks = []
+    current_chunk = []
+    current_weight = 0
+
+    for block in blocks:
+        # Estimate weight: paragraphs are heavier
+        weight = 2 if block.kind == "paragraph" else 1
+
+        if current_weight + weight > max_blocks_per_slide and current_chunk:
+            chunks.append(current_chunk)
+            current_chunk = [block]
+            current_weight = weight
+        else:
+            current_chunk.append(block)
+            current_weight += weight
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    return chunks
+
+
+def _convert_block(block: RenderBlock) -> ContentBlock:
+    """Map a ``RenderBlock`` dataclass to a ``ContentBlock`` Pydantic model.
+
+    The ``kind`` values (``"paragraph"``, ``"bullet"``, ``"checklist"``,
+    ``"note"``) are identical between the two models, so no remapping is
+    needed — only the container type changes from frozen dataclass to
+    Pydantic ``StrictModel``.
+    """
+    return ContentBlock(kind=block.kind, content=block.content)
 
 
 def _build_assessment_slide(render_document: RenderDocument) -> list[Slide]:
@@ -147,14 +202,3 @@ def _build_assessment_slide(render_document: RenderDocument) -> list[Slide]:
         title="Aktivitas dan Penilaian",
         cards=cards,
     )]
-
-
-def _convert_block(block: RenderBlock) -> ContentBlock:
-    """Map a ``RenderBlock`` dataclass to a ``ContentBlock`` Pydantic model.
-
-    The ``kind`` values (``"paragraph"``, ``"bullet"``, ``"checklist"``,
-    ``"note"``) are identical between the two models, so no remapping is
-    needed — only the container type changes from frozen dataclass to
-    Pydantic ``StrictModel``.
-    """
-    return ContentBlock(kind=block.kind, content=block.content)
