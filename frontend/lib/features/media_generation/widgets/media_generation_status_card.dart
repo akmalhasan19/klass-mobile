@@ -89,11 +89,12 @@ class MediaGenerationStatusCard extends StatelessWidget {
                   spacing: 12,
                   runSpacing: 10,
                   children: [
-                    _StatusBadge(
-                      label: _statusBadgeLabel(isIndonesian: isIndonesian, state: service.state, status: status),
-                      backgroundColor: theme.badgeBackground,
-                      textColor: theme.badgeText,
-                    ),
+                    if (!service.isLoading && !service.isInProgress)
+                      _StatusBadge(
+                        label: _statusBadgeLabel(isIndonesian: isIndonesian, state: service.state, status: status),
+                        backgroundColor: theme.badgeBackground,
+                        textColor: theme.badgeText,
+                      ),
                     if (generationId != null)
                       _StatusBadge(
                         label: '#${generationId.substring(0, generationId.length > 8 ? 8 : generationId.length)}',
@@ -153,8 +154,6 @@ class MediaGenerationStatusCard extends StatelessWidget {
                   ],
                 ),
               ),
-            const SizedBox(height: 8),
-            _ProgressStepper(isIndonesian: isIndonesian, currentStatus: status),
             if (service.isInProgress && onCancel != null) ...[
               const SizedBox(height: 16),
               SizedBox(
