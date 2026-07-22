@@ -6,10 +6,16 @@
   "type": "module",
   "main": "chromium_sidecar.js",
   "scripts": {
-    "start": "node chromium_sidecar.js"
+    "start": "node chromium_sidecar.js",
+    "build": "tsc"
   },
   "dependencies": {
-    "playwright": "^1.45.0"
+    "playwright": "^1.45.0",
+    "pptxgenjs": "^3.12.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "@types/node": "^20.8.0"
   },
   "engines": {
     "node": ">=18"

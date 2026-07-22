@@ -40,6 +40,7 @@ class GeneratorRegistry:
             ),
             "pptx": PptxGenerator(
                 template_registry=template_registry,
+                sidecar_manager=sidecar_manager,
             ),
         }
 

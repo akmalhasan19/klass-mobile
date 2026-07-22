@@ -176,6 +176,13 @@ class SidecarManager:
             raise SidecarError("sidecar html_to_pdf returned no pdf field")
         return base64.b64decode(result["pdf"])
 
+    async def generate_pptx(self, spec: dict[str, Any]) -> bytes:
+        """Generate PPTX via warm Node.js + PptxGenJS."""
+        result = await self._request("generate_pptx", {"spec": spec})
+        if not isinstance(result, dict) or "pptx" not in result:
+            raise SidecarError("sidecar generate_pptx returned no pptx field")
+        return base64.b64decode(result["pptx"])
+
     async def health(self) -> dict[str, Any]:
         """Lightweight liveness probe (does not consume a render slot)."""
         return await self._request("health", {}, counts_as_render=False)

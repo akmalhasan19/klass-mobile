@@ -75,7 +75,7 @@ def test_registry_only_exposes_docx_and_pdf_generators() -> None:
     assert registry.get("pptx").export_format == "pptx"
 
 
-def test_pptx_generator_renders_title_section_and_activity_slides() -> None:
+def test_pptx_generator_renders_title_section_and_activity_slides(running_client) -> None:
     request_payload = sample_request("pptx")
     render_document = build_render_document(request_payload.generation_spec)
     generator = PptxGenerator()

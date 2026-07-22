@@ -23,9 +23,14 @@ WORKDIR /app
 # the Chromium binary and its OS-level library dependencies in one step
 # (replacing the manual apt list).
 COPY app/engines/chromium_sidecar/sidecar/package.json \
+     app/engines/chromium_sidecar/sidecar/tsconfig.json \
      ./app/engines/chromium_sidecar/sidecar/
+COPY app/engines/chromium_sidecar/sidecar/src \
+     ./app/engines/chromium_sidecar/sidecar/src/
 RUN cd app/engines/chromium_sidecar/sidecar \
-    && npm install --omit=dev \
+    && npm install \
+    && npm run build \
+    && npm prune --omit=dev \
     && npx playwright install --with-deps chromium
 
 # ── Python deps ────────────────────────────────────────────────────────

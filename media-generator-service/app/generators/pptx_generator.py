@@ -1,37 +1,28 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-from pptx import Presentation
-
-import app.templates as templates_pkg
 from app.contracts import MIME_TYPES
 from app.document_model import RenderDocument
+from app.engines.blueprint import SlideBlueprint
 from app.engines.blueprint_builder import build_slide_blueprint
-from app.engines.canvas_calculator.layout_engine import CanvasLayoutEngine
-from app.engines.canvas_calculator.shape_renderer import CanvasShapeRenderer
-from app.engines.pptx_injector.injector import TemplateInjector
+from app.errors import GenerationError
 from app.generators.base import BaseGenerator, RenderSummary
-from app.templates.registry import TemplateRegistry
+
+if TYPE_CHECKING:
+    from app.engines.chromium_sidecar.sidecar.sidecar_manager import SidecarManager
+    from app.templates.registry import TemplateRegistry
 
 DEFAULT_TEMPLATE_ID = "klass-educational-v1"
 
 
 class PptxGenerator(BaseGenerator):
-    """Generate a native, editable PPTX by delegating to the Hybrid Engine.
+    """Generate a native, editable PPTX by delegating to the Node.js PptxGenJS Layout Engine.
 
-    The generator is now a thin orchestrator (per the plan's modularisation
-    rule): it builds the :class:`SlideBlueprint` from the ``RenderDocument`` and
-    hands it to :class:`TemplateInjector`, which fills the master ``.pptx`` via
-    the manifest. Slides that exceed a layout's capacity are automatically
-    rendered by the :class:`CanvasLayoutEngine` fallback — the injector owns
-    that capacity gate (it already delegates to its ``canvas_engine`` Protocol),
-    so the orchestrator does not re-implement fallback routing.
-
-    The ``template_registry`` is injectable (wired in a later task from the
-    app-level lifespan registry). When omitted, a registry is built lazily from
-    the bundled ``app/templates`` directory, keeping ``PptxGenerator()`` usable
-    in tests and the generator registry without external DI.
+    The generator maps the universal ``SlideBlueprint`` to a structured Presentation JSON
+    and hands it to the warm Chromium/Node sidecar for high-end dynamic coordinates rendering.
     """
 
     export_format = "pptx"
@@ -41,49 +32,136 @@ class PptxGenerator(BaseGenerator):
         self,
         template_registry: TemplateRegistry | None = None,
         template_id: str = DEFAULT_TEMPLATE_ID,
+        sidecar_manager: SidecarManager | None = None,
+        event_loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         self._template_registry = template_registry
         self._template_id = template_id
+        self._sidecar_manager = sidecar_manager
+        self._event_loop = event_loop
 
     def render(self, render_document: RenderDocument, output_path: Path) -> RenderSummary:
+        sidecar_manager = self._require_sidecar()
         blueprint = build_slide_blueprint(render_document)
-        registry = self._resolve_registry()
-        entry = registry.get(self._template_id)
+        spec = self._map_blueprint_to_spec(blueprint)
 
-        # Read the master template's slide dimensions so the canvas fallback
-        # engine uses the same geometry as the master — without this the
-        # canvas-calculated card grid could misalign with template-injected
-        # slides when the master has non-default dimensions.
-        master_prs = Presentation(str(entry.master_path))
-        canvas_engine = CanvasLayoutEngine(
-            slide_width=master_prs.slide_width,
-            slide_height=master_prs.slide_height,
-            renderer=CanvasShapeRenderer(),
-        )
-        # master_prs is discarded; injector opens its own copy per request
+        # Delegate PPTX generation to the Node.js sidecar
+        pptx_bytes = self._run_async(sidecar_manager.generate_pptx(spec), self._event_loop)
 
-        injector = TemplateInjector(
-            master_path=entry.master_path,
-            manifest=entry.manifest,
-            canvas_engine=canvas_engine,
-        )
-
-        result = injector.inject(blueprint, output_path)
-
-        # Collect per-slide layout sources from the blueprint (set by the
-        # injector during _fill_slide / _delegate_canvas).
-        layout_sources = [s.layout_source for s in blueprint.slides if s.layout_source]
+        # Write output file
+        output_path.write_bytes(pptx_bytes)
 
         return RenderSummary(
-            slide_count=result.slide_count,
-            warnings=list(result.warnings),
-            layout_sources=layout_sources or None,
+            slide_count=len(blueprint.slides),
+            warnings=[],
+            layout_sources=["canvas"] * len(blueprint.slides),
         )
 
-    def _resolve_registry(self) -> TemplateRegistry:
-        if self._template_registry is not None:
-            return self._template_registry
-        registry = TemplateRegistry()
-        templates_dir = Path(templates_pkg.__file__).resolve().parent
-        registry.load_templates(templates_dir)
-        return registry
+    def _require_sidecar(self):
+        manager = self._sidecar_manager
+        if manager is None:
+            from app.main import sidecar_manager as _global_sidecar
+            manager = _global_sidecar
+
+        if manager is None or not manager.is_ready:
+            raise GenerationError(
+                "chromium_sidecar_unavailable",
+                "The Chromium sidecar is not available; PPTX generation requires it.",
+                {},
+            )
+        return manager
+
+    def _map_blueprint_to_spec(self, blueprint: SlideBlueprint) -> dict[str, Any]:
+        theme_id = blueprint.theme_id or self._template_id
+        # Default theme colors
+        theme = {
+            "primary_color": "0B1F33",
+            "secondary_color": "0F4C5C",
+            "bg_color": "F8FAFC",
+            "text_color": "1F2933",
+            "font_heading": "Helvetica",
+            "font_body": "Arial"
+        }
+        if theme_id == "warm" or theme_id == "sunset":
+            theme.update({
+                "primary_color": "7C2D12",
+                "secondary_color": "EA580C",
+                "bg_color": "FFF7ED",
+                "text_color": "431407"
+            })
+        elif theme_id == "forest" or theme_id == "eco":
+            theme.update({
+                "primary_color": "064E3B",
+                "secondary_color": "10B981",
+                "bg_color": "F0FDF4",
+                "text_color": "062F21"
+            })
+        elif theme_id == "dark" or theme_id == "tech":
+            theme.update({
+                "primary_color": "F8FAFC",
+                "secondary_color": "3B82F6",
+                "bg_color": "0F172A",
+                "text_color": "E2E8F0"
+            })
+
+        slides = []
+        for i, slide in enumerate(blueprint.slides):
+            layout_type = "one_column"
+            if slide.slide_type == "title":
+                layout_type = "title_hero"
+            elif slide.slide_type == "assessment":
+                layout_type = "two_columns"
+            elif slide.slide_type == "content":
+                if len(slide.cards) == 2:
+                    layout_type = "two_columns"
+                elif len(slide.cards) == 3:
+                    layout_type = "three_columns"
+                elif len(slide.cards) >= 4:
+                    layout_type = "metric_highlight"
+                else:
+                    layout_type = "one_column"
+
+            content_items = []
+            for card in slide.cards:
+                body_lines = []
+                for block in card.body_blocks:
+                    if block.kind in ["bullet", "checklist"]:
+                        body_lines.append(f"- {block.content}")
+                    else:
+                        body_lines.append(block.content)
+                body_text = "\n".join(body_lines)
+                
+                content_items.append({
+                    "heading": card.heading,
+                    "body": body_text
+                })
+
+            slides.append({
+                "slide_number": i + 1,
+                "layout_type": layout_type,
+                "title": slide.title,
+                "subtitle": slide.subtitle,
+                "content": content_items
+            })
+
+        return {
+            "meta": {
+                "title": blueprint.deck_meta.title,
+                "theme": theme
+            },
+            "slides": slides
+        }
+
+    @staticmethod
+    def _run_async(coro, loop: asyncio.AbstractEventLoop | None = None):
+        if loop is not None:
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            return future.result(timeout=60)
+
+        try:
+            running = asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coro)
+
+        future = asyncio.run_coroutine_threadsafe(coro, running)
+        return future.result(timeout=60)
