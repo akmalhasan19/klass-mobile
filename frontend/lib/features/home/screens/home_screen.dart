@@ -342,8 +342,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   }
 
   Future<void> _handleDownloadGeneratedArtifact() async {
+    final isIndonesian = Localizations.localeOf(context).languageCode == 'id';
     await _runArtifactAction(
-      action: () => _mediaGenerationActionService.downloadArtifact(_artifactUrl()!),
+      action: () async {
+        await _mediaGenerationActionService.downloadArtifact(_artifactUrl()!);
+        if (mounted) {
+          _showGenerationMessage(
+            isIndonesian
+                ? 'File artifact berhasil diunduh!'
+                : 'Artifact downloaded successfully!',
+          );
+        }
+      },
       errorMessageId: 'download',
     );
   }
@@ -442,7 +452,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
 
     return _mediaGenerationService.presignedDownloadUrl ??
            _stringAt(deliveryPayload, ['artifact', 'file_url']) ??
-           _stringAt(artifact, ['file_url']);
+           _stringAt(deliveryPayload, ['artifact', 'presigned_url']) ??
+           _stringAt(deliveryPayload, ['file_url']) ??
+           _stringAt(artifact, ['file_url']) ??
+           _stringAt(artifact, ['presigned_url']);
   }
 
   void _showGenerationMessage(String message) {

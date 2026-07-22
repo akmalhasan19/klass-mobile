@@ -122,9 +122,14 @@ class MediaGenerationActionService {
       isComplete: true,
     ));
 
-    final result = await OpenFilex.open(finalFile.path);
-    if (result.type != ResultType.done) {
-      throw Exception('Could not open downloaded file: ${result.message}');
+    try {
+      final result = await OpenFilex.open(finalFile.path);
+      if (result.type != ResultType.done) {
+        // Log status without throwing — the download itself was 100% successful.
+        // On emulators or devices without a default PDF/PPTX viewer, OpenFilex fails gracefully.
+      }
+    } catch (e) {
+      // Ignore OpenFilex errors so a completed download does not throw an exception.
     }
   }
 
