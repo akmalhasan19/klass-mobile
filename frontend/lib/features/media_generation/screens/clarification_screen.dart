@@ -30,8 +30,6 @@ class ClarificationScreen extends ConsumerStatefulWidget {
 class _ClarificationScreenState extends ConsumerState<ClarificationScreen>
     with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  final TextEditingController _textController = TextEditingController();
-  final FocusNode _textFocusNode = FocusNode();
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -72,8 +70,6 @@ class _ClarificationScreenState extends ConsumerState<ClarificationScreen>
   @override
   void dispose() {
     _scrollController.dispose();
-    _textController.dispose();
-    _textFocusNode.dispose();
     _fadeController.dispose();
     _summaryAnimController?.dispose();
     super.dispose();
@@ -116,13 +112,6 @@ class _ClarificationScreenState extends ConsumerState<ClarificationScreen>
           value,
         );
     _scrollToBottom();
-  }
-
-  void _onTextSubmit() {
-    final text = _textController.text.trim();
-    if (text.isEmpty) return;
-    _textController.clear();
-    _onAnswer(text);
   }
 
   Future<void> _onGenerate() async {
@@ -220,7 +209,6 @@ class _ClarificationScreenState extends ConsumerState<ClarificationScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(clarificationProvider);
     final loc = AppLocalizations.of(context)!;
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     ref.listen<ClarificationState>(clarificationProvider, (prev, next) {
       if (next.error != null && prev?.error == null) {
@@ -341,88 +329,6 @@ class _ClarificationScreenState extends ConsumerState<ClarificationScreen>
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 12,
-                bottom: bottomInset + 12,
-              ),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: AppColors.border, width: 1),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      focusNode: _textFocusNode,
-                      maxLines: 1,
-                      enabled: !state.isSubmitting && !state.isGenerating,
-                      decoration: InputDecoration(
-                        hintText: loc.clarificationInputHint,
-                        hintStyle: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(color: AppColors.border),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(color: AppColors.border),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                      ),
-                      onSubmitted: (_) => _onTextSubmit(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: state.isSubmitting || state.isGenerating
-                        ? AppColors.textMuted
-                        : AppColors.primary,
-                    borderRadius: BorderRadius.circular(999),
-                    child: InkWell(
-                      onTap: state.isSubmitting || state.isGenerating ? null : _onTextSubmit,
-                      borderRadius: BorderRadius.circular(999),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: state.isSubmitting || state.isGenerating
-                              ? AppColors.textMuted
-                              : AppColors.primary,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_upward_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

@@ -57,6 +57,13 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
         _textController.text = widget.currentAnswer!;
       }
     }
+
+    // Auto-focus TextField when there are no suggestion chips (text input only)
+    if (widget.gap.suggestions.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusNode.requestFocus();
+      });
+    }
   }
 
   @override
