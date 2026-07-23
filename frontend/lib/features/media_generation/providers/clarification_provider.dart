@@ -4,6 +4,8 @@ import '../models/clarification_response.dart';
 import '../models/clarification_gap.dart';
 import '../models/chat_message.dart';
 import '../data/media_generation_service.dart';
+import '../data/clarification_service.dart';
+import 'package:klass_app/core/providers/dio_provider.dart';
 
 class ClarificationState {
   final String? generationId;
@@ -89,8 +91,9 @@ class ClarificationState {
 
 class ClarificationNotifier extends StateNotifier<ClarificationState> {
   final MediaGenerationService _mediaGenService;
+  final ClarificationService _clarificationService;
 
-  ClarificationNotifier(this._mediaGenService) : super(ClarificationState());
+  ClarificationNotifier(this._mediaGenService, this._clarificationService) : super(ClarificationState());
 
   void initialize(ClarificationResponse response) {
     if (response.generationId.isEmpty) {
@@ -129,6 +132,11 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
 
     final updatedMessages = List<ChatMessage>.from(state.messages)
       ..add(ChatMessage.user(value));
+
+    if (fieldId == 'output_type' && value.toLowerCase() == 'pptx') {
+      _fetchDynamicPptxGaps(updatedAnswers, updatedMessages);
+      return;
+    }
 
     final nextIndex = state.currentQuestionIndex + 1;
 
@@ -170,6 +178,60 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
       currentQuestionIndex: nextIndex,
       messages: updatedMessages,
     );
+  }
+
+  Future<void> _fetchDynamicPptxGaps(Map<String, String> currentAnswers, List<ChatMessage> currentMessages) async {
+    state = state.copyWith(isSubmitting: true, answers: currentAnswers, messages: currentMessages);
+
+    try {
+      final enrichedPrompt = _buildEnrichedPrompt(currentAnswers);
+      
+      final preflightResponse = await _clarificationService.preflight(
+        rawPrompt: enrichedPrompt,
+        preferredOutputType: 'pptx',
+      );
+
+      final newGaps = preflightResponse.gaps.where((gap) => !currentAnswers.containsKey(gap.fieldId)).toList();
+      
+      final updatedResponse = ClarificationResponse(
+        generationId: state.response?.generationId ?? preflightResponse.generationId,
+        detected: preflightResponse.detected,
+        gaps: newGaps,
+        suggestedPrompt: preflightResponse.suggestedPrompt,
+        isReady: newGaps.isEmpty,
+        totalRequiredGaps: newGaps.where((g) => g.isRequired).length,
+        totalRecommendedGaps: newGaps.where((g) => !g.isRequired).length,
+      );
+
+      final nextMessages = List<ChatMessage>.from(currentMessages);
+      if (newGaps.isNotEmpty) {
+        nextMessages.add(ChatMessage.system('Menyesuaikan pertanyaan untuk format presentasi...'));
+      } else {
+        nextMessages.add(ChatMessage.system('Semua pertanyaan sudah terjawab!'));
+      }
+
+      state = state.copyWith(
+        isSubmitting: false,
+        response: updatedResponse,
+        currentQuestionIndex: 0,
+        messages: nextMessages,
+      );
+
+    } catch (e) {
+      final nextIndex = state.currentQuestionIndex + 1;
+      final nextMessages = List<ChatMessage>.from(currentMessages);
+      if (nextIndex < state.totalGaps) {
+        nextMessages.add(ChatMessage.system('Pertanyaan berikutnya...'));
+      } else {
+        nextMessages.add(ChatMessage.system('Semua pertanyaan sudah terjawab!'));
+      }
+        
+      state = state.copyWith(
+        isSubmitting: false,
+        currentQuestionIndex: nextIndex,
+        messages: nextMessages,
+      );
+    }
   }
 
   Future<void> useSuggestedPrompt() async {
@@ -377,8 +439,14 @@ class ClarificationNotifier extends StateNotifier<ClarificationState> {
   }
 }
 
+final clarificationServiceProvider = Provider<ClarificationService>((ref) {
+  final dio = ref.watch(dioProvider);
+  return ClarificationService(dio);
+});
+
 final clarificationProvider =
     StateNotifierProvider<ClarificationNotifier, ClarificationState>((ref) {
   final mediaGenService = ref.watch(mediaGenerationServiceProvider);
-  return ClarificationNotifier(mediaGenService);
+  final clarificationService = ref.watch(clarificationServiceProvider);
+  return ClarificationNotifier(mediaGenService, clarificationService);
 });
