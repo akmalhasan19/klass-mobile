@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/core/config/app_colors.dart';
-import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/features/media_generation/providers/clarification_provider.dart';
 import 'package:klass_app/features/media_generation/widgets/clarification_question_card.dart';
-import 'package:klass_app/features/media_generation/widgets/clarification_progress_indicator.dart';
 
 class InlineClarificationWidget extends ConsumerStatefulWidget {
   const InlineClarificationWidget({super.key});
@@ -41,11 +39,10 @@ class _InlineClarificationWidgetState extends ConsumerState<InlineClarificationW
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(clarificationProvider);
-    final loc = AppLocalizations.of(context)!;
     
     if (state.isActive) {
       return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -62,37 +59,9 @@ class _InlineClarificationWidgetState extends ConsumerState<InlineClarificationW
       return const SizedBox.shrink();
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: ClarificationProgressIndicator(
-                    currentQuestion: state.currentQuestionIndex,
-                    totalQuestions: state.totalGaps,
-                  ),
-                ),
-                TextButton(
-                  onPressed: _onSkipAll,
-                  child: Text(
-                    loc.clarificationSkip,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          AnimatedSwitcher(
+    return Column(
+      children: [
+        AnimatedSwitcher(
             duration: const Duration(milliseconds: 400),
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
@@ -122,11 +91,12 @@ class _InlineClarificationWidgetState extends ConsumerState<InlineClarificationW
               gap: state.currentGap!,
               currentAnswer: state.answers[state.currentGap!.fieldId],
               onAnswer: _onAnswer,
-              chipOrTypeLabel: loc.clarificationChipOrType,
+              currentQuestionIndex: state.currentQuestionIndex,
+              totalQuestions: state.totalGaps,
+              onSkipAll: _onSkipAll,
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }

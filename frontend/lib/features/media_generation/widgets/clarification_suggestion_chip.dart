@@ -17,28 +17,33 @@ class ClarificationSuggestionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      child: Material(
-        color: isSelected ? AppColors.primary : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.border,
-                width: 1,
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
+          ],
+        ),
+        child: Material(
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.6) : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : AppColors.textPrimary,
+                ),
               ),
             ),
           ),

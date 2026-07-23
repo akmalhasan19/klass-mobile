@@ -1011,7 +1011,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                                 ),
                               ],
                               if (_isClarifying) ...[
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 8),
                                 const InlineClarificationWidget(),
                               ] else if (_mediaGenerationService.hasVisibleState) ...[
                                 const SizedBox(height: 18),

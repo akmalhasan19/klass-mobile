@@ -9,7 +9,6 @@ import 'package:klass_app/features/media_generation/models/clarification_respons
 import 'package:klass_app/features/media_generation/models/chat_message.dart';
 import 'package:klass_app/features/media_generation/providers/clarification_provider.dart';
 import 'package:klass_app/features/media_generation/widgets/clarification_chat_bubble.dart';
-import 'package:klass_app/features/media_generation/widgets/clarification_progress_indicator.dart';
 import 'package:klass_app/features/media_generation/widgets/clarification_question_card.dart';
 import 'package:klass_app/features/media_generation/widgets/clarification_summary_card.dart';
 
@@ -283,18 +282,14 @@ class _ClarificationScreenState extends ConsumerState<ClarificationScreen>
                       }),
                       if (state.hasGaps && !state.allQuestionsAnswered) ...[
                         const SizedBox(height: 8),
-                        ClarificationProgressIndicator(
-                          currentQuestion: state.currentQuestionIndex,
-                          totalQuestions: state.totalGaps,
-                        ),
-                        const SizedBox(height: 4),
                         if (state.currentGap != null)
                           ClarificationQuestionCard(
                             key: ValueKey(state.currentGap!.fieldId),
                             gap: state.currentGap!,
                             currentAnswer: state.answers[state.currentGap!.fieldId],
                             onAnswer: _onAnswer,
-                            chipOrTypeLabel: loc.clarificationChipOrType,
+                            currentQuestionIndex: state.currentQuestionIndex,
+                            totalQuestions: state.totalGaps,
                           ),
                       ],
                       const SizedBox(height: 12),

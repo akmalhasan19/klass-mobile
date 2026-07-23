@@ -3,19 +3,24 @@ import 'package:klass_app/core/config/app_colors.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/features/media_generation/models/clarification_gap.dart';
 import 'package:klass_app/features/media_generation/widgets/clarification_suggestion_chip.dart';
+import 'package:klass_app/features/media_generation/widgets/clarification_progress_indicator.dart';
 
 class ClarificationQuestionCard extends StatefulWidget {
   final ClarificationGap gap;
   final String? currentAnswer;
   final ValueChanged<String> onAnswer;
-  final String? chipOrTypeLabel;
+  final int currentQuestionIndex;
+  final int totalQuestions;
+  final VoidCallback? onSkipAll;
 
   const ClarificationQuestionCard({
     super.key,
     required this.gap,
     this.currentAnswer,
     required this.onAnswer,
-    this.chipOrTypeLabel,
+    this.currentQuestionIndex = 0,
+    this.totalQuestions = 0,
+    this.onSkipAll,
   });
 
   @override
@@ -91,7 +96,6 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
       _textController.clear();
     });
     _focusNode.unfocus();
-    widget.onAnswer(value);
   }
 
   void _onTextSubmitted() {
@@ -115,62 +119,51 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
         duration: const Duration(milliseconds: 250),
         child: Container(
           width: double.infinity,
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          margin: const EdgeInsets.symmetric(vertical: 4),
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.border, width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: gap.isRequired
-                          ? AppColors.primary.withValues(alpha: 0.1)
-                          : AppColors.amber.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      gap.isRequired
-                          ? loc.clarificationRequiredBadge
-                          : loc.clarificationRecommendedBadge,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: gap.isRequired ? AppColors.primary : AppColors.amber,
+              if (widget.totalQuestions > 0) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ClarificationProgressIndicator(
+                          currentQuestion: widget.currentQuestionIndex,
+                          totalQuestions: widget.totalQuestions,
+                        ),
                       ),
-                    ),
+                      if (widget.onSkipAll != null)
+                        TextButton(
+                          onPressed: widget.onSkipAll,
+                          child: const Text(
+                            'Skip',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      gap.question,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                        height: 1.3,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
+              ],
+              Text(
+                gap.question,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  height: 1.2,
+                ),
               ),
               if (gap.suggestions.isNotEmpty) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -182,90 +175,86 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.chipOrTypeLabel ?? loc.clarificationChipOrType,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
-                  ),
-                ),
               ],
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      focusNode: _focusNode,
-                      maxLines: 2,
-                      minLines: 1,
-                      textInputAction: TextInputAction.send,
-                      decoration: InputDecoration(
-                        hintText: loc.clarificationInputHint,
-                        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.border),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.all(12),
-                      ),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                      ),
-                      onSubmitted: (_) => _onTextSubmitted(),
-                    ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _textController,
+                focusNode: _focusNode,
+                maxLines: 1,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  hintText: loc.clarificationInputHint,
+                  hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
                   ),
-                  const SizedBox(width: 8),
-                  ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: _textController,
-                    builder: (context, value, child) {
-                      final hasText = value.text.trim().isNotEmpty;
-                      return SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          key: const Key('clarification_submit_button'),
-                          onPressed: hasText ? _onTextSubmitted : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: AppColors.border,
-                            disabledForegroundColor: AppColors.textMuted,
-                            elevation: hasText ? 2 : 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                ),
+                onSubmitted: (_) => _onTextSubmitted(),
+              ),
+              const SizedBox(height: 24),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _textController,
+                builder: (context, value, child) {
+                  final hasText = value.text.trim().isNotEmpty;
+                  final canSubmit = hasText || _selectedChipValue != null;
+                  
+                  return SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      key: const Key('clarification_submit_button'),
+                      onPressed: canSubmit ? () {
+                        if (hasText) {
+                          _onTextSubmitted();
+                        } else if (_selectedChipValue != null) {
+                          widget.onAnswer(_selectedChipValue!);
+                        }
+                      } : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: EdgeInsets.zero,
+                        disabledBackgroundColor: AppColors.border,
+                        disabledForegroundColor: AppColors.textMuted,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: canSubmit ? LinearGradient(
+                            colors: [AppColors.primary.withValues(alpha: 0.5), AppColors.primary],
+                          ) : null,
+                          color: canSubmit ? null : AppColors.border,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'Continue',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                loc.clarificationSend,
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Icon(Icons.send_rounded, size: 16),
-                            ],
-                          ),
                         ),
-                      );
-                    },
-                  ),
-                ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

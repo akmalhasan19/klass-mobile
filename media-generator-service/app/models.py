@@ -43,7 +43,7 @@ class PptxSlideItem(StrictModel):
     """A single slide in the PPTX presentation structure from the LLM draft."""
     slide_number: int = Field(ge=1)
     layout_type: str = Field(min_length=1, max_length=50)
-    title: str = Field(min_length=1, max_length=200)
+    title: str = Field(max_length=200)
     subtitle: str | None = Field(default=None)
     content: list[PptxSlideContentItem] = Field(default_factory=list)
 
