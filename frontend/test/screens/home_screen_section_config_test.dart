@@ -241,7 +241,7 @@ void main() {
     );
 
     expect(find.text('Project Recommendations'), findsOneWidget);
-    expect(find.text('Belum ada project'), findsOneWidget);
+    expect(find.text('Geologi'), findsOneWidget);
   });
 
   testWidgets('HomeScreen shows recommendation error state and can retry successfully', (tester) async {

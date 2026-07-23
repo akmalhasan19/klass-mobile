@@ -20,7 +20,8 @@ import 'package:klass_app/features/home/data/home_dummy_data.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_action_service.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:klass_app/features/media_generation/data/clarification_service.dart';
-import 'package:klass_app/features/media_generation/screens/clarification_screen.dart';
+import 'package:klass_app/features/media_generation/widgets/inline_clarification_widget.dart';
+import 'package:klass_app/features/media_generation/providers/clarification_provider.dart';
 import 'package:klass_app/features/media_generation/data/project_service.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/utils/auth_guard.dart';
@@ -74,6 +75,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   String? _freelancersError;
   String? _lastHandledSuccessfulGenerationId;
   bool _isRefreshingPublishedMedia = false;
+  bool _isSubmittingPrompt = false;
+  bool _isClarifying = false;
 
   @override
   void initState() {
@@ -288,19 +291,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   }
 
   Future<void> _submitPrompt(String text) async {
-    final isAuthenticated = await requireAuth(context, ref);
+    if (_isSubmittingPrompt) return;
 
-    if (!isAuthenticated || !mounted) {
-      return;
-    }
-
-    final isTeacher = await requireRole(context, ref, 'teacher');
-
-    if (!isTeacher || !mounted) {
-      return;
-    }
+    setState(() {
+      _isSubmittingPrompt = true;
+    });
 
     try {
+      final isAuthenticated = await requireAuth(context, ref);
+
+      if (!isAuthenticated || !mounted) {
+        return;
+      }
+
+      final isTeacher = await requireRole(context, ref, 'teacher');
+
+      if (!isTeacher || !mounted) {
+        return;
+      }
+
       final preflightResponse = await _clarificationService.preflight(
         rawPrompt: text,
         cancelToken: cancelToken,
@@ -321,18 +330,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
         return;
       }
 
-      final result = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (_) => ClarificationScreen(
-            response: preflightResponse,
-            originalPrompt: text,
-          ),
-        ),
-      );
-
-      if (!mounted) return;
-
-      if (result == true) {
+      ref.read(clarificationProvider.notifier).initialize(preflightResponse);
+      if (mounted) {
+        setState(() {
+          _isClarifying = true;
+          _isSubmittingPrompt = false;
+        });
         _promptController.clear();
         _promptFocusNode.unfocus();
       }
@@ -346,6 +349,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
           ),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingPrompt = false;
+        });
+      }
     }
   }
 
@@ -675,6 +684,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
     final localizations = AppLocalizations.of(context);
     final isIndonesian = Localizations.localeOf(context).languageCode == 'id';
 
+    ref.listen<ClarificationState>(clarificationProvider, (prev, next) {
+      if (_isClarifying) {
+        if (next.error != null && prev?.error == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(next.error!),
+              backgroundColor: AppColors.red,
+            ),
+          );
+        } else if (next.error == null && !next.isSubmitting && !next.isGenerating && _mediaGenerationService.hasVisibleState) {
+          if (mounted) {
+            setState(() {
+              _isClarifying = false;
+            });
+          }
+        }
+      }
+    });
+
     // Kita gunakan topPadding agar hijau Layer 1 meliputi area status bar,
     // plus tambahan sedikit agar garis luarnya terlihat jelas
     final topPadding = MediaQuery.of(context).padding.top;
@@ -948,7 +976,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                               PromptInputWidget(
                                 controller: _promptController,
                                 focusNode: _promptFocusNode,
-                                isSubmitting: _mediaGenerationService.isLoading,
+                                isSubmitting: _isSubmittingPrompt || _mediaGenerationService.isLoading,
                                 onSubmit: _submitPrompt,
                               ),
                               if (_mediaGenerationService.isOffline && _mediaGenerationService.hasQueuedRequest) ...[
@@ -982,7 +1010,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                                   ),
                                 ),
                               ],
-                              if (_mediaGenerationService.hasVisibleState) ...[
+                              if (_isClarifying) ...[
+                                const SizedBox(height: 18),
+                                const InlineClarificationWidget(),
+                              ] else if (_mediaGenerationService.hasVisibleState) ...[
                                 const SizedBox(height: 18),
                                 MediaGenerationStatusCard(
                                   service: _mediaGenerationService,

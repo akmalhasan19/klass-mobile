@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'dart:io';
 
 void main() async {
@@ -17,7 +18,9 @@ void main() async {
   final bytes = await res.expand((b) => b).toList();
   try {
     print('STRING: ${String.fromCharCodes(bytes.take(100))}');
-  } catch(e) {}
+  } catch (e) {
+    // Ignore string decoding errors for binary image data
+  }
 }
 
 class _MyOverrides extends HttpOverrides {

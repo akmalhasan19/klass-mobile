@@ -13,6 +13,18 @@ import 'package:klass_app/core/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../helpers/in_memory_secure_storage.dart';
 
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
+import 'package:klass_app/features/auth/providers/auth_notifier.dart';
+import 'package:klass_app/features/auth/providers/auth_state.dart';
+
+class _TestAuthNotifier extends AuthNotifier {
+  @override
+  Future<AuthState> build() async {
+    state = const AsyncData(AuthState(isGuest: false, role: 'teacher'));
+    return const AuthState(isGuest: false, role: 'teacher');
+  }
+}
+
 class _TopicsEmptyAdapter implements HttpClientAdapter {
   @override
   Future<ResponseBody> fetch(
@@ -98,6 +110,7 @@ void main() {
           secureTokenStoreProvider.overrideWithValue(
             SecureTokenStore(storage: secureStorage),
           ),
+          authProvider.overrideWith(() => _TestAuthNotifier()),
         ],
         child: MaterialApp(
           home: BookmarkScreen(

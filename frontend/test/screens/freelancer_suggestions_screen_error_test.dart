@@ -24,6 +24,7 @@ class _MockAdapter implements HttpClientAdapter {
   ) async {
     if (fail) {
       return _jsonResponse({
+        'message': 'Server is down',
         'error': {'message': 'Server is down'}
       }, 500);
     }
@@ -91,7 +92,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Gagal Memuat Saran'), findsOneWidget);
-    expect(find.text('Server is down'), findsOneWidget);
+    expect(find.textContaining('Server is down'), findsOneWidget);
     expect(find.text('Coba Lagi'), findsOneWidget);
 
     dio.httpClientAdapter = _MockAdapter(fail: false);

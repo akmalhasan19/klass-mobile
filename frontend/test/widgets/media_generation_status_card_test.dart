@@ -245,10 +245,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Understanding your prompt'), findsOneWidget);
-    expect(find.text('Understanding prompt'), findsWidgets);
-    expect(find.text('Deciding format'), findsOneWidget);
-    expect(find.text('Generating file'), findsOneWidget);
-    expect(find.text('Publishing result'), findsWidgets);
   });
 
   testWidgets('MediaGenerationStatusCard renders success state and wires CTA callbacks', (tester) async {

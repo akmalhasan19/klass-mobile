@@ -240,6 +240,7 @@ Dio _createTestDio() {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late MediaGenerationService service;
 
   setUp(() {
@@ -271,7 +272,7 @@ void main() {
     await service.pollNow();
 
     expect(adapter.pollCount, 1);
-    expect(adapter.pollPath, '/v1/media-generations/gen-123');
+    expect(adapter.pollPath, '/v1/media-generations/gen-123/job-status');
     expect(service.state, MediaGenerationViewState.success);
     expect(service.currentStatus, 'completed');
     expect(service.deliveryPayload?['title'], 'Deck Termodinamika Kelas 11 siap digunakan');

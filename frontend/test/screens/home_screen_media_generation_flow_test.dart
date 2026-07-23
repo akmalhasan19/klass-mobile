@@ -13,6 +13,9 @@ import 'package:klass_app/core/storage/secure_token_store.dart';
 import 'package:klass_app/core/config/api_config.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:klass_app/features/home/widgets/prompt_input_widget.dart';
+import 'package:klass_app/features/auth/providers/auth_providers.dart';
+import 'package:klass_app/features/auth/providers/auth_notifier.dart';
+import 'package:klass_app/features/auth/providers/auth_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../helpers/in_memory_secure_storage.dart';
 
@@ -81,6 +84,26 @@ class _MediaFlowAdapter implements HttpClientAdapter {
         'success': true,
         'data': const [],
         'meta': {'total': 0},
+      });
+    }
+
+    if (options.path.contains('/media-generations/preflight')) {
+      final rawPrompt = (options.data is Map) ? options.data['raw_prompt'] : null;
+      return _jsonResponse({
+        'success': true,
+        'data': {
+          'generation_id': 'gen-flow-123',
+          'is_ready': true,
+          'needs_clarification': false,
+          'suggested_prompt': rawPrompt ?? 'Buatkan deck termodinamika untuk kelas 11.',
+          'detected': {
+            'content_type': 'brief',
+            'confidence': 1.0,
+          },
+          'gaps': [],
+          'total_required_gaps': 0,
+          'total_recommended_gaps': 0,
+        },
       });
     }
 
@@ -250,6 +273,14 @@ Dio _createTestDio() {
   ));
 }
 
+class _TestAuthNotifier extends AuthNotifier {
+  @override
+  Future<AuthState> build() async {
+    state = const AsyncData(AuthState(isGuest: false, role: 'teacher'));
+    return const AuthState(isGuest: false, role: 'teacher');
+  }
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({
@@ -266,15 +297,16 @@ void main() {
     final adapter = _MediaFlowAdapter();
     final dio = _createTestDio();
     dio.httpClientAdapter = adapter;
-    MediaGenerationService(dio).reset(notify: false);
+    final tokenStore = SecureTokenStore(storage: InMemorySecureStorage());
+    await tokenStore.write('teacher-token');
+    await tokenStore.writeUserData({'id': 1, 'role': 'teacher'});
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           dioProvider.overrideWithValue(dio),
-          secureTokenStoreProvider.overrideWithValue(
-            SecureTokenStore(storage: InMemorySecureStorage()),
-          ),
+          secureTokenStoreProvider.overrideWithValue(tokenStore),
+          authProvider.overrideWith(() => _TestAuthNotifier()),
         ],
         child: const MaterialApp(
           home: Scaffold(
@@ -296,12 +328,15 @@ void main() {
     promptWidget.onSubmit?.call('Buatkan deck termodinamika untuk kelas 11.');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(adapter.generationSubmitRequests, 1);
     expect(find.text('Understanding your prompt'), findsWidgets);
 
     await tester.pump(MediaGenerationService.pollingInterval);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(adapter.generationPollRequests, 1);
     expect(adapter.topicsRequests, 1);

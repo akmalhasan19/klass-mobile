@@ -121,7 +121,10 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
   }
 
   Widget _buildSubmitButton() {
-    final canSubmit = !widget.isSubmitting && _controller.text.trim().isNotEmpty;
+    final hasText = _controller.text.trim().isNotEmpty;
+    final canSubmit = !widget.isSubmitting && hasText;
+    final isBusy = widget.isSubmitting;
+    final activeColor = (canSubmit || isBusy) ? AppColors.primary : AppColors.border;
 
     return GestureDetector(
       onTap: canSubmit ? _handleSubmit : null,
@@ -130,29 +133,46 @@ class _PromptInputWidgetState extends State<PromptInputWidget> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: canSubmit ? AppColors.primary : AppColors.border,
+          color: activeColor,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: (canSubmit ? AppColors.primary : AppColors.border).withValues(alpha: 0.24),
-              blurRadius: 10,
+              color: activeColor.withValues(alpha: (canSubmit || isBusy) ? 0.24 : 0.1),
+              blurRadius: (canSubmit || isBusy) ? 10 : 4,
               offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: widget.isSubmitting
-            ? const Padding(
-                padding: EdgeInsets.all(12),
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Icon(
-                Icons.arrow_forward_rounded,
-                color: canSubmit ? Colors.white : AppColors.textMuted,
-                size: 22,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return ScaleTransition(
+              scale: animation,
+              child: FadeTransition(
+                opacity: animation,
+                child: child,
               ),
+            );
+          },
+          child: isBusy
+              ? const Center(
+                  key: ValueKey('loading'),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                )
+              : Icon(
+                  Icons.arrow_forward_rounded,
+                  key: ValueKey(canSubmit ? 'enabled_icon' : 'disabled_icon'),
+                  color: canSubmit ? Colors.white : AppColors.textMuted,
+                  size: 22,
+                ),
+        ),
       ),
     );
   }
