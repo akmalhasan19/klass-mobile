@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1091,8 +1092,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   }
 
   Widget _buildFreelancerCard(Map<String, dynamic> freelancer) {
-    final avatarSource =
-        (freelancer['avatar_url'] ?? freelancer['avatarPath'] ?? '').toString();
+    String avatarSource = (freelancer['avatar_url'] ?? freelancer['avatarPath'] ?? '').toString();
+
+    // Bypass SSL/DNS Block dari ISP Indonesia menggunakan Global Image Proxy
+    if (avatarSource.contains('.r2.dev')) {
+      avatarSource = 'https://wsrv.nl/?url=${avatarSource.replaceAll('https://', '')}';
+    }
+
     final isNetworkAvatar = avatarSource.startsWith('http');
     final displayName =
         (freelancer['name'] ?? freelancer['creator_id'] ?? 'User').toString();
@@ -1131,10 +1137,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                     scale: freelancer['scale'] ?? 1.0,
                     alignment: Alignment.center,
                     child: isNetworkAvatar
-                        ? Image.network(
-                            avatarSource,
+                        ? CachedNetworkImage(
+                            imageUrl: avatarSource,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildAvatarInitial(displayName),
+                            httpHeaders: const {'User-Agent': 'Mozilla/5.0'},
+                            errorWidget: (context, url, error) => _buildAvatarInitial(displayName),
                           )
                         : Image.asset(
                             avatarSource,

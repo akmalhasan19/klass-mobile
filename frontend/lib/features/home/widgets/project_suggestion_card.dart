@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:klass_app/core/config/app_colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 /// Card project dengan aspect ratio dinamis berdasarkan tipe project:
 /// - PPT: 16:9 (lebar)
@@ -40,6 +41,7 @@ class ProjectSuggestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('Building card $title with URL: $imageUrl');
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -78,23 +80,23 @@ class ProjectSuggestionCard extends StatelessWidget {
                           errorBuilder: (_, _, _) => _placeholderIcon(),
                         )
                       else if (imageUrl != null)
-                        Image.network(
-                          imageUrl!,
+                        CachedNetworkImage(
+                          imageUrl: imageUrl!,
                           fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
+                          httpHeaders: const {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'},
+                          progressIndicatorBuilder: (context, url, progress) {
                             return Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
+                                value: progress.progress,
                                 strokeWidth: 2,
                                 color: AppColors.primary.withValues(alpha: 0.4),
                               ),
                             );
                           },
-                          errorBuilder: (_, _, _) => _placeholderIcon(),
+                          errorWidget: (context, url, error) {
+                            debugPrint('IMAGE LOAD ERROR for $imageUrl: $error');
+                            return _placeholderIcon();
+                          },
                         )
                       else
                         _placeholderIcon(),

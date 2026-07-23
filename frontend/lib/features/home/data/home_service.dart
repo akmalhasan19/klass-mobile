@@ -89,46 +89,10 @@ class HomeService {
       return []; // Fallback: return empty when API is disabled
     }
 
-    try {
-      final response = await _dio.get(
-        ApiConfig.v('/marketplace-tasks'),
-        cancelToken: cancelToken,
-        options: Options(extra: {'forceRefresh': forceRefresh}),
-      );
-      if (response.statusCode == 200) {
-        final payload = response.data;
-        if (payload is Map<String, dynamic> && payload['data'] is List) {
-          final data = payload['data'] as List;
-          return data.cast<Map<String, dynamic>>();
-        }
-
-        throw Exception(
-          ApiDataNormalizer.buildDebugInfo(
-            'Invalid response format. Expected data as List.',
-            operation: ApiDebugOperation.homeFreelancersLoadFailed,
-            endpoint: ApiConfig.v('/marketplace-tasks'),
-          ),
-        );
-      }
-      return [];
-    } on DioException catch (e) {
-      throw Exception(
-        ApiDataNormalizer.buildDebugInfo(
-          e,
-          operation: ApiDebugOperation.homeFreelancersLoadFailed,
-          endpoint: '/marketplace-tasks',
-        ),
-      );
-    } on Exception {
-      rethrow;
-    } catch (e) {
-      throw Exception(
-        ApiDataNormalizer.buildDebugInfo(
-          e,
-          operation: ApiDebugOperation.homeFreelancersLoadFailed,
-          endpoint: '/marketplace-tasks',
-        ),
-      );
-    }
+    // Backend Rust saat ini belum memiliki endpoint khusus untuk GET /api/v1/freelancers
+    // Endpoint /marketplace-tasks mengembalikan 'tasks' (pekerjaan), bukan profil user/freelancer.
+    // Karenanya, kita bypass dan return empty list `[]` agar UI (home_screen.dart) 
+    // melakukan fallback menggunakan data `kDummyFreelancers` (Agus, Susi, Ani, Budi).
+    return [];
   }
 }

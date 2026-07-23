@@ -25,9 +25,17 @@ class ApiDataNormalizer {
     final thumbnailUrl = normalized['thumbnail_url'];
 
     if (thumbnailUrl is String && thumbnailUrl.isNotEmpty) {
-      normalized['media_url'] = thumbnailUrl;
-      normalized['image'] = thumbnailUrl;
-      normalized['imagePath'] = thumbnailUrl;
+      String sanitizedUrl = thumbnailUrl.replaceAll('/klass-bucket/assets/', '/assets/');
+      
+      // Bypass SSL/DNS Block dari ISP Indonesia menggunakan Global Image Proxy
+      if (sanitizedUrl.contains('.r2.dev')) {
+        sanitizedUrl = 'https://wsrv.nl/?url=${sanitizedUrl.replaceAll('https://', '')}';
+      }
+
+      normalized['thumbnail_url'] = sanitizedUrl;
+      normalized['media_url'] = sanitizedUrl;
+      normalized['image'] = sanitizedUrl;
+      normalized['imagePath'] = sanitizedUrl;
     }
 
     if (normalized['modules'] == null) {
