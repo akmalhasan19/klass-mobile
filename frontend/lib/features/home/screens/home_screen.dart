@@ -99,6 +99,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   }
 
   Future<void> _fetchData({bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      if (_mediaGenerationService.isTerminal || _mediaGenerationService.isError) {
+        _mediaGenerationService.reset(notify: true);
+      }
+    }
+
     if (mounted) {
       setState(() {
         _isProjectsLoading = true;
