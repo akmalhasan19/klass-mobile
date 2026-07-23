@@ -5,11 +5,14 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
+# pyrefly: ignore [missing-import]
 import psycopg
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+# pyrefly: ignore [missing-import]
 from psycopg_pool import ConnectionPool
 
 from app.cache import AdapterCacheService, CacheEntry, build_interpretation_cache_document
+from app.plan_mode_regenerator import regenerate_plan_mode_from_interpretation
 from app.contracts import (
     INTERPRET_REQUEST_TYPE,
     INTERPRET_ROUTE,
@@ -439,6 +442,12 @@ class InterpretationWorkflowService:
             default_primary_provider=primary_provider,
             default_model=primary_model,
         )
+
+        # Re-derive plan_mode, interpreted_fields, and missing_fields
+        # fresh from the interpretation payload. This ensures PLAN MODE
+        # questions are always contextual and unique, even on cache hit.
+        payload = regenerate_plan_mode_from_interpretation(payload)
+
         self.cost_service.record_cache_hit(
             request_id=request_id,
             generation_id=generation_id,
@@ -454,6 +463,7 @@ class InterpretationWorkflowService:
                 "fallback_reason": metadata.get("fallback_reason"),
                 "attempted_providers": metadata.get("attempted_providers", []),
                 "cache_source": "interpretation_cache",
+                "plan_mode_regenerated": True,
             },
             connection=connection,
         )

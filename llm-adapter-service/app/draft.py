@@ -5,8 +5,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal
 
+# pyrefly: ignore [missing-import]
 import psycopg
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+# pyrefly: ignore [missing-import]
 from psycopg_pool import ConnectionPool
 
 from app.cache import AdapterCacheService, CacheEntry, build_content_draft_cache_document

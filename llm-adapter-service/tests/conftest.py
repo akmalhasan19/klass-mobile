@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
+# pyrefly: ignore [missing-import]
 from psycopg.types.json import Jsonb
+# pyrefly: ignore [missing-import]
 from fastapi.testclient import TestClient
 
 from app.cache import DELIVERY_CACHE_TABLE_NAME, INTERPRETATION_CACHE_TABLE_NAME

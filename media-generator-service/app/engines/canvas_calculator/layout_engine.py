@@ -29,7 +29,9 @@ import math
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
+# pyrefly: ignore [missing-import]
 from pptx.util import Emu, Inches
 
 from app.engines.blueprint import Card, ContentBlock, Slide
@@ -212,12 +214,14 @@ class CanvasLayoutEngine:
         total: Emu = Emu(0)
         if card.heading:
             total += estimate_box(card.heading, heading_pt, text_w_emu)
+            # pyrefly: ignore [unknown-name]
             total += Pt(6)  # paragraph.space_after for heading
         body_blocks = card.body_blocks
         body_text = "\n".join(self._format_block(b) for b in body_blocks)
         if body_text:
             total += estimate_box(body_text, body_pt, text_w_emu)
             # Account for space_after on each body paragraph
+            # pyrefly: ignore [unknown-name]
             total += Pt(4) * len(body_blocks)
         return total + text_v_margin
 

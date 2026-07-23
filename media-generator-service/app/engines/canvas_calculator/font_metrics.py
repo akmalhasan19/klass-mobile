@@ -17,6 +17,7 @@ heuristic. ``estimate_box`` therefore returns a true EMU height.
 from __future__ import annotations
 
 import math
+# pyrefly: ignore [missing-import]
 from pptx.util import Emu
 
 EMU_PER_INCH = 914_400

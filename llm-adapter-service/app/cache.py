@@ -10,9 +10,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Literal
 
+# pyrefly: ignore [missing-import]
 import psycopg
+# pyrefly: ignore [missing-import]
 from psycopg.rows import dict_row
+# pyrefly: ignore [missing-import]
 from psycopg.types.json import Jsonb
+# pyrefly: ignore [missing-import]
 from psycopg_pool import ConnectionPool
 
 from app.contracts import LOGGER_NAME

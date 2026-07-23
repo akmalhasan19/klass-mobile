@@ -28,9 +28,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+# pyrefly: ignore [missing-import]
 from pptx.dml.color import RGBColor
+# pyrefly: ignore [missing-import]
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
+# pyrefly: ignore [missing-import]
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+# pyrefly: ignore [missing-import]
 from pptx.util import Inches, Pt
 
 from app.engines.blueprint import Card, ContentBlock

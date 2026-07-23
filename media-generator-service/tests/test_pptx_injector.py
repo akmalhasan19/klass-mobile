@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
 
 from app.engines.blueprint import (

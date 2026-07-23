@@ -28,6 +28,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import parse_qs, urlparse
 
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
 
 from app.models import (
@@ -74,6 +75,7 @@ def _mock_template_registry() -> MagicMock:
     return tr
 
 
+# pyrefly: ignore [unknown-name]
 def _patch_deps(monkeypatch: pytest.MonkeyPatch) -> None:
     """Patch ``app.main`` globals for both sidecar and template registry."""
     import app.main

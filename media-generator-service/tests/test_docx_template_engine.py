@@ -34,6 +34,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+# pyrefly: ignore [missing-import]
 from docx import Document
 
 from app.engines.blueprint import (

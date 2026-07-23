@@ -6,8 +6,11 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Literal
 
+# pyrefly: ignore [missing-import]
 import psycopg
+# pyrefly: ignore [missing-import]
 from psycopg.rows import dict_row
+# pyrefly: ignore [missing-import]
 from psycopg_pool import ConnectionPool
 
 from app.contracts import INTERPRET_ROUTE, RESPOND_ROUTE

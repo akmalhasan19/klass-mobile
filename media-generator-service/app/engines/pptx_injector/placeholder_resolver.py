@@ -28,8 +28,11 @@ from __future__ import annotations
 import logging
 from typing import Iterable
 
+# pyrefly: ignore [missing-import]
 from pptx.enum.shapes import MSO_SHAPE_TYPE
+# pyrefly: ignore [missing-import]
 from pptx.shapes.base import BaseShape
+# pyrefly: ignore [missing-import]
 from pptx.slide import Slide
 
 from app.engines.pptx_injector.manifest import PlaceholderSpec

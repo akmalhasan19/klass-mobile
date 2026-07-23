@@ -168,6 +168,7 @@ def test_blueprint_rejects_unknown_fields() -> None:
                 audience_level="a", tone="n",
             ),
             slides=[_minimal_slide("title")],
+            # pyrefly: ignore [unexpected-keyword]
             unknown_field="should be forbidden",
         )
 

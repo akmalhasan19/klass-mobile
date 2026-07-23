@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.errors import ProviderConfigurationError
 from app.contracts import SUPPORTED_PROVIDERS
 from app.providers.base import ProviderClient, ProviderDefinition
+# pyrefly: ignore [missing-import]
 from app.providers.minimax import minimaxProviderClient
 from app.providers.openai import OpenAIProviderClient
 from app.settings import Settings

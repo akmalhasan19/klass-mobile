@@ -43,6 +43,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
 
 from app.engines.pptx_injector.manifest import TemplateManifest, load_manifest

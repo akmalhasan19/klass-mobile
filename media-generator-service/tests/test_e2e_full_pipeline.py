@@ -21,6 +21,7 @@ from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
 
 from app.models import GenerateSuccessResponse
@@ -103,6 +104,7 @@ def _download_preview(client, payload: dict) -> bytes:
 
 def _extract_sections_from_docx(docx_path: Path) -> list[str]:
     """Extract heading texts from a DOCX file for parity checking."""
+    # pyrefly: ignore [missing-import]
     from docx import Document
 
     doc = Document(str(docx_path))
@@ -156,6 +158,7 @@ class TestDocxPipeline:
 
         # Verify it's a valid DOCX
         import io
+        # pyrefly: ignore [missing-import]
         from docx import Document
 
         doc = Document(io.BytesIO(content))

@@ -20,7 +20,9 @@ import math
 from pathlib import Path
 
 import pytest
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
+# pyrefly: ignore [missing-import]
 from pptx.util import Emu, Inches, Pt
 
 from app.engines.blueprint import Card, ContentBlock, Slide

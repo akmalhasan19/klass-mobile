@@ -12,10 +12,14 @@ import hmac
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse
 
+# pyrefly: ignore [missing-import]
 from fastapi import Depends, FastAPI, Request
+# pyrefly: ignore [missing-import]
 from fastapi.responses import FileResponse, JSONResponse
+# pyrefly: ignore [missing-import]
 from fastapi.testclient import TestClient
 
+# pyrefly: ignore [missing-import]
 from app.artifact_download import (
     media_type_for_filename,
     verify_artifact_download_request,
@@ -180,6 +184,7 @@ def test_build_preview_locator_signature_is_valid() -> None:
         parsed = urlparse(locator["value"])
         qs = parse_qs(parsed.query)
 
+        # pyrefly: ignore [missing-import]
         from app.artifact_download import normalize_downloadable_artifact_path
 
         resolved_path = normalize_downloadable_artifact_path(qs["path"][0])

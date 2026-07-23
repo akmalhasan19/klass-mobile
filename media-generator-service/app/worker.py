@@ -21,6 +21,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+# pyrefly: ignore [missing-import]
 from arq.connections import RedisSettings
 
 from app.document_model import build_render_document
@@ -72,6 +73,7 @@ async def startup(ctx: dict[str, Any]) -> None:
     # connection pool with one that has proper max_connections and timeouts.
     redis = ctx.get("redis")
     if redis is not None:
+        # pyrefly: ignore [missing-import]
         import redis.asyncio as aioredis
         new_pool = aioredis.ConnectionPool.from_url(
             settings.redis_url,

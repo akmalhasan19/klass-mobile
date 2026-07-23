@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+# pyrefly: ignore [missing-import]
 from psycopg.types.json import Jsonb
 
 from app.cache import (

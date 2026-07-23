@@ -32,6 +32,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+# pyrefly: ignore [missing-import]
 from fastapi import Request
 
 from app.settings import Settings

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.contracts import (

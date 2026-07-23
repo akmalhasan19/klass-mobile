@@ -16,8 +16,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 from docx import Document
+# pyrefly: ignore [missing-import]
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+# pyrefly: ignore [missing-import]
 from docx.shared import Pt, RGBColor
 
 MASTERS_DIR = Path(__file__).resolve().parent

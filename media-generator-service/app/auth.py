@@ -5,6 +5,7 @@ import hmac
 import time
 from secrets import compare_digest
 
+# pyrefly: ignore [missing-import]
 from fastapi import Request
 
 from app.contracts import SIGNATURE_ALGORITHM

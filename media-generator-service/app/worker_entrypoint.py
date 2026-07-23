@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 
+# pyrefly: ignore [missing-import]
 from arq import run_worker
 
 from app.settings import get_settings

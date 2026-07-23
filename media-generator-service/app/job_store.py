@@ -19,6 +19,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+# pyrefly: ignore [missing-import]
 import redis.asyncio as aioredis
 
 from app.observability import log_job_lifecycle

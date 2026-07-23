@@ -32,9 +32,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
+# pyrefly: ignore [missing-import]
 from pptx.oxml.ns import qn
+# pyrefly: ignore [missing-import]
 from pptx.shapes.base import BaseShape
+# pyrefly: ignore [missing-import]
 from pptx.slide import Slide as PptxSlide
 
 from app.engines.blueprint import ContentBlock, Slide, SlideBlueprint
@@ -324,6 +328,7 @@ def _auto_fit_text_frame(frame, shape, text_value: str) -> None:
         shape: The parent ``BaseShape`` (provides ``shape.height``).
         text_value: The original text written into the frame.
     """
+    # pyrefly: ignore [missing-import]
     from pptx.util import Emu, Pt
 
     from app.engines.canvas_calculator.font_metrics import estimate_box

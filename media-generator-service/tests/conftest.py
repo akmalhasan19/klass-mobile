@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 import sys
 from unittest.mock import MagicMock
+# pyrefly: ignore [missing-import]
 from starlette.testclient import TestClient
 
 sys.modules["boto3"] = MagicMock()

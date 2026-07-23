@@ -15,7 +15,9 @@ import re
 import sys
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 from docx import Document
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
 
 # -- Bootstrap -----------------------------------------------------------------
@@ -131,6 +133,7 @@ def test_docx_artifact() -> tuple[list[str], list[str]]:
 
 def test_pdf_artifact() -> tuple[list[str], list[str]]:
     """Generate and inspect PDF artifact."""
+    # pyrefly: ignore [missing-import]
     from fastapi.testclient import TestClient
 
     from app.main import app

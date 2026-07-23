@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 from docxtpl import DocxTemplate
 
 from app.engines.blueprint import SlideBlueprint

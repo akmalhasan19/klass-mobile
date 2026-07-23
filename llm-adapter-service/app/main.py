@@ -5,7 +5,9 @@ import time
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, Request
+# pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse
 
 from app.contracts import LOGGER_NAME

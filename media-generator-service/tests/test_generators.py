@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 from docx import Document
+# pyrefly: ignore [missing-import]
 from pptx import Presentation
 
 from app.document_model import build_render_document
