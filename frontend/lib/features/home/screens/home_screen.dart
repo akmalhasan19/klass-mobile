@@ -588,7 +588,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
                       : projects
                           .take(4)
                           .map((p) {
-                          final imageCandidate = (p['media_url'] ?? p['imagePath'] ?? p['image'] ?? '').toString();
+                          final imageCandidate = (p['thumbnail_url'] ?? p['media_url'] ?? p['imagePath'] ?? p['image'] ?? '').toString();
                           final isNetworkImage = imageCandidate.startsWith('http');
 
                           return ProjectSuggestionCard(
