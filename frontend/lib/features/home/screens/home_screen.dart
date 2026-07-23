@@ -15,6 +15,7 @@ import 'package:klass_app/features/media_generation/widgets/media_generation_sta
 import 'package:klass_app/features/media_generation/widgets/media_preview_screen.dart';
 import 'package:klass_app/core/config/animations.dart';
 import 'package:klass_app/features/home/data/home_service.dart';
+import 'package:klass_app/features/home/data/home_dummy_data.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_action_service.dart';
 import 'package:klass_app/features/media_generation/data/media_generation_service.dart';
 import 'package:klass_app/features/media_generation/data/clarification_service.dart';
@@ -572,16 +573,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
           : _projectsError != null
               ? [
                   _buildErrorPlaceholder(_projectsError!, onRetry: _retryProjects),
-                ]
-              : projects.isEmpty
-                  ? [
-                      _buildEmptyPlaceholder(localizations?.homeNoProjects ?? 'Belum ada project', icon: Icons.folder_open_rounded),
-                    ]
-                  : projects.map((p) {
-                      final imageCandidate = (p['media_url'] ?? p['imagePath'] ?? p['image'] ?? '').toString();
-                      final isNetworkImage = imageCandidate.startsWith('http');
+                ]                  : projects.isEmpty
+                      ? kDummyProjects
+                          .take(4)
+                          .map((p) => ProjectSuggestionCard(
+                                title: p['title'] ?? 'Untitled',
+                                author: p['author'] ?? 'Klass Curated',
+                                ratio: p['ratio'] ?? 'ppt',
+                                imagePath: p['imagePath'],
+                                sourceBadge: '★ Curated',
+                                onTap: () {},
+                              ))
+                          .toList()
+                      : projects
+                          .take(4)
+                          .map((p) {
+                          final imageCandidate = (p['media_url'] ?? p['imagePath'] ?? p['image'] ?? '').toString();
+                          final isNetworkImage = imageCandidate.startsWith('http');
 
-                      return ProjectSuggestionCard(
+                          return ProjectSuggestionCard(
                         title: p['title'] ?? localizations?.homeUntitled ?? 'Untitled',
                         author: _projectAuthorLabel(localizations, p),
                         ratio: p['ratio'] ?? 'ppt',
@@ -613,8 +623,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
   }
 
   Widget _buildFreelancersSection(String title) {
-    final localizations = AppLocalizations.of(context);
-
     return BleedingHorizontalList(
       title: title,
       height: 140,
@@ -624,12 +632,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
           : _freelancersError != null
               ? [
                   _buildErrorPlaceholder(_freelancersError!, onRetry: _retryFreelancers),
-                ]
-              : freelancers.isEmpty
-                  ? [
-                      _buildEmptyPlaceholder(localizations?.homeNoFreelancers ?? 'Belum ada freelancer', icon: Icons.group_off_rounded),
-                    ]
-                  : freelancers.map((f) {
+                ]                  : freelancers.isEmpty
+                      ? kDummyFreelancers
+                          .take(4)
+                          .map((f) => _buildFreelancerCard(f))
+                          .toList()
+                  : freelancers
+                      .take(4)
+                      .map((f) {
                       return _buildFreelancerCard(f);
                     }).toList(),
     );
@@ -1218,22 +1228,5 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
     );
   }
 
-  Widget _buildEmptyPlaceholder(String message, {required IconData icon}) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return Container(
-      width: screenWidth - 48, // Matches screen width minus ListView horizontal padding (24+24)
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 40, color: AppColors.border),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: const TextStyle(fontFamily: 'Inter', fontSize: 14, color: AppColors.textMuted),
-          ),
-        ],
-      ),
-    );
-  }
+
 }
