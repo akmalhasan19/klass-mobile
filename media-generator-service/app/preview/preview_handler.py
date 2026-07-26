@@ -68,12 +68,34 @@ def store_preview_html(html: str, generation_id: str, title: str) -> Path:
 
 
 
+def build_preview_locator(
+    request: Request,
+    generation_id: str,
+    preview_path: Path,
+    title: str,
+    settings: Settings,
+) -> dict[str, Any]:
+    from app.artifact_download import build_signed_artifact_locator
+
+    metadata = {
+        "filename": f"klass_media_html_{generation_id}_{_slugify(title)[:48]}.html",
+        "artifact_locator": {"kind": "storage_object", "value": str(preview_path)},
+    }
+    return build_signed_artifact_locator(
+        request,
+        generation_id=generation_id,
+        artifact_metadata=metadata,
+        settings=settings,
+    )
+
+
 def _slugify(value: str) -> str:
-    """Mirror of ``BaseGenerator._slugify`` — kept local to avoid coupling."""
+    """Mirror of ``BaseGenerator._clean_filename_stem`` — kept local to avoid coupling."""
     import re
     import unicodedata
 
     normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
-    normalized = normalized.lower().strip()
-    normalized = re.sub(r"[^a-z0-9]+", "-", normalized)
-    return normalized.strip("-")
+    cleaned = re.sub(r"[-_]+", " ", normalized)
+    cleaned = re.sub(r"[^a-zA-Z0-9\s]+", "", cleaned)
+    cleaned = re.sub(r"\s+", "_", cleaned).strip("_")
+    return cleaned.lower()

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Talent Discovery Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#10b782",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#10221c",
+                        "app-bg": "#FFFFFF",
+                        "app-surface": "#F8FAFC",
+                        "app-text": "#0A192F",
+                        "app-muted": "#64748B",
+                        "app-accent": "#E2E8F0"
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["DM Sans", "sans-serif"]
+                    },
+                    boxShadow: {
+                        'card': '0 4px 20px rgba(10, 25, 47, 0.06)',
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "12px",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-app-bg text-app-text font-body antialiased min-h-screen flex justify-center">
+<div class="w-full max-w-md bg-app-bg relative flex flex-col min-h-screen pb-20 overflow-hidden shadow-2xl">
+<!-- Sticky Header -->
+<header class="sticky top-0 z-50 bg-app-bg pt-12 pb-4 px-4">
+<!-- Search Bar -->
+<div class="relative flex items-center w-full h-14 bg-app-surface rounded-full px-4 border border-transparent focus-within:border-app-accent transition-colors">
+<span class="material-symbols-outlined text-app-muted mr-3">search</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-app-text placeholder-app-muted font-body text-base outline-none p-0" placeholder="Search creatives, skills..." type="text"/>
+</div>
+<!-- Horizontal Categories -->
+<div class="mt-6 flex gap-3 overflow-x-auto hide-scrollbar pb-1">
+<button class="h-9 px-5 rounded-full bg-app-text text-white font-display text-sm font-semibold whitespace-nowrap shrink-0 transition-transform active:scale-95">All</button>
+<button class="h-9 px-5 rounded-full bg-white border border-app-accent text-app-muted font-display text-sm font-semibold whitespace-nowrap shrink-0 transition-all hover:border-app-muted active:scale-95">Product Design</button>
+<button class="h-9 px-5 rounded-full bg-white border border-app-accent text-app-muted font-display text-sm font-semibold whitespace-nowrap shrink-0 transition-all hover:border-app-muted active:scale-95">Branding</button>
+<button class="h-9 px-5 rounded-full bg-white border border-app-accent text-app-muted font-display text-sm font-semibold whitespace-nowrap shrink-0 transition-all hover:border-app-muted active:scale-95">Development</button>
+<button class="h-9 px-5 rounded-full bg-white border border-app-accent text-app-muted font-display text-sm font-semibold whitespace-nowrap shrink-0 transition-all hover:border-app-muted active:scale-95">Illustration</button>
+</div>
+</header>
+<!-- Main Feed -->
+<main class="flex-1 px-4 py-4 flex flex-col gap-5 overflow-y-auto">
+<div class="flex items-center justify-between mb-2">
+<h2 class="font-display font-bold text-xl text-app-text">Featured Talent</h2>
+</div>
+<!-- Talent Card 1 -->
+<article class="bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 border border-gray-50/50">
+<div class="flex items-center gap-4">
+<img class="w-16 h-16 rounded-full object-cover shadow-sm bg-app-surface" data-alt="Close up portrait of an elegant asian woman in her 30s, natural lighting, professional but approachable vibe, white background, high quality photography, soft focus on edges" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhmXaTnRJkkiqX7bLJ1LierNl9m4D0vMqvQC5Scaf7MhxTq1banIX7oYJwrwBd5VTziHgCYmKv7xSIqQkbHnbMFEqFC4Zv0-lF2WEeYzETFxczO2Tvd3w0eCIKCnXyRb-niwwzjp_XVn35-EIS8TSWlqgNlF9NvAVAOqIk57oa82kZ6A4k_8UmPfGaHocPFnrjijlxlyTDAPtTm9ULK05pf8hDdrokTLDsPm1gUPrTcZWF8MONuDszF7l-D4KLPoEdSGcR8UFj0i_j"/>
+<div class="flex-1 min-w-0">
+<h3 class="font-display font-bold text-lg text-app-text truncate">Elena Rodriguez</h3>
+<p class="font-body text-app-muted text-sm truncate">Sr. Product Designer</p>
+<div class="flex items-center gap-1 mt-1 text-app-text font-medium text-sm">
+<span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.9</span>
+<span class="text-app-muted ml-1 font-normal">(124 jobs)</span>
+</div>
+</div>
+<div class="text-right flex flex-col items-end">
+<span class="font-display font-bold text-app-text">$85</span>
+<span class="text-app-muted text-xs">/hr</span>
+</div>
+</div>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-app-surface text-app-muted text-xs font-medium rounded-full">Figma</span>
+<span class="px-3 py-1 bg-app-surface text-app-muted text-xs font-medium rounded-full">Design Systems</span>
+</div>
+<button class="w-full mt-2 h-10 rounded-full bg-app-surface text-app-text font-display font-semibold text-sm transition-colors hover:bg-gray-100 active:bg-gray-200">View Profile</button>
+</article>
+<!-- Talent Card 2 -->
+<article class="bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 border border-gray-50/50">
+<div class="flex items-center gap-4">
+<img class="w-16 h-16 rounded-full object-cover shadow-sm bg-app-surface" data-alt="Portrait of a young black man with glasses, short neat hair, wearing a clean white t-shirt, studio lighting, confident warm smile, looking at camera, crisp details" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAq9c6Fz3hx-BpGl13FnVjW5ItiuC4C7av6qX3cUb-7HIUzYJDs7f2knALhfVs4I0ZGHp3ih2fzySny8Z92phIcPlFN8qrljCHJgoSdyNLHNfrV60yWy58W0SgqGTN4sQT0nciVsd0qmTE2Dw69s4yXyA9NSWkf8Oo8jhAFZEu_NQEU_nV9MP3wbQNXV6q4RDl14HrRxONuh53FzXnyXm2SHsSPesl7A1h2ZOrzMFuBs3UgZdSqaWZ8aAIeTrKyVuV-bTnqU3b_FbHg"/>
+<div class="flex-1 min-w-0">
+<h3 class="font-display font-bold text-lg text-app-text truncate">Marcus Chen</h3>
+<p class="font-body text-app-muted text-sm truncate">Brand Identity Specialist</p>
+<div class="flex items-center gap-1 mt-1 text-app-text font-medium text-sm">
+<span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>5.0</span>
+<span class="text-app-muted ml-1 font-normal">(89 jobs)</span>
+</div>
+</div>
+<div class="text-right flex flex-col items-end">
+<span class="font-display font-bold text-app-text">$110</span>
+<span class="text-app-muted text-xs">/hr</span>
+</div>
+</div>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-app-surface text-app-muted text-xs font-medium rounded-full">Illustrator</span>
+<span class="px-3 py-1 bg-app-surface text-app-muted text-xs font-medium rounded-full">Typography</span>
+</div>
+<button class="w-full mt-2 h-10 rounded-full bg-app-surface text-app-text font-display font-semibold text-sm transition-colors hover:bg-gray-100 active:bg-gray-200">View Profile</button>
+</article>
+<!-- Talent Card 3 -->
+<article class="bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 border border-gray-50/50">
+<div class="flex items-center gap-4">
+<img class="w-16 h-16 rounded-full object-cover shadow-sm bg-app-surface" data-alt="Headshot of a middle aged white woman with short gray hair, wearing a dark blue turtleneck, soft natural window light, professional studio portrait, serene expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYxvzdMx_geRI5g9pOwHY_sJ-bWBs633Soiyd5A3p52zuC-bToSMT8LpdvFi7mli4Hnh3YUjc6MpKYBH-qw1vV9M14HX3J90Lpf9dQnl4BFTtCDzk7B5FgtzajP3s9WYuAKHU9xhaqHZA08tmd4UFoB1gY43nfjS_cEcEtMI46F9S6dZSjH3LMAcTyPxZ5M8N23J-1PDVJWJCn6A3MWhPBLSdD3ym2b8eDahXvhb0059WSNZRciDw9SfOImyA3xHAdtdOfK8uvuaog"/>
+<div class="flex-1 min-w-0">
+<h3 class="font-display font-bold text-lg text-app-text truncate">Sarah Jenkins</h3>
+<p class="font-body text-app-muted text-sm truncate">UX Researcher</p>
+<div class="flex items-center gap-1 mt-1 text-app-text font-medium text-sm">
+<span class="material-symbols-outlined text-[16px] text-[#F59E0B]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.8</span>
+<span class="text-app-muted ml-1 font-normal">(42 jobs)</span>
+</div>
+</div>
+<div class="text-right flex flex-col items-end">
+<span class="font-display font-bold text-app-text">$95</span>
+<span class="text-app-muted text-xs">/hr</span>
+</div>
+</div>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-app-surface text-app-muted text-xs font-medium rounded-full">User Testing</span>
+<span class="px-3 py-1 bg-app-surface text-app-muted text-xs font-medium rounded-full">Prototyping</span>
+</div>
+<button class="w-full mt-2 h-10 rounded-full bg-app-surface text-app-text font-display font-semibold text-sm transition-colors hover:bg-gray-100 active:bg-gray-200">View Profile</button>
+</article>
+<!-- Loading Skeleton (Hidden by default for visual cleanliness, showing how it would look) -->
+<!--
+            <div class="bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 animate-pulse">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-full bg-app-accent"></div>
+                    <div class="flex-1">
+                        <div class="h-5 bg-app-accent rounded w-3/4 mb-2"></div>
+                        <div class="h-4 bg-app-accent rounded w-1/2"></div>
+                    </div>
+                    <div class="w-12 h-6 bg-app-accent rounded"></div>
+                </div>
+                <div class="h-10 bg-app-surface rounded-full w-full mt-2"></div>
+            </div>
+            -->
+<div class="h-8"></div> <!-- Bottom spacing -->
+</main>
+<!-- Bottom Navigation Bar (Shared Component) -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto w-full">
+<div class="flex gap-2 border-t border-[#e7f3ef] bg-app-bg px-4 pb-6 pt-3 shadow-[0_-4px_20px_rgba(10,25,47,0.03)]">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-app-text" href="#">
+<div class="text-primary flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">explore</span>
+</div>
+<p class="text-primary text-xs font-medium leading-normal tracking-[0.015em]">Discover</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-app-muted hover:text-app-text transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">favorite</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Saved</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-app-muted hover:text-app-text transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">mail</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Messages</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>

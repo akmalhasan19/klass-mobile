@@ -16,12 +16,12 @@ from app.settings import get_settings
 from tests.helpers import artifact_path_from_metadata, cleanup_artifact, sample_request
 
 
-def test_docx_generator_renders_expected_sections_and_text() -> None:
+def test_docx_generator_renders_expected_sections_and_text(tmp_path) -> None:
     request_payload = sample_request("docx")
     render_document = build_render_document(request_payload.generation_spec)
     generator = DocxGenerator()
 
-    metadata = generator.generate(request_payload, render_document, get_settings())
+    metadata = generator.generate(request_payload, render_document, get_settings(), tmp_path / "output.docx")
 
     # ── Magic bytes: DOCX is a ZIP archive ────────────────────────────
     artifact_path = artifact_path_from_metadata(metadata)
@@ -51,12 +51,12 @@ def test_docx_generator_renders_expected_sections_and_text() -> None:
     cleanup_artifact(metadata)
 
 
-def test_pdf_generator_writes_pdf_header_and_page_count(running_client) -> None:
+def test_pdf_generator_writes_pdf_header_and_page_count(running_client, tmp_path) -> None:
     request_payload = sample_request("pdf")
     render_document = build_render_document(request_payload.generation_spec)
     generator = PdfGenerator()
 
-    metadata = generator.generate(request_payload, render_document, get_settings())
+    metadata = generator.generate(request_payload, render_document, get_settings(), tmp_path / "output.pdf")
     artifact_path = Path(metadata["artifact_locator"]["value"])
     artifact_bytes = artifact_path.read_bytes()
 
@@ -77,12 +77,12 @@ def test_registry_only_exposes_docx_and_pdf_generators() -> None:
     assert registry.get("pptx").export_format == "pptx"
 
 
-def test_pptx_generator_renders_title_section_and_activity_slides(running_client) -> None:
+def test_pptx_generator_renders_title_section_and_activity_slides(running_client, tmp_path) -> None:
     request_payload = sample_request("pptx")
     render_document = build_render_document(request_payload.generation_spec)
     generator = PptxGenerator()
 
-    metadata = generator.generate(request_payload, render_document, get_settings())
+    metadata = generator.generate(request_payload, render_document, get_settings(), tmp_path / "output.pptx")
     presentation = Presentation(metadata["artifact_locator"]["value"])
     slide_texts = []
 
@@ -109,3 +109,16 @@ def test_pptx_generator_renders_title_section_and_activity_slides(running_client
     assert all("Return exactly one JSON object" not in text for text in slide_texts)
 
     cleanup_artifact(metadata)
+
+
+def test_base_generator_filename_is_concise_matching_title_without_dashes() -> None:
+    generator = DocxGenerator()
+
+    # Title with hyphens, special chars, and long title
+    raw_title = "Handout Pecahan - Kelas 5 SD / Modul Matematika Sangat Panjang Sekali Untuk Uji Coba Truncation Concise"
+    filename = generator._filename(raw_title)
+
+    assert filename.endswith(".docx")
+    assert "-" not in filename.rsplit(".", 1)[0]
+    assert "Handout Pecahan Kelas 5 SD Modul Matematika" in filename
+    assert len(filename) <= 70

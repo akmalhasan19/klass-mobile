@@ -14,7 +14,7 @@ from fastapi.exceptions import RequestValidationError
 # pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse
 # pyrefly: ignore [missing-import]
-from arq.connections import ArqRedis
+from arq.connections import ArqRedis, create_pool
 
 from app.auth import verify_request_signature
 from app.contracts import (

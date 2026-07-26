@@ -4,15 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
 
-import 'package:klass_app/features/search/widgets/animated_search_bar.dart';
 import 'package:klass_app/shared/widgets/skeleton_loaders.dart';
 import 'package:klass_app/features/home/data/home_service.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/network/cancelable_state_mixin.dart';
 import 'package:klass_app/core/providers/dio_provider.dart';
 
-/// Search/Discover Screen — mereplikasi halaman Search dari Klass Next.js.
-/// Fitur: Sticky header "Discover", category pills, teacher cards.
+/// Search/Discover Screen — Talent Discovery UI.
+/// Sticky search bar, horizontal category pills, talent cards.
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
@@ -20,20 +19,21 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableState {
+class _SearchScreenState extends ConsumerState<SearchScreen>
+    with CancelableState {
   String _activeCategory = 'all';
   final ScrollController _scrollController = ScrollController();
-  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
-  final List<Map<String, dynamic>> categories = const [
-    {'key': 'all', 'icon': Icons.grid_view_rounded},
-    {'key': 'science', 'icon': Icons.science_rounded},
-    {'key': 'math', 'icon': Icons.calculate_rounded},
-    {'key': 'art', 'icon': Icons.palette_rounded},
-    {'key': 'code', 'icon': Icons.code_rounded},
-    {'key': 'history', 'icon': Icons.menu_book_rounded},
+  final List<String> categories = const [
+    'all',
+    'product_design',
+    'branding',
+    'development',
+    'illustration',
   ];
-  
+
   late final HomeService _homeService;
   List<Map<String, dynamic>> teachers = [];
   bool _isLoading = true;
@@ -52,7 +52,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
       _error = null;
     });
     try {
-      final res = await _homeService.fetchFreelancers(forceRefresh: forceRefresh, cancelToken: cancelToken);
+      final res = await _homeService.fetchFreelancers(
+        forceRefresh: forceRefresh,
+        cancelToken: cancelToken,
+      );
       if (mounted) {
         setState(() {
           teachers = res;
@@ -75,18 +78,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
 
   Future<void> _copyDebugInfo(String message) async {
     final localizations = AppLocalizations.of(context)!;
-
     await Clipboard.setData(ClipboardData(text: message));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           localizations.commonDebugInfoCopied,
-          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+          ),
         ),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         margin: const EdgeInsets.all(16),
       ),
     );
@@ -95,12 +102,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
     final topPadding = MediaQuery.of(context).padding.top;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -110,263 +118,143 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         behavior: HitTestBehavior.opaque,
-        child: Stack(
-          children: [
-            // Layer 2 background (matches Home/Settings logic)
-            Positioned.fill(
-              child: Hero(
-                tag: 'layer2_bg',
-                child: Container(color: AppColors.background),
-              ),
-            ),
-            
-            // Content
-            Positioned.fill(
-              child: Hero(
-                tag: 'content_fade',
+        child: Container(
+          color: AppColors.background,
+          child: Column(
+            children: [
+              // Sticky Header
+              _buildStickyHeader(topPadding),
+              // Main Feed
+              Expanded(
                 child: RefreshIndicator(
                   onRefresh: () => _fetchTeachers(forceRefresh: true),
                   color: AppColors.primary,
                   backgroundColor: Colors.white,
-                  child: CustomScrollView(
-                    controller: _scrollController,
-                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                    slivers: [
-                      // Sticky Header "Discover"
-                    AnimatedBuilder(
-                      animation: _scrollController,
-                      builder: (context, child) {
-                        final offset = _scrollController.hasClients ? _scrollController.offset : 0.0;
-                        final headerOpacity = (offset / 60).clamp(0.0, 1.0);
-                        
-                        return SliverAppBar(
-                          pinned: true,
-                          expandedHeight: 140 + topPadding,
-                          toolbarHeight: 70,
-                          backgroundColor: AppColors.background.withValues(
-                            alpha: headerOpacity * 0.92,
-                          ),
-                          surfaceTintColor: Colors.transparent,
-                          automaticallyImplyLeading: false,
-                          flexibleSpace: FlexibleSpaceBar(
-                            background: Padding(
-                              padding: EdgeInsets.only(top: topPadding + 12, left: 24, right: 24, bottom: 20),
-                              child: Stack(
-                                alignment: Alignment.centerRight,
-                                children: [
-                                  // Discover Title
-                                  Positioned(
-                                    left: 0,
-                                    child: AnimatedOpacity(
-                                      duration: const Duration(milliseconds: 200),
-                                      opacity: _isSearching ? 0.0 : (1 - headerOpacity * 1.5).clamp(0.0, 1.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            localizations.searchDiscoverTitle,
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w900,
-                                              color: AppColors.textPrimary,
-                                              letterSpacing: -0.5,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            localizations.searchDiscoverSubtitle,
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w800,
-                                              color: AppColors.textMuted,
-                                              letterSpacing: 2,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  // Animated Search Bar
-                                  AnimatedSearchBar(
-                                    onExpanded: () => setState(() => _isSearching = true),
-                                    onCollapsed: () => setState(() => _isSearching = false),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          title: AnimatedOpacity(
-                            opacity: (headerOpacity > 0.8 && !_isSearching) ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Padding(
-                              padding: EdgeInsets.only(top: 16.0),
-                              child: Text(
-                                localizations.searchDiscoverTitle,
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ),
-                          bottom: PreferredSize(
-                            preferredSize: const Size.fromHeight(56),
-                            child: _buildCategoryPills(),
-                          ),
-                        );
-                      },
-                    ),
-
-                    // Search stats
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                      sliver: SliverToBoxAdapter(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              localizations.searchRecommendedTitle,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              localizations.commonViewAll,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Teacher cards
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-                      sliver: _isLoading 
-                        ? SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: _buildSkeletonCard(),
-                                );
-                              },
-                              childCount: 3,
-                            ),
-                          )
-                        : _error != null
-                          ? SliverToBoxAdapter(
-                              child: _buildErrorState(),
-                            )
-                          : teachers.isEmpty
-                            ? SliverToBoxAdapter(
-                                child: _buildEmptyState(),
-                              )
-                            : SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) {
-                                    if (index < teachers.length) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 16),
-                                        child: _buildTeacherCard(teachers[index]),
-                                      );
-                                    }
-                                    return const SizedBox.shrink();
-                                  },
-                                  childCount: teachers.length,
-                                ),
-                              ),
-                    ),
-
-                    // Bottom spacing
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 120),
-                    ),
-                  ],
-                ),
+                  child: _buildMainFeed(),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCategoryPills() {
+  // ─── Sticky Header ────────────────────────────────────────────────
+  Widget _buildStickyHeader(double topPadding) {
+    return Container(
+      padding: EdgeInsets.only(
+        top: topPadding + 12,
+        left: 16,
+        right: 16,
+        bottom: 12,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.border.withValues(alpha: 0.4),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Search Bar
+          _buildSearchBar(),
+          const SizedBox(height: 16),
+          // Category Pills
+          _buildCategoryPills(),
+        ],
+      ),
+    );
+  }
+
+  // ─── Search Bar (Always visible, rounded) ─────────────────────────
+  Widget _buildSearchBar() {
     final localizations = AppLocalizations.of(context)!;
 
     return Container(
-      height: 56,
+      height: 52,
       decoration: BoxDecoration(
-        color: AppColors.background.withValues(alpha: 0.6),
-        border: const Border(
-          bottom: BorderSide(color: AppColors.border, width: 0.5),
-        ),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(26),
       ),
+      child: Row(
+        children: [
+          const SizedBox(width: 16),
+          Icon(
+            Icons.search_rounded,
+            size: 22,
+            color: AppColors.textMuted,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: localizations.animatedSearchHint,
+                hintStyle: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMuted,
+                ),
+                border: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Category Pills (Horizontal scroll) ──────────────────────────
+  Widget _buildCategoryPills() {
+    return SizedBox(
+      height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         itemCount: categories.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
-          final cat = categories[index];
-          final categoryKey = cat['key'] as String;
-          final isActive = _activeCategory == categoryKey;
+          final key = categories[index];
+          final isActive = _activeCategory == key;
           return GestureDetector(
-            onTap: () => setState(() => _activeCategory = categoryKey),
+            onTap: () => setState(() => _activeCategory = key),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              height: 36,
               decoration: BoxDecoration(
-                color: isActive ? AppColors.primary : AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(16),
+                color: isActive ? AppColors.textPrimary : AppColors.background,
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: isActive ? AppColors.primary : AppColors.border,
+                  color: isActive
+                      ? AppColors.textPrimary
+                      : AppColors.border,
                 ),
-                boxShadow: isActive
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 3),
-                        ),
-                      ]
-                    : [],
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    cat['icon'] as IconData,
-                    size: 16,
-                    color: isActive ? Colors.white : AppColors.textMuted,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _categoryLabel(localizations, categoryKey),
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: isActive ? Colors.white : AppColors.textMuted,
-                    ),
-                  ),
-                ],
+              alignment: Alignment.center,
+              child: Text(
+                _categoryLabel(key),
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isActive ? Colors.white : AppColors.textMuted,
+                ),
               ),
             ),
           );
@@ -375,28 +263,105 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
     );
   }
 
-  Widget _buildTeacherCard(Map<String, dynamic> teacher) {
+  // ─── Main Feed ───────────────────────────────────────────────────
+  Widget _buildMainFeed() {
     final localizations = AppLocalizations.of(context)!;
 
-    // ── Null-safe data extraction ──
-    // API /marketplace-tasks returns: id, content_id, status, creator_id,
-    // attachment_url, content (nested). Map these to UI fields with fallbacks.
-    final content = teacher['content'] as Map<String, dynamic>?;
-    final displayName = (teacher['name']
-        ?? content?['title']
-        ?? teacher['creator_id']
-      ?? localizations.commonUnknown).toString();
-    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
-    final role = (teacher['role']
-        ?? teacher['status']
-      ?? localizations.commonFreelancer).toString();
-    final description = (teacher['description']
-        ?? content?['description']
-      ?? localizations.commonNoDescriptionAvailable).toString();
-    final rating = teacher['rating'] ?? '-';
-    final isOnline = teacher['online'] == true;
+    return CustomScrollView(
+      controller: _scrollController,
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      slivers: [
+        // Section Title
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+          sliver: SliverToBoxAdapter(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  localizations.searchRecommendedTitle,
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  localizations.commonViewAll,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
 
-    // Tags: support List<String>, List<dynamic>, or null
+        // Talent Cards
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: _isLoading
+              ? SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildSkeletonCard(),
+                    ),
+                    childCount: 3,
+                  ),
+                )
+              : _error != null
+                  ? SliverToBoxAdapter(child: _buildErrorState())
+                  : teachers.isEmpty
+                      ? SliverToBoxAdapter(child: _buildEmptyState())
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              if (index < teachers.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildTalentCard(teachers[index]),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                            childCount: teachers.length,
+                          ),
+                        ),
+        ),
+
+        // Bottom spacing
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+      ],
+    );
+  }
+
+  // ─── Talent Card ─────────────────────────────────────────────────
+  Widget _buildTalentCard(Map<String, dynamic> teacher) {
+    final localizations = AppLocalizations.of(context)!;
+
+    final content = teacher['content'] as Map<String, dynamic>?;
+    final displayName = (teacher['name'] ??
+            content?['title'] ??
+            teacher['creator_id'] ??
+            localizations.commonUnknown)
+        .toString();
+    final initial =
+        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+    final role = (teacher['role'] ??
+            teacher['status'] ??
+            localizations.commonFreelancer)
+        .toString();
+    final rating = teacher['rating'] ?? '-';
+    final jobCount = teacher['job_count'] ?? teacher['jobs'] ?? 0;
+    final price = teacher['price'] ?? teacher['rate'] ?? '--';
+
     final rawTags = teacher['tags'];
     final List<String> tags;
     if (rawTags is List) {
@@ -405,354 +370,279 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
       tags = [];
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          // Future details navigation
-        },
-        borderRadius: BorderRadius.circular(28),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x0A0A192F),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+        border: Border.all(color: const Color(0x08000000)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top row: Avatar, Info, Price
+          Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Avatar
-                  Stack(
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(22),
-                          color: AppColors.surfaceLight,
-                          border: Border.all(color: AppColors.border, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            initial,
-                            style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (isOnline)
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.surfaceCard, width: 2),
-                            ),
-                          ),
-                        ),
-                    ],
+              // Avatar
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.surface,
+                  border: Border.all(
+                    color: AppColors.border.withValues(alpha: 0.3),
+                    width: 1,
                   ),
-                  const SizedBox(width: 16),
-                  // Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                child: Center(
+                  child: Text(
+                    initial,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      role,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Rating row
+                    Row(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                displayName,
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.textPrimary,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0x1AF59E0B),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.star_rounded,
-                                      size: 14, color: AppColors.amber),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$rating',
-                                    style: const TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.amber,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: AppColors.amber,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(width: 3),
                         Text(
-                          role,
+                          '$rating',
                           style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textMuted,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Tags
-              if (tags.isNotEmpty)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: tags.map((tag) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceLight,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Text(
-                        tag.toUpperCase(),
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textSecondary,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              if (tags.isNotEmpty) const SizedBox(height: 16),
-              // Description
-              Text(
-                description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Action row
-              Container(
-                padding: const EdgeInsets.only(top: 16),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: AppColors.border, width: 0.5),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Student avatars
-                    Row(
-                      children: [
-                        ...List.generate(
-                          3,
-                          (i) => Container(
-                            width: 28,
-                            height: 28,
-                            margin: const EdgeInsets.only(left: 0),
-                            transform: Matrix4.translationValues(i * -8.0, 0, 0),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.surfaceLight,
-                              border: Border.all(color: AppColors.surfaceCard, width: 2),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${i + 1}',
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Transform.translate(
-                          offset: const Offset(-16, 0),
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.surfaceLight,
-                              border: Border.all(color: AppColors.surfaceCard, width: 2),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                '12+',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          localizations.searchViewProfile,
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          size: 18,
-                          color: AppColors.primary,
+                        Text(
+                          '($jobCount jobs)',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
+              // Price
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '\$$price',
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Text(
+                    '/hr',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-        ),
+          // Tags
+          if (tags.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: tags.map((tag) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    tag,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+          // View Profile button
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton(
+              onPressed: () {
+                // Future: navigate to profile
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.surface,
+                foregroundColor: AppColors.textPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: EdgeInsets.zero,
+              ),
+              child: Text(
+                localizations.searchViewProfile,
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ─── Skeleton Loading Card (Shimmer) ───────────────────────────────
+  // ─── Skeleton Card ───────────────────────────────────────────────
   Widget _buildSkeletonCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(28),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar skeleton
               Container(
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
+                  shape: BoxShape.circle,
                   color: AppColors.border.withValues(alpha: 0.25),
                 ),
                 child: ShimmerEffect(
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
+                      shape: BoxShape.circle,
                       color: Colors.white.withValues(alpha: 0.15),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name skeleton
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: AppColors.border.withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ShimmerEffect(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Rating badge skeleton
-                        Container(
-                          width: 50,
-                          height: 24,
+                    // Name
+                    Container(
+                      height: 16,
+                      width: 140,
+                      decoration: BoxDecoration(
+                        color: AppColors.border.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ShimmerEffect(
+                        child: Container(
                           decoration: BoxDecoration(
-                            color: AppColors.border.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ShimmerEffect(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Colors.white.withValues(alpha: 0.15),
-                              ),
-                            ),
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white.withValues(alpha: 0.15),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    // Role skeleton
+                    // Role
                     Container(
                       height: 12,
-                      width: 120,
+                      width: 100,
                       decoration: BoxDecoration(
                         color: AppColors.border.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: ShimmerEffect(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Rating
+                    Container(
+                      height: 12,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: AppColors.border.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: ShimmerEffect(
@@ -767,98 +657,71 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
                   ],
                 ),
               ),
+              // Price skeleton
+              Column(
+                children: [
+                  Container(
+                    height: 18,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.border.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: ShimmerEffect(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    height: 10,
+                    width: 20,
+                    decoration: BoxDecoration(
+                      color: AppColors.border.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: ShimmerEffect(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           // Tags skeleton
           Row(
             children: [
-              _buildTagSkeleton(60),
+              _buildTagSkeleton(65),
               const SizedBox(width: 8),
-              _buildTagSkeleton(80),
-              const SizedBox(width: 8),
-              _buildTagSkeleton(55),
+              _buildTagSkeleton(90),
             ],
           ),
-          const SizedBox(height: 16),
-          // Description skeleton lines
+          const SizedBox(height: 14),
+          // Button skeleton
           Container(
-            height: 12,
+            height: 40,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: AppColors.border.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(6),
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
             ),
             child: ShimmerEffect(
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(20),
                   color: Colors.white.withValues(alpha: 0.15),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: 12,
-            width: MediaQuery.of(context).size.width * 0.55,
-            decoration: BoxDecoration(
-              color: AppColors.border.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: ShimmerEffect(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  color: Colors.white.withValues(alpha: 0.15),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Bottom action row skeleton
-          Container(
-            padding: const EdgeInsets.only(top: 16),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: AppColors.border.withValues(alpha: 0.3), width: 0.5),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Mini avatar circles skeleton
-                Row(
-                  children: List.generate(
-                    3,
-                    (i) => Container(
-                      width: 28,
-                      height: 28,
-                      transform: Matrix4.translationValues(i * -8.0, 0, 0),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.border.withValues(alpha: 0.2),
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 90,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: AppColors.border.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(7),
-                  ),
-                  child: ShimmerEffect(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(7),
-                        color: Colors.white.withValues(alpha: 0.15),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -868,10 +731,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
 
   Widget _buildTagSkeleton(double width) {
     return Container(
-      height: 26,
+      height: 28,
       width: width,
       decoration: BoxDecoration(
-        color: AppColors.border.withValues(alpha: 0.2),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ShimmerEffect(
@@ -885,7 +748,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
     );
   }
 
-  // ─── Error State (Detailed Debug Info) ─────────────────────────────
+  // ─── Error State ─────────────────────────────────────────────────
   Widget _buildErrorState() {
     final localizations = AppLocalizations.of(context)!;
 
@@ -895,14 +758,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: AppColors.red.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: AppColors.red.withValues(alpha: 0.15),
           ),
         ),
         child: Column(
           children: [
-            // Error icon with background
             Container(
               width: 56,
               height: 56,
@@ -919,7 +781,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
             const SizedBox(height: 16),
             Text(
               localizations.searchErrorTitle,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -930,7 +792,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
             Text(
               localizations.searchErrorDescription,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -939,13 +801,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
               ),
             ),
             const SizedBox(height: 16),
-            // Debug info container
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(14),
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border),
               ),
               child: ConstrainedBox(
@@ -965,17 +826,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
               ),
             ),
             const SizedBox(height: 16),
-            // Action buttons row
             Row(
               children: [
-                // Copy Debug Info button
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _copyDebugInfo(_error!),
                     icon: const Icon(Icons.copy_rounded, size: 16),
                     label: Text(
                       localizations.commonCopyDebugInfo,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -985,21 +844,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
                       foregroundColor: AppColors.textSecondary,
                       side: const BorderSide(color: AppColors.border),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Retry button
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _fetchTeachers,
                     icon: const Icon(Icons.refresh_rounded, size: 18),
                     label: Text(
                       localizations.commonRetry,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
@@ -1010,7 +868,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -1024,7 +882,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
     );
   }
 
-  // ─── Empty State ───────────────────────────────────────────────────
+  // ─── Empty State ─────────────────────────────────────────────────
   Widget _buildEmptyState() {
     final localizations = AppLocalizations.of(context)!;
 
@@ -1033,12 +891,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
       child: Center(
         child: Column(
           children: [
-            // Empty icon with subtle background
             Container(
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
+                color: AppColors.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: AppColors.border.withValues(alpha: 0.5),
@@ -1053,7 +910,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
             const SizedBox(height: 20),
             Text(
               localizations.searchEmptyTitle,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -1066,7 +923,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
               child: Text(
                 localizations.searchEmptyDescription,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -1076,13 +933,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
               ),
             ),
             const SizedBox(height: 20),
-            // Refresh button
             OutlinedButton.icon(
               onPressed: () => _fetchTeachers(forceRefresh: true),
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: Text(
                 localizations.commonRefresh,
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -1094,7 +950,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
             ),
           ],
@@ -1103,21 +962,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with CancelableStat
     );
   }
 
-  String _categoryLabel(AppLocalizations localizations, String key) {
+  // ─── Category Label ──────────────────────────────────────────────
+  String _categoryLabel(String key) {
     switch (key) {
-      case 'science':
-        return localizations.searchCategoryScience;
-      case 'math':
-        return localizations.searchCategoryMath;
-      case 'art':
-        return localizations.searchCategoryArt;
-      case 'code':
-        return localizations.searchCategoryCode;
-      case 'history':
-        return localizations.searchCategoryHistory;
+      case 'product_design':
+        return 'Product Design';
+      case 'branding':
+        return 'Branding';
+      case 'development':
+        return 'Development';
+      case 'illustration':
+        return 'Illustration';
       case 'all':
       default:
-        return localizations.searchCategoryAll;
+        return 'All';
     }
   }
 }

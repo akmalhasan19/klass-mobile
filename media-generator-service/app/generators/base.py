@@ -95,10 +95,21 @@ class BaseGenerator(ABC):
             )
 
     def _filename(self, title: str) -> str:
-        return f"{self._slugify(title) or 'generated-media'}.{self.export_format}"
+        stem = self._clean_filename_stem(title) or "generated_media"
+        return f"{stem}.{self.export_format}"
+
+    def _clean_filename_stem(self, value: str) -> str:
+        normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+        cleaned = re.sub(r"[-_]+", " ", normalized)
+        cleaned = re.sub(r"[^a-zA-Z0-9\s]+", "", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        if len(cleaned) > 60:
+            truncated = cleaned[:60]
+            if " " in truncated:
+                cleaned = truncated.rsplit(" ", 1)[0].strip()
+            else:
+                cleaned = truncated.strip()
+        return cleaned
 
     def _slugify(self, value: str) -> str:
-        normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
-        normalized = normalized.lower().strip()
-        normalized = re.sub(r"[^a-z0-9]+", "-", normalized)
-        return normalized.strip("-")
+        return self._clean_filename_stem(value)

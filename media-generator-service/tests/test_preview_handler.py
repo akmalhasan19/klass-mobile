@@ -7,9 +7,12 @@ Tests verify that:
 """
 from __future__ import annotations
 
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
+
 import hashlib
 import hmac
-from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse
 
 # pyrefly: ignore [missing-import]
@@ -126,7 +129,7 @@ def test_store_preview_html_includes_generation_id_in_name() -> None:
 def test_store_preview_html_includes_slug_in_name() -> None:
     path = store_preview_html("<html/>", "gen-001", "Pecahan Kelas 5")
     try:
-        assert "pecahan-kelas-5" in path.name
+        assert "pecahan_kelas_5" in path.name
     finally:
         path.unlink(missing_ok=True)
 

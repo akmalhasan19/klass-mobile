@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 # pyrefly: ignore [missing-import]
@@ -106,7 +107,8 @@ def test_docx_artifact() -> tuple[list[str], list[str]]:
     request = sample_request("docx")
     render_doc = build_render_document(request.generation_spec)
     generator = DocxGenerator()
-    metadata = generator.generate(request, render_doc, get_settings())
+    output_path = Path(tempfile.gettempdir()) / f"test_{request.generation_id}.docx"
+    metadata = generator.generate(request, render_doc, get_settings(), output_path)
 
     document = Document(metadata["artifact_locator"]["value"])
     full_text = "\n".join(p.text for p in document.paragraphs if p.text.strip())
@@ -117,7 +119,7 @@ def test_docx_artifact() -> tuple[list[str], list[str]]:
     # Check expected content is present
     for expected in EXPECTED_CONTENT:
         if expected in full_text:
-            found.append(f"  ✅ Found expected: '{expected}'")
+            found.append(f"  [PASS] Found expected: '{expected}'")
         else:
             failures.append(f"[DOCX] Missing expected content: '{expected}'")
 
@@ -125,17 +127,14 @@ def test_docx_artifact() -> tuple[list[str], list[str]]:
     if document.tables:
         failures.append(f"[DOCX] Found {len(document.tables)} table(s) - context table should be removed")
     else:
-        found.append("  ✅ No tables found (context table removed)")
+        found.append("  [PASS] No tables found (context table removed)")
 
     cleanup_artifact(metadata)
     return failures, found
 
 
-def test_pdf_artifact() -> tuple[list[str], list[str]]:
+def test_pdf_artifact(running_client=None) -> tuple[list[str], list[str]]:
     """Generate and inspect PDF artifact."""
-    # pyrefly: ignore [missing-import]
-    from fastapi.testclient import TestClient
-
     from app.main import app
 
     request = sample_request("pdf")
@@ -145,8 +144,14 @@ def test_pdf_artifact() -> tuple[list[str], list[str]]:
     # PDF rendering) is available.  Wrapping in the context manager keeps this
     # working both under pytest and when run directly via ``python
     # live_artifact_purity_test.py`` (main()).
-    with TestClient(app) as _client:
-        metadata = generator.generate(request, render_doc, get_settings())
+    output_path = Path(tempfile.gettempdir()) / f"test_{request.generation_id}.pdf"
+    if running_client is not None:
+        metadata = generator.generate(request, render_doc, get_settings(), output_path)
+    else:
+        # pyrefly: ignore [missing-import]
+        from fastapi.testclient import TestClient
+        with TestClient(app) as _client:
+            metadata = generator.generate(request, render_doc, get_settings(), output_path)
 
     artifact_path = Path(metadata["artifact_locator"]["value"])
     raw_bytes = artifact_path.read_bytes()
@@ -156,14 +161,14 @@ def test_pdf_artifact() -> tuple[list[str], list[str]]:
 
     # PDF starts with %PDF
     if raw_bytes.startswith(b"%PDF"):
-        found.append("  ✅ Valid PDF header")
+        found.append("  [PASS] Valid PDF header")
     else:
         failures.append("[PDF] Invalid PDF header")
 
     # Page count
     page_count = metadata.get("page_count", 0)
     if page_count and page_count >= 1:
-        found.append(f"  ✅ Page count: {page_count}")
+        found.append(f"  [PASS] Page count: {page_count}")
     else:
         failures.append(f"[PDF] Unexpected page count: {page_count}")
 
@@ -178,23 +183,32 @@ def test_pdf_artifact() -> tuple[list[str], list[str]]:
             failures.append(f"[PDF] Found forbidden label in raw bytes: '{forbidden}'")
 
     if not any("[PDF]" in f for f in failures):
-        found.append("  ✅ No forbidden labels/patterns in PDF bytes")
+        found.append("  [PASS] No forbidden labels/patterns in PDF bytes")
 
     # Check expected content in raw bytes
     for expected in ["Handout Pecahan Kelas 5", "Tujuan"]:
         if expected.encode("utf-8") in raw_bytes:
-            found.append(f"  ✅ Found expected in PDF: '{expected}'")
+            found.append(f"  [PASS] Found expected in PDF: '{expected}'")
 
     cleanup_artifact(metadata)
     return failures, found
 
 
-def test_pptx_artifact() -> tuple[list[str], list[str]]:
+def test_pptx_artifact(running_client=None) -> tuple[list[str], list[str]]:
     """Generate and inspect PPTX artifact."""
+    from app.main import app
+
     request = sample_request("pptx")
     render_doc = build_render_document(request.generation_spec)
     generator = PptxGenerator()
-    metadata = generator.generate(request, render_doc, get_settings())
+    output_path = Path(tempfile.gettempdir()) / f"test_{request.generation_id}.pptx"
+    if running_client is not None:
+        metadata = generator.generate(request, render_doc, get_settings(), output_path)
+    else:
+        # pyrefly: ignore [missing-import]
+        from fastapi.testclient import TestClient
+        with TestClient(app) as _client:
+            metadata = generator.generate(request, render_doc, get_settings(), output_path)
 
     presentation = Presentation(metadata["artifact_locator"]["value"])
     all_text = []
@@ -217,20 +231,20 @@ def test_pptx_artifact() -> tuple[list[str], list[str]]:
     ]
     for expected in pptx_expected:
         if expected in full_text:
-            found.append(f"  ✅ Found expected: '{expected}'")
+            found.append(f"  [PASS] Found expected: '{expected}'")
         else:
             failures.append(f"[PPTX] Missing expected content: '{expected}'")
 
     # Slide count
     slide_count = metadata.get("slide_count", 0)
     if slide_count and slide_count >= 3:
-        found.append(f"  ✅ Slide count: {slide_count}")
+        found.append(f"  [PASS] Slide count: {slide_count}")
     else:
         failures.append(f"[PPTX] Unexpected slide count: {slide_count}")
 
     # Verify learning objectives panel exists (not context/metadata panel)
     assert any("Tujuan" in t for t in all_text), "Learning objectives panel missing from title slide"
-    found.append("  ✅ Learning objectives panel on title slide (not metadata context)")
+    found.append("  [PASS] Learning objectives panel on title slide (not metadata context)")
 
     cleanup_artifact(metadata)
     return failures, found
@@ -250,33 +264,33 @@ def main():
     ]
 
     for format_name, test_fn in formats:
-        print(f"\n{'─' * 50}")
+        print(f"\n{'-' * 50}")
         print(f"  Testing {format_name} artifact...")
-        print(f"{'─' * 50}")
+        print(f"{'-' * 50}")
         try:
             failures, found = test_fn()
             for f in found:
                 print(f)
             if failures:
                 for f in failures:
-                    print(f"  ❌ {f}")
+                    print(f"  [FAIL] {f}")
                 all_failures.extend(failures)
             else:
-                print(f"\n  🎉 {format_name}: ALL CHECKS PASSED")
+                print(f"\n  [PASS] {format_name}: ALL CHECKS PASSED")
         except Exception as e:
             msg = f"[{format_name}] Exception during test: {e}"
-            print(f"  ❌ {msg}")
+            print(f"  [FAIL] {msg}")
             all_failures.append(msg)
 
     print(f"\n{'=' * 70}")
     if all_failures:
-        print(f"  ❌ FAILED: {len(all_failures)} issue(s) found")
+        print(f"  [FAIL] FAILED: {len(all_failures)} issue(s) found")
         for f in all_failures:
-            print(f"    • {f}")
+            print(f"    * {f}")
         print(f"{'=' * 70}")
         sys.exit(1)
     else:
-        print("  ✅ ALL FORMATS PASSED - Artifacts are clean!")
+        print("  [PASS] ALL FORMATS PASSED - Artifacts are clean!")
         print("  No metadata, scaffold, context tables, asset lists,")
         print("  teacher notes, or section purposes found in final artifacts.")
         print(f"{'=' * 70}")

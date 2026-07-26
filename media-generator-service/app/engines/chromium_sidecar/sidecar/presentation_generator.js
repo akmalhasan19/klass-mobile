@@ -88,14 +88,27 @@ export async function generatePresentation(input) {
 // Layout Renderers
 // ═══════════════════════════════════════════════════════════════════════════
 function renderTitleHero(pptx, slide, slideData, theme) {
-    const titleFontSize = 44;
-    const subtitleFontSize = 20;
+    let titleFontSize = 44;
+    let subtitleFontSize = 20;
     const contentWidth = 11.733;
-    const titleHeight = estimateTextHeight(slideData.title, titleFontSize, contentWidth);
-    const subtitleHeight = slideData.subtitle
+    let titleHeight = estimateTextHeight(slideData.title, titleFontSize, contentWidth);
+    let subtitleHeight = slideData.subtitle
         ? estimateTextHeight(slideData.subtitle, subtitleFontSize, contentWidth)
         : 0;
-    const totalHeight = titleHeight + (slideData.subtitle ? subtitleHeight + 0.4 : 0);
+    let totalHeight = titleHeight + (slideData.subtitle ? subtitleHeight + 0.4 : 0);
+    
+    // Scale down fonts dynamically if the content overflows the slide height
+    while (totalHeight > 5.5 && titleFontSize > 24) {
+        titleFontSize -= 2;
+        if (subtitleFontSize > 14)
+            subtitleFontSize -= 1;
+        titleHeight = estimateTextHeight(slideData.title, titleFontSize, contentWidth);
+        subtitleHeight = slideData.subtitle
+            ? estimateTextHeight(slideData.subtitle, subtitleFontSize, contentWidth)
+            : 0;
+        totalHeight = titleHeight + (slideData.subtitle ? subtitleHeight + 0.4 : 0);
+    }
+    
     const yStart = (7.5 - totalHeight) / 2;
     // Aesthetic accent line above title
     slide.addShape(pptx.shapes.RECTANGLE, {
@@ -116,6 +129,7 @@ function renderTitleHero(pptx, slide, slideData, theme) {
         color: theme.primary_color,
         bold: true,
         align: 'center',
+        fit: 'shrink',
     });
     if (slideData.subtitle) {
         slide.addText(slideData.subtitle, {
@@ -127,20 +141,34 @@ function renderTitleHero(pptx, slide, slideData, theme) {
             fontSize: subtitleFontSize,
             color: theme.secondary_color,
             align: 'center',
+            fit: 'shrink',
         });
     }
 }
 function renderSectionHeader(pptx, slide, slideData, theme) {
     // Full-bleed colored background with high-contrast text
     slide.background = { fill: theme.secondary_color };
-    const titleFontSize = 40;
-    const subtitleFontSize = 18;
+    let titleFontSize = 40;
+    let subtitleFontSize = 18;
     const contentWidth = 10;
-    const titleHeight = estimateTextHeight(slideData.title, titleFontSize, contentWidth);
-    const subtitleHeight = slideData.subtitle
+    let titleHeight = estimateTextHeight(slideData.title, titleFontSize, contentWidth);
+    let subtitleHeight = slideData.subtitle
         ? estimateTextHeight(slideData.subtitle, subtitleFontSize, contentWidth)
         : 0;
-    const totalHeight = titleHeight + (slideData.subtitle ? subtitleHeight + 0.5 : 0);
+    let totalHeight = titleHeight + (slideData.subtitle ? subtitleHeight + 0.5 : 0);
+    
+    // Scale down fonts dynamically if the content overflows the slide height
+    while (totalHeight > 5.5 && titleFontSize > 20) {
+        titleFontSize -= 2;
+        if (subtitleFontSize > 12)
+            subtitleFontSize -= 1;
+        titleHeight = estimateTextHeight(slideData.title, titleFontSize, contentWidth);
+        subtitleHeight = slideData.subtitle
+            ? estimateTextHeight(slideData.subtitle, subtitleFontSize, contentWidth)
+            : 0;
+        totalHeight = titleHeight + (slideData.subtitle ? subtitleHeight + 0.5 : 0);
+    }
+    
     const yStart = (7.5 - totalHeight) / 2;
     // Decorative line
     slide.addShape(pptx.shapes.RECTANGLE, {
@@ -161,6 +189,7 @@ function renderSectionHeader(pptx, slide, slideData, theme) {
         color: 'FFFFFF',
         bold: true,
         align: 'center',
+        fit: 'shrink',
     });
     if (slideData.subtitle) {
         slide.addText(slideData.subtitle, {
@@ -172,6 +201,7 @@ function renderSectionHeader(pptx, slide, slideData, theme) {
             fontSize: subtitleFontSize,
             color: 'E0E0E0',
             align: 'center',
+            fit: 'shrink',
         });
     }
 }
@@ -182,12 +212,66 @@ function renderBulletListIcon(pptx, slide, slideData, theme, isDarkBg) {
     const N = cards.length;
     if (N === 0)
         return;
-    const rowHeight = Math.min(availableHeight / N, 1.0);
     const iconSize = 0.5;
-    const gapY = 0.15;
+    const textX = 0.8 + iconSize + 0.3;
+    const textW = 13.333 - textX - 0.8;
+    
+    let headingFontSize = 15;
+    let bodyFontSize = 12;
+    let gapY = N > 4 ? 0.08 : 0.15;
+    
+    let attempts = 0;
+    while (attempts < 5) {
+        let totalRequiredHeight = 0;
+        for (let i = 0; i < N; i++) {
+            const card = cards[i];
+            let cardH = 0;
+            if (card.heading) {
+                const headingHeight = estimateTextHeight(card.heading, headingFontSize, textW);
+                cardH += headingHeight + 0.05;
+                if (card.body && card.body !== card.heading) {
+                    const bodyHeight = estimateTextHeight(card.body, bodyFontSize, textW);
+                    cardH += bodyHeight + 0.1;
+                }
+            }
+            else if (card.body) {
+                cardH += estimateTextHeight(card.body, bodyFontSize + 1, textW);
+            }
+            totalRequiredHeight += Math.max(iconSize, cardH);
+        }
+        totalRequiredHeight += (N - 1) * gapY;
+        
+        if (totalRequiredHeight <= availableHeight || headingFontSize <= 11) {
+            break;
+        }
+        
+        headingFontSize -= 1;
+        bodyFontSize = Math.max(9, bodyFontSize - 1);
+        gapY = Math.max(0.04, gapY - 0.02);
+        attempts++;
+    }
+    
+    let currentY = yContentStart;
     for (let i = 0; i < N; i++) {
         const card = cards[i];
-        const rowY = yContentStart + i * (rowHeight + gapY);
+        let cardH = 0;
+        let headingHeight = 0;
+        let bodyHeight = 0;
+        if (card.heading) {
+            headingHeight = estimateTextHeight(card.heading, headingFontSize, textW);
+            cardH += headingHeight + 0.05;
+            if (card.body && card.body !== card.heading) {
+                bodyHeight = estimateTextHeight(card.body, bodyFontSize, textW);
+                cardH += bodyHeight + 0.1;
+            }
+        }
+        else if (card.body) {
+            bodyHeight = estimateTextHeight(card.body, bodyFontSize + 1, textW);
+            cardH += bodyHeight;
+        }
+        const rowHeight = Math.max(iconSize, cardH);
+        const rowY = currentY;
+        
         // Numbered circle icon
         slide.addShape(pptx.shapes.OVAL, {
             x: 0.8,
@@ -203,37 +287,37 @@ function renderBulletListIcon(pptx, slide, slideData, theme, isDarkBg) {
             w: iconSize,
             h: iconSize,
             fontName: theme.font_heading,
-            fontSize: 16,
+            fontSize: Math.min(16, headingFontSize + 1),
             color: isDarkBg ? '0F172A' : 'FFFFFF',
             bold: true,
             align: 'center',
             valign: 'middle',
         });
+        
         // Heading + body
-        const textX = 0.8 + iconSize + 0.3;
-        const textW = 13.333 - textX - 0.8;
         if (card.heading) {
-            const headingHeight = estimateTextHeight(card.heading, 15, textW);
             slide.addText(card.heading, {
                 x: textX,
                 y: rowY,
                 w: textW,
                 h: headingHeight + 0.05,
                 fontName: theme.font_heading,
-                fontSize: 15,
+                fontSize: headingFontSize,
                 color: theme.primary_color,
                 bold: true,
+                fit: 'shrink',
             });
             if (card.body && card.body !== card.heading) {
                 slide.addText(card.body, {
                     x: textX,
                     y: rowY + headingHeight + 0.05,
                     w: textW,
-                    h: rowHeight - headingHeight - 0.1,
+                    h: bodyHeight + 0.05,
                     fontName: theme.font_body,
-                    fontSize: 12,
+                    fontSize: bodyFontSize,
                     color: theme.text_color,
                     valign: 'top',
+                    fit: 'shrink',
                 });
             }
         }
@@ -244,11 +328,13 @@ function renderBulletListIcon(pptx, slide, slideData, theme, isDarkBg) {
                 w: textW,
                 h: rowHeight,
                 fontName: theme.font_body,
-                fontSize: 13,
+                fontSize: bodyFontSize + 1,
                 color: theme.text_color,
                 valign: 'middle',
+                fit: 'shrink',
             });
         }
+        currentY += rowHeight + gapY;
     }
 }
 function renderColumnsCard(pptx, slide, slideData, theme, cardFillColor, cardBorderColor, targetCols) {
@@ -260,6 +346,38 @@ function renderColumnsCard(pptx, slide, slideData, theme, cardFillColor, cardBor
         return;
     const gap = 0.45;
     const colWidth = (11.733 - (N - 1) * gap) / N;
+    
+    let headingFontSize = 16;
+    let bodyFontSize = 12;
+    const paddingX = 0.3;
+    const contentW = colWidth - 2 * paddingX;
+    
+    let attempts = 0;
+    while (attempts < 5) {
+        let maxRequiredHeight = 0;
+        for (let i = 0; i < N; i++) {
+            const card = cards[i];
+            let cardH = 0.6; // top and bottom padding
+            if (card.heading) {
+                cardH += estimateTextHeight(card.heading, headingFontSize, contentW) + 0.2;
+            }
+            if (card.body) {
+                cardH += estimateTextHeight(card.body, bodyFontSize, contentW);
+            }
+            if (cardH > maxRequiredHeight) {
+                maxRequiredHeight = cardH;
+            }
+        }
+        
+        if (maxRequiredHeight <= availableHeight || headingFontSize <= 12) {
+            break;
+        }
+        
+        headingFontSize -= 1;
+        bodyFontSize = Math.max(9, bodyFontSize - 1);
+        attempts++;
+    }
+    
     for (let i = 0; i < N; i++) {
         const card = cards[i];
         const colX = 0.8 + i * (colWidth + gap);
@@ -273,10 +391,7 @@ function renderColumnsCard(pptx, slide, slideData, theme, cardFillColor, cardBor
             rectRadius: 0.05,
         });
         let currentY = yContentStart + 0.3;
-        const paddingX = 0.3;
-        const contentW = colWidth - 2 * paddingX;
         if (card.heading) {
-            const headingFontSize = 16;
             const headingHeight = estimateTextHeight(card.heading, headingFontSize, contentW);
             slide.addText(card.heading, {
                 x: colX + paddingX,
@@ -287,13 +402,14 @@ function renderColumnsCard(pptx, slide, slideData, theme, cardFillColor, cardBor
                 fontSize: headingFontSize,
                 color: theme.primary_color,
                 bold: true,
+                fit: 'shrink',
             });
             currentY += headingHeight + 0.2;
         }
         if (card.body) {
-            const bodyFontSize = 12;
             const bodyLines = parseBodyToLines(card.body);
             const isBullets = card.body.trim().startsWith('-') || card.body.trim().startsWith('*') || bodyLines.length > 1;
+            const remainingHeight = availableHeight - (currentY - yContentStart) - 0.3;
             if (isBullets) {
                 const textObjects = bodyLines.map(line => ({
                     text: line,
@@ -308,8 +424,9 @@ function renderColumnsCard(pptx, slide, slideData, theme, cardFillColor, cardBor
                     x: colX + paddingX,
                     y: currentY,
                     w: contentW,
-                    h: availableHeight - (currentY - yContentStart) - 0.3,
+                    h: remainingHeight,
                     valign: 'top',
+                    fit: 'shrink',
                 });
             }
             else {
@@ -317,11 +434,12 @@ function renderColumnsCard(pptx, slide, slideData, theme, cardFillColor, cardBor
                     x: colX + paddingX,
                     y: currentY,
                     w: contentW,
-                    h: availableHeight - (currentY - yContentStart) - 0.3,
+                    h: remainingHeight,
                     fontName: theme.font_body,
                     fontSize: bodyFontSize,
                     color: theme.text_color,
                     valign: 'top',
+                    fit: 'shrink',
                 });
             }
         }
@@ -336,6 +454,35 @@ function renderMetricHighlight(pptx, slide, slideData, theme, cardFillColor, car
         return;
     const gap = 0.45;
     const colWidth = (11.733 - (N - 1) * gap) / N;
+    
+    let metricFontSize = N >= 4 ? 36 : 48;
+    let labelFontSize = 13;
+    const contentW = colWidth - 0.4;
+    
+    let attempts = 0;
+    while (attempts < 5) {
+        let maxRequiredHeight = 0;
+        for (let i = 0; i < N; i++) {
+            const card = cards[i];
+            const headingText = card.heading || '';
+            const labelText = card.body || '';
+            const headingHeight = estimateTextHeight(headingText, metricFontSize, contentW);
+            const labelHeight = estimateTextHeight(labelText, labelFontSize, contentW);
+            const cardH = 0.4 + headingHeight + 0.2 + labelHeight + 0.4;
+            if (cardH > maxRequiredHeight) {
+                maxRequiredHeight = cardH;
+            }
+        }
+        
+        if (maxRequiredHeight <= availableHeight || metricFontSize <= 24) {
+            break;
+        }
+        
+        metricFontSize -= 4;
+        labelFontSize = Math.max(9, labelFontSize - 1);
+        attempts++;
+    }
+    
     for (let i = 0; i < N; i++) {
         const card = cards[i];
         const colX = 0.8 + i * (colWidth + gap);
@@ -348,33 +495,33 @@ function renderMetricHighlight(pptx, slide, slideData, theme, cardFillColor, car
             line: { color: cardBorderColor, width: 1 },
             rectRadius: 0.05,
         });
-        const metricFontSize = N >= 4 ? 36 : 48;
         const headingText = card.heading || '';
-        const headingHeight = estimateTextHeight(headingText, metricFontSize, colWidth - 0.4);
+        const headingHeight = estimateTextHeight(headingText, metricFontSize, contentW);
         slide.addText(headingText, {
             x: colX + 0.2,
             y: yContentStart + 0.4,
-            w: colWidth - 0.4,
-            h: headingHeight + 0.1,
+            w: contentW,
+            h: headingHeight + 0.05,
             fontName: theme.font_heading,
             fontSize: metricFontSize,
             color: theme.secondary_color,
             bold: true,
             align: 'center',
+            fit: 'shrink',
         });
         const labelText = card.body || '';
-        const labelFontSize = 13;
-        const labelHeight = estimateTextHeight(labelText, labelFontSize, colWidth - 0.4);
+        const remainingHeight = availableHeight - headingHeight - 0.8;
         slide.addText(labelText, {
             x: colX + 0.2,
             y: yContentStart + 0.4 + headingHeight + 0.2,
-            w: colWidth - 0.4,
-            h: Math.min(availableHeight - headingHeight - 0.8, labelHeight + 0.1),
+            w: contentW,
+            h: remainingHeight,
             fontName: theme.font_body,
             fontSize: labelFontSize,
             color: theme.text_color,
             align: 'center',
             valign: 'top',
+            fit: 'shrink',
         });
     }
 }
@@ -390,6 +537,7 @@ function renderTimelineProcess(pptx, slide, slideData, theme, isDarkBg) {
     const stepWidth = (totalWidth - (N - 1) * gap) / N;
     const circleSize = 0.6;
     const lineY = yContentStart + availableHeight * 0.25;
+    
     // Connecting horizontal line
     if (N > 1) {
         slide.addShape(pptx.shapes.RECTANGLE, {
@@ -401,6 +549,39 @@ function renderTimelineProcess(pptx, slide, slideData, theme, isDarkBg) {
             line: { width: 0 },
         });
     }
+    
+    let headingFontSize = 13;
+    let bodyFontSize = 11;
+    let attempts = 0;
+    while (attempts < 5) {
+        let maxRequiredTextHeight = 0;
+        for (let i = 0; i < N; i++) {
+            const card = cards[i];
+            let textH = 0;
+            if (card.heading) {
+                textH += estimateTextHeight(card.heading, headingFontSize, stepWidth) + 0.05;
+                if (card.body && card.body !== card.heading) {
+                    textH += estimateTextHeight(card.body, bodyFontSize, stepWidth) + 0.1;
+                }
+            }
+            else if (card.body) {
+                textH += estimateTextHeight(card.body, bodyFontSize + 1, stepWidth);
+            }
+            if (textH > maxRequiredTextHeight) {
+                maxRequiredTextHeight = textH;
+            }
+        }
+        
+        const remainingHeight = availableHeight * 0.75 - circleSize - 0.3;
+        if (maxRequiredTextHeight <= remainingHeight || headingFontSize <= 10) {
+            break;
+        }
+        
+        headingFontSize -= 1;
+        bodyFontSize = Math.max(8, bodyFontSize - 1);
+        attempts++;
+    }
+    
     for (let i = 0; i < N; i++) {
         const card = cards[i];
         const stepX = 0.8 + i * (stepWidth + gap);
@@ -429,30 +610,33 @@ function renderTimelineProcess(pptx, slide, slideData, theme, isDarkBg) {
         });
         // Step heading below circle
         const textY = lineY + circleSize + 0.25;
+        const remainingTextHeight = availableHeight - (textY - yContentStart) - 0.1;
         if (card.heading) {
-            const headingHeight = estimateTextHeight(card.heading, 13, stepWidth);
+            const headingHeight = estimateTextHeight(card.heading, headingFontSize, stepWidth);
             slide.addText(card.heading, {
                 x: stepX,
                 y: textY,
                 w: stepWidth,
                 h: headingHeight + 0.05,
                 fontName: theme.font_heading,
-                fontSize: 13,
+                fontSize: headingFontSize,
                 color: theme.primary_color,
                 bold: true,
                 align: 'center',
+                fit: 'shrink',
             });
             if (card.body && card.body !== card.heading) {
                 slide.addText(card.body, {
                     x: stepX,
                     y: textY + headingHeight + 0.1,
                     w: stepWidth,
-                    h: availableHeight - (textY + headingHeight + 0.1 - yContentStart) - 0.2,
+                    h: remainingTextHeight - headingHeight - 0.1,
                     fontName: theme.font_body,
-                    fontSize: 11,
+                    fontSize: bodyFontSize,
                     color: theme.text_color,
                     align: 'center',
                     valign: 'top',
+                    fit: 'shrink',
                 });
             }
         }
@@ -461,12 +645,13 @@ function renderTimelineProcess(pptx, slide, slideData, theme, isDarkBg) {
                 x: stepX,
                 y: textY,
                 w: stepWidth,
-                h: availableHeight - (textY - yContentStart) - 0.2,
+                h: remainingTextHeight,
                 fontName: theme.font_body,
-                fontSize: 12,
+                fontSize: bodyFontSize + 1,
                 color: theme.text_color,
                 align: 'center',
                 valign: 'top',
+                fit: 'shrink',
             });
         }
     }
@@ -474,9 +659,16 @@ function renderTimelineProcess(pptx, slide, slideData, theme, isDarkBg) {
 function renderQuoteCallout(pptx, slide, slideData, theme) {
     const contentWidth = 10;
     const quoteText = slideData.content?.[0]?.body || slideData.subtitle || '';
-    const quoteFontSize = 24;
-    const quoteHeight = estimateTextHeight(quoteText, quoteFontSize, contentWidth);
-    const totalHeight = quoteHeight + 1.2;
+    let quoteFontSize = 24;
+    let quoteHeight = estimateTextHeight(quoteText, quoteFontSize, contentWidth);
+    let totalHeight = quoteHeight + 1.2;
+    
+    while (totalHeight > 6.0 && quoteFontSize > 14) {
+        quoteFontSize -= 2;
+        quoteHeight = estimateTextHeight(quoteText, quoteFontSize, contentWidth);
+        totalHeight = quoteHeight + 1.2;
+    }
+    
     const yStart = (7.5 - totalHeight) / 2;
     // Decorative opening quote mark
     slide.addText('\u201C', {
@@ -502,6 +694,7 @@ function renderQuoteCallout(pptx, slide, slideData, theme) {
         italic: true,
         align: 'center',
         valign: 'middle',
+        fit: 'shrink',
     });
     // Slide title as attribution below
     if (slideData.title) {
@@ -514,6 +707,7 @@ function renderQuoteCallout(pptx, slide, slideData, theme) {
             fontSize: 14,
             color: theme.secondary_color,
             align: 'center',
+            fit: 'shrink',
         });
     }
 }
@@ -533,6 +727,38 @@ function renderGenericContent(pptx, slide, slideData, theme, cardFillColor, card
             : (N === 1 ? 7.5 : (11.733 - (N - 1) * gapX) / N);
         const startX = N === 1 ? (13.333 - colWidth) / 2 : 0.8;
         const rowHeight = (availableHeight - (rows - 1) * gapY) / rows;
+        
+        let headingFontSize = 16;
+        let bodyFontSize = 12;
+        const paddingX = 0.25;
+        const contentW = colWidth - 2 * paddingX;
+        
+        let attempts = 0;
+        while (attempts < 5) {
+            let maxRequiredHeight = 0;
+            for (let i = 0; i < N; i++) {
+                const card = cards[i];
+                let cardH = 0.55; // top margin (0.25) + bottom margin (0.3)
+                if (card.heading) {
+                    cardH += estimateTextHeight(card.heading, headingFontSize, contentW) + 0.15;
+                }
+                if (card.body) {
+                    cardH += estimateTextHeight(card.body, bodyFontSize, contentW);
+                }
+                if (cardH > maxRequiredHeight) {
+                    maxRequiredHeight = cardH;
+                }
+            }
+            
+            if (maxRequiredHeight <= rowHeight || headingFontSize <= 11) {
+                break;
+            }
+            
+            headingFontSize -= 1;
+            bodyFontSize = Math.max(9, bodyFontSize - 1);
+            attempts++;
+        }
+        
         for (let i = 0; i < N; i++) {
             const card = cards[i];
             const r = useGrid ? Math.floor(i / cols) : 0;
@@ -549,10 +775,7 @@ function renderGenericContent(pptx, slide, slideData, theme, cardFillColor, card
                 rectRadius: 0.04,
             });
             let currentY = colY + 0.25;
-            const paddingX = 0.25;
-            const contentW = colWidth - 2 * paddingX;
             if (card.heading) {
-                const headingFontSize = 16;
                 const cardHeadingHeight = estimateTextHeight(card.heading, headingFontSize, contentW);
                 slide.addText(card.heading, {
                     x: colX + paddingX,
@@ -563,13 +786,14 @@ function renderGenericContent(pptx, slide, slideData, theme, cardFillColor, card
                     fontSize: headingFontSize,
                     color: theme.primary_color,
                     bold: true,
+                    fit: 'shrink',
                 });
                 currentY += cardHeadingHeight + 0.15;
             }
             if (card.body) {
-                const bodyFontSize = 12;
                 const bodyLines = parseBodyToLines(card.body);
                 const isBullets = card.body.trim().startsWith('-') || card.body.trim().startsWith('*') || bodyLines.length > 1;
+                const remainingBodyHeight = rowHeight - (currentY - colY) - 0.2;
                 if (isBullets) {
                     const textObjects = bodyLines.map(line => ({
                         text: line,
@@ -584,8 +808,9 @@ function renderGenericContent(pptx, slide, slideData, theme, cardFillColor, card
                         x: colX + paddingX,
                         y: currentY,
                         w: contentW,
-                        h: rowHeight - (currentY - colY) - 0.2,
+                        h: remainingBodyHeight,
                         valign: 'top',
+                        fit: 'shrink',
                     });
                 }
                 else {
@@ -593,11 +818,12 @@ function renderGenericContent(pptx, slide, slideData, theme, cardFillColor, card
                         x: colX + paddingX,
                         y: currentY,
                         w: contentW,
-                        h: rowHeight - (currentY - colY) - 0.2,
+                        h: remainingBodyHeight,
                         fontName: theme.font_body,
                         fontSize: bodyFontSize,
                         color: theme.text_color,
                         valign: 'top',
+                        fit: 'shrink',
                     });
                 }
             }
@@ -613,12 +839,24 @@ function renderGenericContent(pptx, slide, slideData, theme, cardFillColor, card
  */
 function renderSlideHeader(pptx, slide, slideData, theme) {
     const headerWidth = 11.733;
-    const titleFontSize = 28;
-    const subtitleFontSize = 15;
-    const titleHeight = estimateTextHeight(slideData.title, titleFontSize, headerWidth);
-    const subtitleHeight = slideData.subtitle
+    let titleFontSize = 28;
+    let subtitleFontSize = 15;
+    let titleHeight = estimateTextHeight(slideData.title, titleFontSize, headerWidth);
+    let subtitleHeight = slideData.subtitle
         ? estimateTextHeight(slideData.subtitle, subtitleFontSize, headerWidth)
         : 0;
+        
+    while (titleHeight + (slideData.subtitle ? subtitleHeight + 0.15 : 0) > 1.4 && titleFontSize > 18) {
+        titleFontSize -= 1;
+        if (subtitleFontSize > 11) {
+            subtitleFontSize -= 1;
+        }
+        titleHeight = estimateTextHeight(slideData.title, titleFontSize, headerWidth);
+        subtitleHeight = slideData.subtitle
+            ? estimateTextHeight(slideData.subtitle, subtitleFontSize, headerWidth)
+            : 0;
+    }
+    
     slide.addText(slideData.title, {
         x: 0.8,
         y: 0.6,
@@ -628,6 +866,7 @@ function renderSlideHeader(pptx, slide, slideData, theme) {
         fontSize: titleFontSize,
         color: theme.primary_color,
         bold: true,
+        fit: 'shrink',
     });
     if (slideData.subtitle) {
         slide.addText(slideData.subtitle, {
@@ -638,6 +877,7 @@ function renderSlideHeader(pptx, slide, slideData, theme) {
             fontName: theme.font_body,
             fontSize: subtitleFontSize,
             color: theme.secondary_color,
+            fit: 'shrink',
         });
     }
     const yContentStart = Math.max(1.8, 0.6 + titleHeight + (slideData.subtitle ? subtitleHeight + 0.15 : 0) + 0.4);

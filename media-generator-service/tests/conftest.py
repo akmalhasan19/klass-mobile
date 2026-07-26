@@ -1,12 +1,17 @@
-from __future__ import annotations
-
-import pytest
+from pathlib import Path
 import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
+
+# pyrefly: ignore [missing-import]
+import pytest
 from unittest.mock import MagicMock
 # pyrefly: ignore [missing-import]
 from starlette.testclient import TestClient
 
 sys.modules["boto3"] = MagicMock()
+sys.modules["boto3.s3"] = MagicMock()
+sys.modules["boto3.s3.transfer"] = MagicMock()
 
 from app.main import app
 from app.settings import clear_settings_cache
@@ -54,6 +59,12 @@ def configured_service(monkeypatch: pytest.MonkeyPatch):
     async def mock_create_pool(*args, **kwargs):
         return MockRedis()
     monkeypatch.setattr(app.main, "create_pool", mock_create_pool)
+
+    import app.main
+    # pyrefly: ignore [missing-import]
+    import redis.asyncio as aioredis
+    monkeypatch.setattr(aioredis.ConnectionPool, "from_url", lambda *args, **kwargs: MagicMock())
+    monkeypatch.setattr(app.main, "ArqRedis", lambda *args, **kwargs: MockRedis())
     
     # Mock S3 upload to avoid Boto3 credentials errors
     import app.worker
@@ -78,6 +89,7 @@ def restore_sync_endpoint():
     This allows existing E2E tests to pass without a complete rewrite to the async workflow.
     """
     import app.main
+    # pyrefly: ignore [missing-import]
     from fastapi.responses import JSONResponse
     
     async def mock_generate(payload, request, settings, _):
@@ -203,6 +215,7 @@ def restore_sync_endpoint():
 
     # Re-add the deprecated download_artifact route so tests can verify the generated files
     if not any(getattr(route, "name", "") == "download_artifact" for route in app.main.app.routes):
+        # pyrefly: ignore [missing-import]
         from fastapi import Depends
         from app.settings import get_settings, Settings
         @app.main.app.get("/v1/artifacts/download", name="download_artifact")
@@ -215,6 +228,7 @@ def restore_sync_endpoint():
             settings: Settings = Depends(get_settings),
         ):
             from app.artifact_download import verify_artifact_download_request, media_type_for_filename
+            # pyrefly: ignore [missing-import]
             from fastapi.responses import FileResponse
             artifact_path = verify_artifact_download_request(
                 generation_id=generation_id,
