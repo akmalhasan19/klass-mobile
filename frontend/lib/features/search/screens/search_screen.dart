@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:klass_app/l10n/generated/app_localizations.dart';
 import 'package:klass_app/core/config/app_colors.dart';
+
 
 import 'package:klass_app/shared/widgets/skeleton_loaders.dart';
 import 'package:klass_app/features/home/data/home_service.dart';
@@ -391,29 +393,75 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           Row(
             children: [
               // Avatar
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.surface,
-                  border: Border.all(
-                    color: AppColors.border.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+              Builder(
+                builder: (context) {
+                  String avatarSource = (teacher['avatar_url'] ?? teacher['avatarPath'] ?? '').toString();
+                  if (avatarSource.contains('.r2.dev')) {
+                    avatarSource = 'https://wsrv.nl/?url=${avatarSource.replaceAll('https://', '')}';
+                  }
+                  final isNetworkAvatar = avatarSource.startsWith('http');
+
+                  return Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.surface,
+                      border: Border.all(
+                        color: AppColors.border.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                ),
+                    child: avatarSource.isNotEmpty
+                        ? ClipOval(
+                            child: isNetworkAvatar
+                                ? CachedNetworkImage(
+                                    imageUrl: avatarSource,
+                                    fit: BoxFit.cover,
+                                    httpHeaders: const {'User-Agent': 'Mozilla/5.0'},
+                                    errorWidget: (context, url, error) => Center(
+                                      child: Text(
+                                        initial,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Image.asset(
+                                    avatarSource,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Center(
+                                      child: Text(
+                                        initial,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                          )
+                        : Center(
+                            child: Text(
+                              initial,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                  );
+                },
               ),
+
               const SizedBox(width: 14),
               // Info
               Expanded(

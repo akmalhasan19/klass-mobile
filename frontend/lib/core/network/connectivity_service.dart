@@ -20,11 +20,19 @@ class ConnectivityService {
   Stream<bool> get onConnectionChange => _connectionChangeController.stream;
 
   void initialize() {
-    _subscription = _connectivity.onConnectivityChanged.listen(
-      _onConnectivityChanged,
-    );
+    try {
+      _subscription = _connectivity.onConnectivityChanged.listen(
+        _onConnectivityChanged,
+        onError: (err) {
+          debugPrint('ConnectivityService: stream error: $err');
+        },
+      );
+    } catch (e) {
+      debugPrint('ConnectivityService: failed to listen to connectivity stream: $e');
+    }
     _checkInitialConnection();
   }
+
 
   Future<void> _checkInitialConnection() async {
     try {
