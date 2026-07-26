@@ -96,7 +96,9 @@ class _ClarificationQuestionCardState extends State<ClarificationQuestionCard>
       _textController.clear();
     });
     _focusNode.unfocus();
+    widget.onAnswer(value);
   }
+
 
   void _onTextSubmitted() {
     final text = _textController.text.trim();
