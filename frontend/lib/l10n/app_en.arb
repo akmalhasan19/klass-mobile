@@ -147,6 +147,7 @@
   "loginSuccess": "Successfully signed in.",
   "loginSuccessFreelancer": "Successfully signed in as Freelancer.",
   "loginGenericError": "Something went wrong. Please try again.",
+  "loginInvalidCredentials": "Invalid email or password.",
   "loginToggleToSignUp": "Don't have an account? Sign up",
   "loginToggleToSignIn": "Already have an account? Sign in",
   "forgotPasswordTitle": "Reset Password",

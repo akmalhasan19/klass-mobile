@@ -390,6 +390,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get loginGenericError => 'Terjadi kesalahan. Coba lagi.';
 
   @override
+  String get loginInvalidCredentials => 'Email atau kata sandi salah.';
+
+  @override
   String get loginToggleToSignUp => 'Belum punya akun? Daftar';
 
   @override

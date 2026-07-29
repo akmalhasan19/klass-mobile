@@ -19,6 +19,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState {
   bool _isLogin = true;
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String _errorMessage = '';
   String _selectedRole = 'teacher'; // Default role for registration
 
@@ -63,7 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
       final authState = ref.read(authProvider);
       if (authState.hasError) {
         setState(() {
-          _errorMessage = _extractServerErrorMessage(authState.error);
+          _errorMessage = _extractServerErrorMessage(authState.error, localizations);
           _isLoading = false;
         });
         return;
@@ -105,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
       Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
     } catch (e) {
       setState(() {
-        _errorMessage = _extractServerErrorMessage(e);
+        _errorMessage = _extractServerErrorMessage(e, localizations);
         _isLoading = false;
       });
     }
@@ -231,7 +232,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
                 controller: _passwordController,
                 label: localizations.commonPassword,
                 icon: Icons.lock_outline,
-                obscureText: true,
+                obscureText: _obscurePassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: AppColors.textMuted,
+                  ),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
               ),
 
               if (_isLogin)
@@ -326,10 +334,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
     }
   }
 
-  String _extractServerErrorMessage(Object? error) {
+  String _extractServerErrorMessage(Object? error, AppLocalizations localizations) {
     if (error == null) return 'An unknown error occurred';
     if (error is DioException) {
       final response = error.response;
+      if (response?.statusCode == 401) {
+        return localizations.loginInvalidCredentials;
+      }
       if (response != null && response.data is Map) {
         final body = response.data as Map<String, dynamic>;
         final errorData = body['error'];
@@ -427,6 +438,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
     required IconData icon,
     bool obscureText = false,
     TextInputType? keyboardType,
+    Widget? suffixIcon,
   }) {
     return TextField(
       controller: controller,
@@ -435,6 +447,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with CancelableState 
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.textMuted),
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.border),

@@ -385,6 +385,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginGenericError => 'Something went wrong. Please try again.';
 
   @override
+  String get loginInvalidCredentials => 'Invalid email or password.';
+
+  @override
   String get loginToggleToSignUp => 'Don\'t have an account? Sign up';
 
   @override
