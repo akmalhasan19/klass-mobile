@@ -11,7 +11,8 @@ import 'package:klass_app/features/home/widgets/project_suggestion_card.dart';
 import 'package:klass_app/features/home/widgets/bleeding_horizontal_list.dart';
 import 'package:klass_app/shared/widgets/layer2_white_clipper.dart';
 import 'package:klass_app/features/media_generation/widgets/project_details_bottom_sheet.dart';
-import 'package:klass_app/features/freelancer/widgets/freelancer_details_bottom_sheet.dart';
+import 'package:klass_app/features/freelancer/screens/freelancer_profile_screen.dart';
+import 'package:klass_app/app/app.dart';
 import 'package:klass_app/features/media_generation/widgets/media_generation_status_card.dart';
 import 'package:klass_app/features/media_generation/widgets/media_preview_screen.dart';
 import 'package:klass_app/core/config/animations.dart';
@@ -1136,14 +1137,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with CancelableState {
 
     return GestureDetector(
       onTap: () {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) {
-            return FreelancerDetailsBottomSheet(freelancer: freelancer);
-          },
-        );
+        // Switch to Search tab with animation first
+        KlassApp.mainShellKey.currentState?.setTabIndex(1);
+        // Wait for page transition animation (~1000ms) before pushing profile
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (KlassApp.mainShellKey.currentContext != null &&
+              KlassApp.mainShellKey.currentContext!.mounted) {
+            Navigator.of(KlassApp.mainShellKey.currentContext!).push(
+              MaterialPageRoute(
+                builder: (_) => FreelancerProfileScreen(
+                  freelancer: freelancer,
+                ),
+              ),
+            );
+          }
+        });
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,

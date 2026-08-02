@@ -806,6 +806,12 @@ abstract class AppLocalizations {
   /// **'Something went wrong. Please try again.'**
   String get loginGenericError;
 
+  /// No description provided for @loginInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email or password.'**
+  String get loginInvalidCredentials;
+
   /// No description provided for @loginToggleToSignUp.
   ///
   /// In en, this message translates to:

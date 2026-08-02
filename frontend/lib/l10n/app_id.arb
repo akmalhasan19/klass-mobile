@@ -147,6 +147,7 @@
   "loginSuccess": "Berhasil masuk.",
   "loginSuccessFreelancer": "Berhasil masuk sebagai Freelancer.",
   "loginGenericError": "Terjadi kesalahan. Coba lagi.",
+  "loginInvalidCredentials": "Email atau kata sandi salah.",
   "loginToggleToSignUp": "Belum punya akun? Daftar",
   "loginToggleToSignIn": "Sudah punya akun? Masuk",
   "forgotPasswordTitle": "Atur Ulang Kata Sandi",

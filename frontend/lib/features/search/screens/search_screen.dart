@@ -8,6 +8,7 @@ import 'package:klass_app/core/config/app_colors.dart';
 
 import 'package:klass_app/shared/widgets/skeleton_loaders.dart';
 import 'package:klass_app/features/home/data/home_service.dart';
+import 'package:klass_app/features/freelancer/screens/freelancer_profile_screen.dart';
 import 'package:klass_app/core/utils/api_debug_info.dart';
 import 'package:klass_app/core/network/cancelable_state_mixin.dart';
 import 'package:klass_app/core/providers/dio_provider.dart';
@@ -305,13 +306,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  localizations.searchRecommendedTitle,
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                Flexible(
+                  child: Text(
+                    localizations.searchRecommendedTitle,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 Text(
@@ -385,7 +389,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         .toString();
     final rating = teacher['rating'] ?? '-';
     final jobCount = teacher['job_count'] ?? teacher['jobs'] ?? 0;
-    final price = teacher['price'] ?? teacher['rate'] ?? '--';
+    final rawPrice = (teacher['price'] ?? teacher['rate'] ?? '--').toString();
+    final price = rawPrice.replaceAll(RegExp(r'\/topik$|\/jam$'), '').trim();
 
     final rawTags = teacher['tags'];
     final List<String> tags;
@@ -414,6 +419,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         children: [
           // Top row: Avatar, Info, Price
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar
               Builder(
@@ -549,6 +555,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 ),
               ),
               // Price
+<<<<<<< HEAD
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -559,18 +566,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
+=======
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        price,
+                        style: const TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+>>>>>>> 363a6f8b9a41f5f8d538fa493e9707f5e0e2aaed
                     ),
-                  ),
-                  const Text(
-                    '/hr',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.textMuted,
+                    const Text(
+                      '/hr',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textMuted,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -610,7 +634,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             height: 40,
             child: ElevatedButton(
               onPressed: () {
-                // Future: navigate to profile
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => FreelancerProfileScreen(
+                      freelancer: teacher,
+                    ),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.surface,
@@ -729,42 +759,45 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 ),
               ),
               // Price skeleton
-              Column(
-                children: [
-                  Container(
-                    height: 18,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.border.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: ShimmerEffect(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6),
-                          color: Colors.white.withValues(alpha: 0.15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      height: 18,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.border.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: ShimmerEffect(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    height: 10,
-                    width: 20,
-                    decoration: BoxDecoration(
-                      color: AppColors.border.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: ShimmerEffect(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          color: Colors.white.withValues(alpha: 0.15),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 10,
+                      width: 20,
+                      decoration: BoxDecoration(
+                        color: AppColors.border.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: ShimmerEffect(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),

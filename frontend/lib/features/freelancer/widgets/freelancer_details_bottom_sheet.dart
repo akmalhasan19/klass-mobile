@@ -144,7 +144,7 @@ class FreelancerDetailsBottomSheet extends ConsumerWidget {
                     child: Wrap(
                       spacing: 10,
                       runSpacing: 10,
-                      children: (freelancer['skills'] as List<String>)
+                      children: (freelancer['skills'] as List)
                           .map((skill) => Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
