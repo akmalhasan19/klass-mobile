@@ -20,7 +20,7 @@ class FreelancerDetailsBottomSheet extends ConsumerWidget {
     final avatarSource =
       (freelancer['avatar_url'] ?? freelancer['avatarPath'] ?? '').toString();
     final isNetworkAvatar = avatarSource.startsWith('http');
-    final rateValue = (freelancer['rate'] ?? freelancer['budget'] ?? '-').toString();
+    final rateValue = _formatRate(freelancer['rate'] ?? freelancer['budget'] ?? '-');
 
     // The main container of the bottom sheet
     return Container(
@@ -78,7 +78,7 @@ class FreelancerDetailsBottomSheet extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '\$$rateValue',
+                                rateValue,
                                 style: const TextStyle(
                                   fontFamily: 'Mona_Sans',
                                   fontSize: 20, // text-xl
@@ -345,4 +345,27 @@ class FreelancerDetailsBottomSheet extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _formatRate(dynamic rawRate) {
+  if (rawRate == null) return 'Rp 0';
+  String rateStr = rawRate.toString().trim();
+  if (rateStr.isEmpty || rateStr == '-') return 'Rp 0';
+
+  rateStr = rateStr.replaceAll('\$', '');
+  rateStr = rateStr
+      .replaceAll(
+        RegExp(
+          r'/(topik|topic|hr|jam|bulan|bln|day|hari)',
+          caseSensitive: false,
+        ),
+        '',
+      )
+      .trim();
+
+  if (rateStr.toLowerCase().startsWith('rp')) {
+    rateStr = rateStr.substring(2).trim();
+  }
+
+  return 'Rp $rateStr';
 }

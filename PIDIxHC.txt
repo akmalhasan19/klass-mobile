@@ -1,0 +1,252 @@
+﻿Submission Tahap 3
+
+
+Final Team Composition 
+-100 kata 
+Team Klass terdiri dari tim multidisiplin yang menggabungkan keahlian bisnis, pendidikan, data, dan teknologi. Iyoana (Akuntansi) berperan sebagai Team Leader & Business Strategy Lead, dengan pengalaman dalam berbagai business project dan pengembangan model bisnis. Lillian (Pendidikan Matematika) bertindak sebagai Education Product Manager, berpengalaman dalam inovasi pembelajaran, pengembangan kurikulum, dan riset pendidikan berbasis teknologi. Alfin (Teknik Elektro - Coding) berperan sebagai QA Engineer & Data Engineer, bertanggung jawab atas kualitas sistem, pengujian produk, dan pengelolaan data, berpengalaman dalam pengujian perangkat lunak dan bidang Machine Learning dalam pengolahan data. Akmal (Teknik Elektro - Coding) menjabat sebagai System Architect & Full Stack Developer, memimpin perancangan arsitektur sistem dan pengembangan platform, berpengalaman dalam membuat beberapa sistem yang terintegrasi antar platform. Kombinasi kompetensi ini memungkinkan Klass dikembangkan secara komprehensif dari sisi pendidikan, bisnis, data, dan teknologi.
+
+
+Final Solution Summary 
+150 kata 
+Klass merupakan platform berbasis Artificial Intelligence (AI) yang membantu guru menyelesaikan beban administrasi pembelajaran sekaligus menghubungkan mereka dengan talenta digital lokal untuk menghasilkan media ajar yang lebih berkualitas. Platform ini mengintegrasikan AI Curriculum Assistant untuk membantu penyusunan perangkat pembelajaran sesuai kurikulum dan konteks lokal, AI-powered Job Matching untuk mempertemukan guru dengan freelancer yang relevan, Skill Gap Advisor untuk merekomendasikan pengembangan kompetensi talenta, serta Dashboard Review untuk memastikan validasi akhir tetap berada di tangan guru. Saat ini Zenith telah mengembangkan rancangan arsitektur sistem, alur penggunaan, dan prototype awal sebagai dasar pengembangan Minimum Viable Product (MVP). Pada tahap MVP, fokus implementasi diarahkan pada AI Curriculum Assistant, Job Matching, Skill Gap Advisor, dan Dashboard Review, sementara fitur lanjutan seperti OCR Assessment dan Auto-sync Dapodik direncanakan sebagai pengembangan berikutnya. Melalui pendekatan human-in-the-loop, Klass membantu meningkatkan efisiensi administrasi guru sekaligus membuka peluang kerja bagi talenta kreatif lokal. 
+
+
+Progress and Change Log 
+150 kata 
+Sejak Submission 2, Zenith memfokuskan pengembangan Klass agar lebih selaras dengan kebutuhan pengguna dan ruang lingkup MVP. Arsitektur solusi disempurnakan dengan memperjelas alur kolaborasi antara AI Curriculum Assistant, AI-powered Job Matching, Skill Gap Advisor, dan Dashboard Review melalui mekanisme human-in-the-loop. Target pengguna tetap difokuskan pada guru sebagai pengguna utama dan talenta digital lokal sebagai mitra penyedia media pembelajaran. Selain penyempurnaan workflow, tim juga memperjelas batas implementasi dengan memisahkan fitur prioritas MVP dari roadmap pengembangan lanjutan. Hal ini dilakukan untuk meningkatkan kejelasan use case, kelayakan implementasi, serta konsistensi hubungan antara masalah, solusi, dan nilai bisnis. 
+
+
+Validated User Problem and Evidence 
+250 kata 
+Pengguna utama Klass adalah guru pada jenjang PAUD hingga SMK yang secara rutin menyusun perangkat pembelajaran sebagai bagian dari tugas profesionalnya. Permasalahan paling sering muncul pada awal semester, pergantian materi, maupun saat guru harus menyesuaikan perangkat ajar dengan perubahan kurikulum atau kebutuhan peserta didik. Berdasarkan survei yang dilakukan tim, sebanyak 36,7% guru menghabiskan lebih dari lima jam setiap minggu untuk menyelesaikan administrasi pembelajaran, sementara 92,2% menyatakan bahwa beban administrasi mengurangi waktu mereka untuk merancang pembelajaran yang lebih kreatif dan inovatif. Meskipun berbagai AI generatif telah tersedia, hasil yang dihasilkan masih memerlukan penyesuaian manual karena belum sepenuhnya mempertimbangkan kurikulum, konteks pembelajaran, maupun karakteristik lokal daerah.
+Di sisi lain, terdapat talenta digital lokal seperti ilustrator, animator, desainer, dan video editor yang memiliki kemampuan menghasilkan media pembelajaran, tetapi kesulitan memperoleh akses ke kebutuhan nyata dari guru. Mereka juga belum memiliki pemahaman pedagogis yang cukup untuk menghasilkan media yang sesuai dengan kebutuhan pembelajaran. Kondisi ini menyebabkan kebutuhan guru terhadap media ajar berkualitas belum dapat dipenuhi secara efektif, sementara potensi ekonomi kreatif lokal juga belum dioptimalkan. Apabila tetap bertahan di kondisi saat ini, dimana keduanya tidak dipertemukan maka bayangkan akibat buruk seperti meningkatnya stress guru yang berakibat pada menurunnya interaksi berkualitas dalam pembelajaran dan tidak adanya media ajar yang baik. Demikian pula talenta digital yang secara jumlah pasti akan bertumbuh di masa depan karena akses digital yang besar, namun tidak diimbangin dengan lapangan kerja  tentu akan menimbulkan masalah ekonomi seperti menurunnya pendapatan hingga pengangguran. Sebagai pendukung problem validation dilampirkan analisis Fishbone yang ada pada Lampiran 1 dan Lampiran 2.
+
+
+End-to-End Use Case and Feature-to-Pain Mapping 
+300 kata 
+Seorang guru ingin menyusun modul ajar untuk materi baru, tetapi memiliki keterbatasan waktu karena harus menyelesaikan berbagai administrasi pembelajaran. Guru mengakses Klass, memilih mata pelajaran, jenjang pendidikan, capaian pembelajaran, topik, serta konteks lokal yang ingin digunakan sebagai dasar penyusunan materi. Input tersebut diproses oleh AI Curriculum Assistant menggunakan basis pengetahuan kurikulum dan mekanisme Retrieval-Augmented Generation (RAG) untuk menghasilkan draft perangkat pembelajaran.
+Apabila tingkat keyakinan hasil AI belum memenuhi ambang yang ditetapkan atau guru memerlukan media pembelajaran yang lebih kompleks, sistem menawarkan rekomendasi talenta digital yang sesuai melalui AI-powered Job Matching berdasarkan kompetensi, portofolio, dan kedekatan lokasi. Selama proses tersebut, Skill Gap Advisor menganalisis kesesuaian kompetensi talenta dan memberikan rekomendasi pengembangan apabila ditemukan kekurangan pada portofolio talenta digital. Setelah pekerjaan selesai, guru melakukan validasi akhir dan penilaian terhadap hasil melalui Dashboard Review sebelum perangkat pembelajaran digunakan.
+Melalui alur ini, AI Curriculum Assistant mengurangi beban administrasi guru, AI-powered Job Matching menghubungkan kebutuhan guru dengan talenta digital, Skill Gap Advisor meningkatkan kualitas penyedia jasa, sedangkan Dashboard Review memastikan keputusan akhir tetap berada pada guru sebagai bentuk penerapan human-in-the-loop. Untuk ilustrasi End to End workflow dapat diakses pada Lampiran 3.
+
+
+Operational Context, Solution Boundary, and Adoption 
+200 kata 
+Klass digunakan dalam proses penyusunan perangkat pembelajaran oleh guru dengan melibatkan talenta digital sebagai mitra penyedia media pembelajaran. Guru berperan sebagai pengguna utama yang menentukan kebutuhan pembelajaran, sedangkan talenta digital menerima pekerjaan sesuai kompetensinya melalui sistem rekomendasi. Seluruh hasil yang dihasilkan AI maupun talenta tetap memerlukan validasi guru sebelum digunakan dalam proses belajar mengajar.
+Pada tahap MVP, Klass berfokus pada AI Curriculum Assistant, AI-powered Job Matching, Skill Gap Advisor, dan Dashboard Review. Fitur seperti OCR Assessment dan Auto-sync Dapodik masih berada pada roadmap pengembangan sehingga belum menjadi bagian dari implementasi awal. Solusi bergantung pada ketersediaan data kurikulum, basis pengetahuan pendidikan, serta data profil talenta digital yang diperbarui secara berkala. Tantangan utama adopsi meliputi kebiasaan guru dalam menggunakan metode penyusunan perangkat ajar secara manual, tingkat literasi digital yang beragam, serta kebutuhan membangun kepercayaan terhadap hasil AI. Oleh karena itu, Klass menerapkan pendekatan human-in-the-loop sehingga guru tetap memiliki kendali penuh terhadap hasil akhir yang digunakan.
+
+
+Innovation Level 
+  
+
+Pada tahap perkembangan apa solusi Anda saat ini? (Bukti pendukung dapat dilengkapi pada lampiran) →menurut aku ini, bener engga?
+
+
+Current Technical Reality, Data, and Integration 
+300 kata 
+
+Pengembangan Klass saat ini dibagi menjadi empat kategori agar mencerminkan kondisi implementasi yang sebenarnya. Bagian yang telah tersedia meliputi rancangan arsitektur sistem, prototype antarmuka, workflow AI Curriculum Assistant, AI-powered Job Matching, Skill Gap Advisor, Dashboard Review, serta desain basis data dan integrasi Retrieval-Augmented Generation (RAG) sebagai dasar penyusunan perangkat pembelajaran.
+Bagian yang masih berupa simulasi meliputi proses pencocokan talenta menggunakan data portofolio contoh serta alur rekomendasi AI terhadap kebutuhan guru. Simulasi ini digunakan untuk memvalidasi logika sistem sebelum memanfaatkan data operasional.
+Bagian yang sedang dikembangkan mencakup implementasi backend menggunakan FastAPI dan Laravel, frontend berbasis Next.js dan Flutter, integrasi PostgreSQL–PostGIS, vector database, serta mekanisme autentikasi dan manajemen pengguna.
+Bagian yang masih direncanakan merupakan fitur roadmap, yaitu OCR Assessment dan Auto-sync Dapodik.
+Data utama yang digunakan terdiri atas dokumen kurikulum nasional, referensi pembelajaran, data profil guru, data portofolio talenta digital, serta metadata lokasi untuk proses pencocokan berbasis geospasial. Seluruh data akan diproses sesuai prinsip keamanan dan privasi melalui autentikasi pengguna, pembatasan hak akses, enkripsi data selama transmisi, serta validasi akhir oleh guru sebagai bagian dari mekanisme human-in-the-loop sebelum hasil digunakan dalam pembelajaran.
+
+
+
+
+MVP Execution and Deployment Plan
+250 kata 
+
+MVP Klass difokuskan pada empat fitur utama, yaitu AI Curriculum Assistant, AI-powered Job Matching, Skill Gap Advisor, dan Dashboard Review. Tahap pertama berfokus pada penyelesaian backend, frontend, integrasi basis data, serta implementasi pipeline AI agar pengguna dapat menghasilkan draft perangkat pembelajaran dan memperoleh rekomendasi talenta digital. Tahap berikutnya mencakup penyempurnaan antarmuka, pengujian fungsional, optimasi performa sistem, dan validasi internal terhadap alur penggunaan sebelum dilakukan uji coba terbatas.
+Setelah MVP dinyatakan stabil, pengembangan dilanjutkan dengan fitur roadmap, seperti OCR Assessment dan Auto-sync Dapodik sesuai kebutuhan pengguna dan kesiapan integrasi.
+Infrastruktur dirancang menggunakan layanan cloud sehingga pembaruan sistem dan pemeliharaan dapat dilakukan secara bertahap tanpa mengganggu layanan utama. Risiko utama meliputi kualitas data, akurasi keluaran AI, kesiapan integrasi dengan sistem eksternal, serta adopsi pengguna. Risiko tersebut diminimalkan melalui mekanisme human-in-the-loop, validasi oleh guru, pengujian bertahap pada setiap modul, dan pendekatan modular sehingga setiap komponen dapat dikembangkan secara independen. Untuk ilustrasi MVP Execution & Deployment Plan dapat diakses pada Lampiran 9.
+
+Problem and System Complexity
+ 200 kata 
+Kompleksitas utama yang dihadapi Klass tidak berasal dari banyaknya fitur, melainkan dari kebutuhan menghubungkan dua kelompok pengguna dengan karakteristik yang berbeda, yaitu guru sebagai pengguna layanan pendidikan dan talenta digital sebagai penyedia media pembelajaran. Guru memerlukan perangkat pembelajaran yang sesuai dengan kurikulum, konteks lokal, serta kebutuhan peserta didik, sedangkan talenta digital memiliki kompetensi teknis yang beragam namun belum tentu memahami kebutuhan pedagogis. Di sisi lain, hasil yang dihasilkan AI juga tidak selalu dapat langsung digunakan karena kualitasnya dipengaruhi oleh kelengkapan input dan referensi yang tersedia.
+Oleh karena itu, solusi tidak cukup hanya menghasilkan dokumen secara otomatis ataupun menyediakan marketplace freelancer. Klass harus mengelola hubungan antara data kurikulum, konteks pembelajaran, kompetensi talenta, proses pencocokan pekerjaan, serta validasi oleh guru dalam satu alur yang saling terhubung. Kompleksitas tersebut membuat pendekatan manual menjadi kurang efisien karena guru tetap harus mencari talenta secara terpisah, melakukan evaluasi kompetensi secara mandiri, dan menyesuaikan kembali hasil pekerjaan agar sesuai dengan kebutuhan pembelajaran.
+
+
+
+
+Processing Pipeline and Engineering Depth  
+250 kata 
+
+Proses pada Klass dimulai ketika guru memasukkan informasi mengenai jenjang pendidikan, mata pelajaran, capaian pembelajaran, topik, serta konteks lokal yang diinginkan. Data tersebut diproses oleh AI Curriculum Assistant menggunakan mekanisme Retrieval-Augmented Generation (RAG) untuk menghasilkan draft perangkat pembelajaran berdasarkan basis pengetahuan yang telah disiapkan.
+Setelah draft dihasilkan, sistem melakukan evaluasi menggunakan confidence threshold. Apabila hasil telah memenuhi kualitas yang diharapkan, guru dapat langsung melakukan peninjauan melalui Dashboard Review. Apabila hasil memerlukan media pembelajaran tambahan atau penyempurnaan visual, sistem akan meneruskan proses ke AI-powered Job Matching untuk merekomendasikan talenta digital yang paling sesuai berdasarkan kompetensi, portofolio, dan lokasi.
+Selama proses pencocokan berlangsung, Skill Gap Advisor menganalisis kesesuaian kompetensi talenta terhadap kebutuhan pekerjaan dan menghasilkan rekomendasi pengembangan apabila ditemukan kesenjangan kemampuan. Setelah pekerjaan selesai, seluruh hasil kembali divalidasi oleh guru sebelum digunakan sebagai perangkat pembelajaran akhir.
+Arsitektur sistem dirancang secara modular sehingga setiap komponen, seperti AI Curriculum Assistant, Job Matching, Skill Gap Advisor, maupun Dashboard Review, dapat dikembangkan dan diperbarui secara bertahap tanpa memengaruhi modul lainnya. Pendekatan ini mendukung pengembangan MVP sekaligus mempermudah penambahan fitur roadmap pada tahap berikutnya.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Algorithm or Rule Quality and Decision Transparency 
+300 kata 
+Logika utama Klass dirancang untuk memastikan AI berperan sebagai pendukung keputusan, sementara guru tetap menjadi pengambil keputusan akhir melalui pendekatan human-in-the-loop. Proses dimulai ketika guru memasukkan informasi seperti jenjang pendidikan, mata pelajaran, capaian pembelajaran, topik, dan konteks lokal yang diinginkan. AI Curriculum Assistant kemudian memanfaatkan mekanisme Retrieval-Augmented Generation (RAG) untuk mengambil referensi yang relevan dari basis pengetahuan, seperti dokumen kurikulum dan materi pendukung, sebelum menghasilkan draft perangkat pembelajaran.
+Setelah draft terbentuk, sistem mengevaluasi hasil menggunakan confidence threshold. Apabila hasil memenuhi ambang kualitas, guru dapat langsung melakukan peninjauan melalui Dashboard Review. Sebaliknya, apabila hasil memerlukan media pembelajaran yang lebih kompleks atau penyempurnaan visual, sistem akan mengaktifkan AI-powered Job Matching untuk merekomendasikan talenta digital berdasarkan kesesuaian kompetensi, portofolio, dan lokasi. Selama proses tersebut, Skill Gap Advisor menganalisis kompetensi talenta dan memberikan rekomendasi pengembangan apabila ditemukan kesenjangan kemampuan terhadap kebutuhan pekerjaan.
+Seluruh hasil AI maupun hasil pekerjaan talenta digital tetap harus divalidasi oleh guru sebelum digunakan. Dengan mekanisme ini, pengguna dapat menelusuri asal rekomendasi, memahami alasan sistem memberikan suatu hasil, serta melakukan koreksi apabila diperlukan. Kualitas solusi diukur melalui kesesuaian hasil dengan kebutuhan guru, tingkat revisi setelah validasi, dan keberhasilan penyelesaian tugas utama pengguna.
+
+
+
+
+User Flow, Usability Testing, and Product Iteration 
+250 kata 
+belum ada usability testing
+Alur utama pengguna dimulai ketika guru masuk ke platform, memilih mata pelajaran, jenjang pendidikan, capaian pembelajaran, topik, serta konteks lokal yang akan digunakan sebagai dasar penyusunan perangkat pembelajaran. Setelah AI menghasilkan draft, guru dapat melakukan peninjauan, meminta perbaikan, atau melanjutkan ke proses pencarian talenta digital apabila membutuhkan media pembelajaran tambahan. Seluruh hasil tetap melalui Dashboard Review sebelum digunakan.
+Kami menargetkan pelaksanaan usability testing pada fase pasca-Submission 3, mengingat tahap ini didedikasikan untuk penyempurnaan arsitektur sistem dan implementasi MVP guna memastikan prototype siap menerima feedback dari pengguna aktual. Validasi yang telah dilakukan berupa survei dan wawancara untuk memahami kebutuhan pengguna, mengidentifikasi pain point, serta memverifikasi kesesuaian konsep solusi dengan permasalahan yang dihadapi guru dan talenta digital. Temuan tersebut menjadi dasar dalam menentukan prioritas fitur MVP, menyusun alur pengguna yang lebih sederhana, serta memperjelas pembagian antara fitur inti dan roadmap pengembangan. Setelah MVP selesai dikembangkan, tim merencanakan usability testing secara bertahap untuk mengevaluasi kemudahan penggunaan, efektivitas alur kerja, serta kualitas keluaran sistem sebagai dasar iterasi produk berikutnya. 
+
+Team Capability and Execution Ownership 
+250 kata 
+Tim Zenith terdiri dari empat anggota multidisiplin yang menggabungkan kompetensi bisnis, pendidikan, data, dan teknologi sehingga seluruh aspek pengembangan Klass dapat dikerjakan secara terintegrasi.
+
+
+Iyoana (Akuntansi) berperan sebagai Team Leader & Business Strategy Lead yang bertanggung jawab mengkoordinasikan keseluruhan proyek, menyusun model bisnis, analisis kelayakan finansial, serta menjalin komunikasi dengan calon mitra pendidikan dan stakeholder. Mengawasi pengembangan bisnis agar tetap selaras dengan kebutuhan pengguna dan pencapaian target sesuai roadmap.
+
+
+Lillian (Pendidikan Matematika) berperan sebagai Education Product Manager yang bertanggung jawab memastikan seluruh fitur Klass relevan dengan kebutuhan guru. Tanggung jawabnya meliputi penyusunan kebutuhan produk, validasi alur pembelajaran, pengembangan konsep AI Curriculum Assistant, serta evaluasi kesesuaian solusi dengan kurikulum dan praktik pembelajaran di sekolah.
+
+
+Alfin (Teknik Elektro) berperan sebagai QA Engineer & Data Engineer dengan tanggung jawab mengelola data, mendukung proses pengembangan AI, melakukan pengujian kualitas sistem, serta memastikan performa dan reliabilitas produk sebelum diimplementasikan kepada pengguna. Pengalamannya dalam machine learning dan pengolahan data mendukung pengembangan fitur berbasis AI secara lebih terstruktur.
+
+
+Akmal (Teknik Elektro) bertindak sebagai System Architect & Full Stack Developer yang memimpin perancangan arsitektur sistem, pengembangan backend dan frontend, integrasi layanan AI, serta implementasi platform agar seluruh komponen dapat berjalan secara terintegrasi sesuai roadmap MVP.
+
+
+Keputusan strategis diambil melalui diskusi bersama berdasarkan hasil survei pengguna, sedangkan keputusan teknis dan operasional dikoordinasikan oleh penanggung jawab pada masing-masing bidang. Untuk milestone berikutnya, Akmal memimpin penyelesaian pengembangan MVP, Alfin memastikan kualitas sistem dan kesiapan data, Lillian memimpin validasi bersama guru dan sekolah pilot, sedangkan Iyoana bertanggung jawab terhadap implementasi pilot, pengembangan kemitraan, serta keberlanjutan model bisnis.
+
+
+
+
+
+
+Continuation Readiness
+200 kata 
+Tim Zenith berkomitmen untuk melanjutkan pengembangan Klass setelah hackathon dengan fokus pada penyelesaian MVP, implementasi pilot, serta validasi model bisnis sebelum melakukan ekspansi yang lebih luas. Pengembangan dilakukan secara bertahap agar setiap fase menghasilkan luaran yang dapat dievaluasi sebelum melanjutkan ke tahap berikutnya.
+
+
+Pada 1–4 bulan pertama, tim akan menyelesaikan pengembangan MVP sesuai roadmap yang telah dirancang, termasuk implementasi AI Curriculum Assistant, AI-powered Job Matching, Dashboard Review, serta integrasi fitur utama yang menjadi ruang lingkup produk. Selain itu, pada bulan keempat akan dilakukan freelancer onboarding untuk memberikan pemahaman lingkup jasa yang diberikan, akses dan teknis penggunaan aplikasi, serta mendapatkan feedback berupa penerimaan terhadap aplikasi dan kebutuhan freelancer, terutama atas aspek pedagogis. Pada fase ini, Akmal memimpin pengembangan sistem, Alfin memastikan kualitas perangkat lunak dan kesiapan data, Lillian melakukan validasi bersama guru untuk memastikan kesesuaian fitur dengan kebutuhan pembelajaran, sedangkan Iyoana mengoordinasikan keseluruhan proyek serta menyiapkan strategi implementasi dan kemitraan.
+
+
+Pada  bulan ke 5-6, tim menargetkan pelaksanaan pilot bersama sekolah mitra di wilayah Magelang untuk memperoleh umpan balik dari pengguna dan freelancer, mengukur tingkat adopsi, serta mengevaluasi model monetisasi B2G SaaS dan marketplace sesuai rancangan bisnis. Hasil evaluasi tersebut menjadi dasar penyempurnaan produk sebelum memasuki tahap ekspansi.
+
+
+Selanjutnya pada 7–12 bulan, fokus diarahkan pada perluasan jumlah sekolah mitra, peningkatan jumlah guru dan talenta digital dalam ekosistem Klass, serta penyempurnaan fitur berupa fitur tambahan yang ditargetkan sebelumnya dan  hasil survei lapangan.
+
+
+Untuk menjaga keberlanjutan pengembangan, tim berkomitmen melanjutkan pengerjaan produk di luar kegiatan hackathon melalui pembagian tanggung jawab yang telah ditetapkan. Selain itu, tim berencana memperluas jejaring dengan pemerintah terkait, sekolah, komunitas pendidikan, serta mencari masukan dari praktisi pendidikan dan pakar AI sebagai advisor untuk mendukung pengembangan produk dan implementasi di lapangan. Untuk ilustrasi keberlanjutan usaha kami telah membuat SMART Analysis dapat diakses pada Lampiran 4.
+
+
+
+Quantified Value, Business Model, and ROI 
+300 kata  
+chatgpt→ https://chatgpt.com/share/6a60dead-2ad0-83ec-a9eb-d25fc882278c 
+
+
+Klass menghadirkan model bisnis yang menghubungkan guru, talenta digital, dan institusi pendidikan dalam satu ekosistem berbasis AI. Guru merupakan pengguna utama yang memperoleh manfaat berupa penyusunan perangkat ajar yang lebih efisien melalui AI Curriculum Assistant dan akses terhadap talenta digital melalui AI-powered Job Matching. Di sisi lain, talenta digital memperoleh peluang proyek yang lebih relevan dengan kompetensi mereka dan rekomendasi pengembangan kompetensi melalui Skill Gap Advisor, sementara sekolah memperoleh manfaat berupa peningkatan produktivitas guru, pemantauan implementasi platform, serta pemanfaatan teknologi pembelajaran yang lebih terstruktur.
+
+
+Model pendapatan Klass mengacu pada tiga sumber utama, yaitu langganan B2G Software-as-a-Service (SaaS) sebagai sumber pendapatan utama, komisi marketplace sebesar 8-12% dari setiap transaksi jasa antara guru dan talenta digital, serta lisensi konten. Model freemium tetap dipertahankan sebagai strategi akuisisi pengguna sehingga guru dapat mencoba layanan tanpa hambatan biaya. Pendanaan tahap awal pengembangan MVP diasumsikan berasal dari hibah institusional ataupun melalui program inkubasi dari pihak seperti Kemendikdasmen dan Kominfo.
+
+
+Proyeksi implementasi selama tiga tahun dilakukan secara bertahap mengikuti roadmap pengembangan. Pada tahun pertama ditargetkan implementasi di 3 sekolah, 210 guru aktif, dan 80 talenta digital, menghasilkan estimasi pendapatan sekitar Rp53,4 juta. Setelah validasi MVP berhasil, implementasi diperluas menjadi lebih dari 12 sekolah pada tahun kedua dan 35 sekolah pada tahun ketiga dengan estimasi pendapatan meningkat menjadi sekitar Rp220,2 juta dan Rp675 juta. Biaya investasi awal diproyeksikan sebesar Rp162 juta untuk pengembangan produk dan infrastruktur, sedangkan biaya operasional tahunan diperkirakan sekitar Rp142 juta pada tahun pertama.
+
+
+Berdasarkan asumsi tersebut, Klass diproyeksikan mencapai Break Even Point (BEP) pada sekitar 12 sekolah berlangganan, Payback Period pada pertengahan tahun ketiga, serta ROI kumulatif sekitar 295% dalam tiga tahun terhadap investasi awal. Proyeksi ini menunjukkan bahwa meskipun tahun pertama masih berada pada fase investasi dan validasi pasar, model bisnis Klass memiliki jalur pertumbuhan yang realistis menuju keberlanjutan finansial melalui kombinasi pendapatan berulang (recurring revenue) dan pertumbuhan ekosistem.
+
+Perbaikan:
+Klass menghadirkan model bisnis B2B2C Software-as-a-Service (SaaS) yang menghubungkan sekolah, guru, dan talenta digital lokal dalam satu ekosistem pembelajaran berbasis AI. Sekolah berperan sebagai pelanggan utama (paying customer) melalui skema langganan institusional, sementara guru menjadi pengguna aktif yang memanfaatkan AI Curriculum Assistant untuk menyusun perangkat ajar secara lebih efisien serta AI-powered Job Matching untuk mengakses talenta digital sesuai kebutuhan pembelajaran. Di sisi lain, talenta digital memperoleh peluang proyek yang relevan dengan kompetensinya sekaligus memperluas portofolio profesional melalui kolaborasi dengan institusi pendidikan. Model ini menciptakan nilai yang saling menguatkan (network effect), di mana bertambahnya sekolah akan meningkatkan jumlah guru, kebutuhan proyek, serta peluang bagi talenta lokal.
+Model pendapatan Klass terdiri atas tiga sumber utama, yaitu subscription SaaS sebesar Rp25.000 per guru per bulan yang dibayarkan oleh sekolah, komisi marketplace sebesar 15% dari setiap transaksi jasa antara guru dan talenta digital, serta lisensi konten dan layanan institusional yang direncanakan sebagai sumber pendapatan tambahan pada tahap ekspansi. Strategi freemium tetap digunakan untuk mempercepat adopsi awal, sedangkan pengembangan MVP didukung melalui hibah maupun program inkubasi dari pemerintah dan mitra strategis.
+Proyeksi implementasi dilakukan secara bertahap mengikuti roadmap pengembangan. Tahun pertama menargetkan 6 sekolah dengan rata-rata 45 guru per sekolah atau sekitar 270 guru, menghasilkan estimasi pendapatan sekitar Rp89,55 juta. Setelah validasi MVP, implementasi diperluas menjadi 18 sekolah (810 guru) pada tahun kedua dan 45 sekolah (2.025 guru) pada tahun ketiga dengan proyeksi pendapatan masing-masing sekitar Rp270,45 juta dan Rp680,40 juta. Investasi awal untuk pengembangan platform diperkirakan sebesar Rp138 juta, dengan biaya operasional tetap sekitar Rp67 juta pada tahun pertama.
+Berdasarkan proyeksi tersebut, Klass diperkirakan mencapai Break Even Point (BEP) pada sekitar 7 sekolah berlangganan atau pendapatan tahunan sekitar Rp94,5 juta, dengan Payback Period sekitar 1 tahun 10 bulan dan Return on Investment (ROI) kumulatif sekitar 464% dalam tiga tahun. Model bisnis menunjukkan  bahwa Klass tidak hanya layak secara finansial, tetapi juga memiliki model pertumbuhan yang berkelanjutan melalui kombinasi recurring revenue, marketplace, dan penguatan ekosistem pendidikan berbasis AI.
+
+
+
+Adoption, Growth Strategy, and Competitive Moat 
+250 kata 
+
+Klass menerapkan strategi adopsi secara bertahap dengan memulai implementasi pada sekolah mitra di wilayah Magelang sebagai lokasi pilot implementation. Tahap awal difokuskan pada penyelesaian MVP, validasi bersama guru, serta penyempurnaan produk berdasarkan umpan balik pengguna. Pendekatan ini memungkinkan setiap pengembangan dilakukan berdasarkan kebutuhan nyata di lapangan sebelum diperluas ke wilayah lain.
+
+
+Akuisisi pengguna dilakukan melalui kolaborasi dengan sekolah, komunitas pendidikan, institusi, dan jaringan guru yang telah terlibat dalam proses validasi masalah. Di sisi lain, pengembangan ekosistem talenta digital dilakukan dengan melibatkan mahasiswa, freelancer, dan kreator lokal yang memiliki kompetensi dalam pembuatan media pembelajaran. Strategi ini tidak hanya membangun basis pengguna sejak awal, tetapi juga memastikan keseimbangan antara kebutuhan guru dan ketersediaan talenta pada marketplace.
+
+
+Setelah implementasi pilot berhasil, fokus pengembangan diarahkan pada perluasan jumlah sekolah mitra di tingkat regional melalui pendekatan B2G SaaS, kemudian dilanjutkan dengan ekspansi bertahap ke wilayah yang lebih luas sesuai kesiapan produk dan hasil evaluasi implementasi. Seluruh proses ekspansi mengikuti roadmap pengembangan MVP hingga tahap implementasi institusi yang telah direncanakan dalam proposal.
+
+
+Keunggulan kompetitif Klass tidak hanya terletak pada penggunaan AI, tetapi pada human feedback loop dan integrasi tiga elemen utama dalam satu ekosistem, yaitu AI Curriculum Assistant untuk membantu penyusunan perangkat ajar, AI-powered Job Matching yang menghubungkan guru dengan talenta digital lokal, serta penguatan konten berbasis kearifan lokal. Kombinasi tersebut menjadikan Klass bukan sekadar alat bantu AI maupun marketplace jasa, melainkan platform kolaboratif yang menghubungkan kebutuhan pembelajaran dengan ekonomi kreatif daerah. Semakin banyak sekolah, guru, dan talenta digital yang bergabung, semakin besar pula nilai ekosistem yang terbentuk sehingga menciptakan hambatan kompetitif bagi platform lain yang ingin membangun jaringan serupa. Seiring waktu, akumulasi data akan menjadi knowledge base yang khusus dimiliki klass sehingga rekomendasi AI semakin akurat, sementara kolaborasi bersama para pemangku kepentingan akan memperluas jaringan pengguna layanan yang lebih kuat dan kompetitif. Sebagai pendukung kami telah menyiapkan 3 lampiran yakni Lampiran 5 (Adoption), Lampiran 6 (Partnership), dan Lampiran 7 (Solution Originality).
+
+
+Video Submission
+
+
+ File Attachment 
+
+
+Lampiran
+Bingung mau lampirin apa? cus lihat ini, eh dampak dimana sih ini
+
+
+No
+	Lampiran
+	Tujuan
+	1
+	Solution Ecosystem Framework
+	Menjelaskan stakeholder, hubungan, aliran nilai, layanan, dan informasi dalam ekosistem Klass.
+	2
+	AI Solution Workflow
+	Menjelaskan alur kerja AI mulai dari input guru hingga output yang direview pengguna.
+	3
+	User Journey Framework
+	Memvisualisasikan perjalanan guru menggunakan Klass dari awal hingga penyelesaian tugas.
+	4
+	MVP Scope Matrix
+	Menunjukkan batasan fitur MVP (Must Have, Should Have, Could Have, Future Development).
+	5
+	Business Value Framework (Who–What–How Much)
+	Merangkum siapa yang menerima manfaat, manfaat yang diperoleh, dan nilai yang dihasilkan bagi setiap stakeholder.
+	6
+	Business Model Flow
+	Menjelaskan model monetisasi, aliran pendapatan, serta hubungan antara pengguna, sekolah, dan sumber revenue Klass.
+	7
+	Financial Dashboard
+	Menyajikan ringkasan proyeksi keuangan, CAPEX, OPEX, BEP, ROI, Payback Period, dan indikator utama lainnya.
+	8
+	Business Growth Roadmap
+	Menunjukkan tahapan pertumbuhan bisnis, target adopsi sekolah, guru, talenta digital, dan ekspansi wilayah.
+	9
+	Competitive Moat Canvas
+	Membandingkan keunggulan Klass dengan solusi lain serta menjelaskan faktor yang membuatnya sulit ditiru.
+	10
+	Team Execution Canvas
+	Menjelaskan pembagian peran, deliverables, timeline eksekusi, dan kepemilikan setiap milestone oleh anggota tim.

@@ -78,6 +78,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     return ApiDebugInfo.localize(error, AppLocalizations.of(context));
   }
 
+  String _formatRate(dynamic rawRate) {
+    if (rawRate == null) return 'Rp 0';
+    String rateStr = rawRate.toString().trim();
+    if (rateStr.isEmpty || rateStr == '-') return 'Rp 0';
+
+    rateStr = rateStr.replaceAll('\$', '');
+    rateStr = rateStr
+        .replaceAll(
+          RegExp(
+            r'/(topik|topic|hr|jam|bulan|bln|day|hari)',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .trim();
+
+    if (rateStr.toLowerCase().startsWith('rp')) {
+      rateStr = rateStr.substring(2).trim();
+    }
+
+    return 'Rp $rateStr';
+  }
+
   Future<void> _copyDebugInfo(String message) async {
     final localizations = AppLocalizations.of(context)!;
     await Clipboard.setData(ClipboardData(text: message));
@@ -530,7 +553,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '\$$price',
+                    _formatRate(price),
                     style: const TextStyle(
                       fontFamily: 'Plus Jakarta Sans',
                       fontSize: 18,
